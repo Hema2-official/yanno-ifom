@@ -5,8 +5,7 @@
     import _data from '../../../data/data.json';
     import { onMount } from 'svelte';
     import { scale } from 'svelte/transition';
-    import 'zoomist/css'
-    import Zoomist from 'zoomist'
+    import ContextMenu from './ContextMenu.svelte';
 
     $frames = _data.frames as FrameType[];
 
@@ -21,40 +20,21 @@
 		'scale-percent': 100,
         'translate-x': 0,
         'translate-y': 0,
+        'image-top': 0,
 	};
     const stylesUnits = {
         'scale-percent': '%',
         'translate-x': 'px',
         'translate-y': 'px',
+        'image-top': 'px',
     };
 
     $: cssVarStyles = Object.entries(styles)
 		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
 		.join(';');
 
-    const getAbsCoords = (e: any) => {
-        // let target: HTMLElement = e.target;
-        // while (!target.classList.contains('display-container'))
-        //     target = target.parentElement;
-        // const shorterSide = Math.min(target.clientWidth, target.clientHeight);
+    const getPointerCoords = (e: any) => {
         return { x: e.clientX, y: e.clientY };
-    }
-    
-    const getRelativeCoords = (e: any) => {
-        const shorterSide = Math.min(e.target.clientWidth, e.target.clientHeight);
-        const offsetX = Math.round((e.target.clientWidth - shorterSide) / 2);
-        const offsetY = Math.round((e.target.clientHeight - shorterSide) / 2);
-        const mouseX = e.layerX - offsetX;
-        const mouseY = e.layerY - offsetY;
-        return { x: mouseX, y: mouseY, size: shorterSide };
-    }
-
-    const getRelativeCoordsNew = (e: any) => {
-        return { x: e.layerX, y: e.layerY };
-    }
-
-    function calculateShift(originalSize: number, scale: number, transformOrigin: number) {
-        return originalSize * scale / 2 - transformOrigin * (scale);
     }
 
     const movePixels = (x: number, y: number) => {
@@ -64,51 +44,41 @@
         const scaledWidth = container.clientWidth * scale;
         const scaledHeight = container.clientHeight * scale;
         const offsetX = (Math.min(scaledHeight, scaledWidth) - container.clientWidth) / 2;
-        const offsetY = scaledHeight > scaledWidth ? Math.abs(scaledWidth - scaledHeight) / 2 : 0;
+        const offsetY = (Math.min(scaledHeight, scaledWidth) - container.clientHeight) / 2;
         styles['translate-x'] = scaledHeight >= container.clientWidth ?
             Math.max(-offsetX, Math.min(offsetX, x + styles['translate-x'])) : 0;
         styles['translate-y'] = scaledWidth >= container.clientHeight ?
-            Math.max(-(scaledHeight - container.clientHeight) + offsetY, Math.min(-offsetY, y + styles['translate-y'])) : -(scaledHeight - container.clientHeight) / 2;
+            Math.max(-offsetY, Math.min(offsetY, y + styles['translate-y'])) : 0;
+        styles['image-top'] = -(scaledHeight - container.clientHeight) / 2;
     }
 
     const handleWheel = (e: WheelEvent) => {
         e.preventDefault();
         if (!e.target) return;
         
+        // find svg element
+        let target = e.target as HTMLElement;
+        if (target.classList.contains('display-container')) return;
+        while (!target.nodeName.toLowerCase().includes('svg'))
+            target = target.parentElement;
+
         // find mouse pos
-        const mouse = getRelativeCoordsNew(e);
-        const mouseAbs = getAbsCoords(e);
-        if (!mouse || !mouseAbs) return;
+        const mouse = getPointerCoords(e);
+        if (!mouse) return;
 
         // adjust zoom (the bigger the scale, the faster the zoom)
-        const delta = e.deltaY;
         const oldScalePercent = styles['scale-percent'];
-        styles['scale-percent'] = Math.max($minScale, Math.min($maxScale, styles['scale-percent'] + delta * -0.001 * oldScalePercent));
-
-        // find svg element
-        // let target = e.target as Element;
-        // if (target.classList.contains('display-container')) return;
-        // while (!target.nodeName.toLowerCase().includes('svg'))
-        //     target = target.parentElement;
+        styles['scale-percent'] = Math.max($minScale, Math.min($maxScale, styles['scale-percent'] + e.deltaY * -0.001 * oldScalePercent));
 
         // check if scale changed
         if (oldScalePercent === styles['scale-percent']) return;
 
-        // find container
-        const container = document.querySelector('.display-container');
-        if (!container) return;
-        
-        const scaleChange = styles['scale-percent'] / oldScalePercent;
-        const scaledHeight = container.clientHeight * styles['scale-percent'] / 100;
-        const scaledWidth = container.clientWidth * styles['scale-percent'] / 100;
-        const maxY = -(scaledHeight - container.clientHeight);
-        const offsetX = (Math.min(scaledHeight, scaledWidth) - container.clientWidth) / 2;
-        const mousePercentX = mouse.x / scaledWidth;
-        const mousePercentY = mouse.y / scaledHeight;
-        const mouseAbsPercentX = mouseAbs.x / container.clientWidth;
-        const mouseAbsPercentY = mouseAbs.y / container.clientHeight;
-        console.debug(mouseAbs.x - container.clientWidth / 2);
-        movePixels(calculateShift(container.clientWidth, styles['scale-percent'] / 100, mouseAbs.x - container.clientWidth) - styles['translate-x'], 0); //maxY * mousePercentY * scaleChange - styles['translate-y'] + container.clientHeight - mouseAbsPercentY * container.clientHeight);
+        // adjust translate
+        const { width, height, top, left, bottom } = target.getBoundingClientRect();
+        const scaleDiff = (styles['scale-percent'] / 100) / (oldScalePercent / 100) - 1;
+        const distanceX = (width / 2 - mouse.x + left) * scaleDiff;
+        const distanceY = (height / 2 - mouse.y + top) * scaleDiff;
+        movePixels(distanceX, distanceY);
     };
 
     const prevMouseStats = {
@@ -124,7 +94,7 @@
         }
 
         // find mouse pos
-        const mouse = getAbsCoords(e);
+        const mouse = getPointerCoords(e);
         if (!mouse) return;
 
         // check if zoomed
@@ -144,27 +114,26 @@
         // update prev stats
         prevMouseStats.x = mouse.x;
         prevMouseStats.y = mouse.y;
-
     }
 
-    const handleContextMenu = (e: any) => {
+    const ignoreContextMenu = (e: any) => {
         e.preventDefault();
     }
 
-    // onMount(() => {
-    //     const zoomist = new Zoomist('.zoomist-container', {
-    //         // Optional parameters
-    //         maxScale: 4,
-    //         bounds: true,
-    //         // if you need slider
-    //         slider: true,
-    //         // if you need zoomer
-    //         zoomer: true,
-    //         zoomRatio: 0.3,
-    //     });
-    // });
+    let isContextMenuShown = false;
+    let cmPosition = { x: 0, y: 0 };
+    let cmText = '';
+
+    const handleContextMenu = (e: any) => {
+        console.log(e);
+        isContextMenuShown = true;
+        cmPosition = getPointerCoords(e);
+        cmText = e.target.id;
+        e.preventDefault();
+    }
     
     // let svg = frameToSvg(1);
+
 
 </script>
 
@@ -173,19 +142,18 @@
     role="img"
     on:wheel={handleWheel}
     on:mousemove={handleMove}
-    on:contextmenu={handleContextMenu}
+    on:contextmenu={ignoreContextMenu}
     style={cssVarStyles}
-    > <!-- zoomist-container -->
-
-    <!-- <div class="zoomist-wrapper">
-    <div class="zoomist-image"> -->
+    >
     
+    <div class="image-wrapper">
+
         <img src="/test.png" alt="" class="zoomable" />
         
-        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" class="zoomable" on:contextmenu={handleContextMenu}>
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" class="zoomable" on:contextmenu={ignoreContextMenu}>
             {#if $isSvgShown}
                 {#each $frames[$frameIndex].cells as cell}
-                    <g>
+                    <g on:contextmenu={handleContextMenu} role="region">
                         <path
                             id="cell{cell.id}"
                             d={cellToPath(cell)}
@@ -200,21 +168,22 @@
                 {/each }
             {/if}
         </svg>
+        
+    </div>
 
-    <!-- </div>
-    </div> -->
-    
+    <ContextMenu
+        shown={isContextMenuShown}
+        position={cmPosition}>
+        <p>{cmText}</p>
+    </ContextMenu>
+
 </div>
 
 <style>
-    :root {
-        --zoomist-wrapper-bg-color: unset !important;
-    }
-
     .display-container {
         position: relative;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
         width: 100%;
         height: 100%;
@@ -224,7 +193,19 @@
         overflow: hidden;
     }
 
+    .image-wrapper {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
     .zoomable {
+        top: var(--image-top);
         position: absolute;
         object-fit: contain;
         width: 100%;
@@ -233,17 +214,7 @@
         width: var(--scale-percent);
         transform: translate(var(--translate-x), var(--translate-y));
         transform-origin: center;
-        transition: transform 0.1s cubic-bezier(0.1, 1, 0.1, 1), width 0.1s cubic-bezier(0.1, 1, 0.1, 1), height 0.1s cubic-bezier(0.1, 1, 0.1, 1);
-    }
-
-    .zoomist-image {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        height: 100%;
-        aspect-ratio: 1;
-        transition: --scale 0.1s cubic-bezier(0.1, 1, 0.1, 1);
+        transition: transform 0.1s cubic-bezier(0.1, 1, 0.1, 1), width 0.1s cubic-bezier(0.1, 1, 0.1, 1), height 0.1s cubic-bezier(0.1, 1, 0.1, 1), top 0.1s cubic-bezier(0.1, 1, 0.1, 1);
     }
 
     path:hover {
