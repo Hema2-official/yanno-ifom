@@ -151,36 +151,38 @@
         e.preventDefault();
     }
 
-    onMount(() => {
-        const zoomist = new Zoomist('.zoomist-container', {
-            // Optional parameters
-            maxScale: 4,
-            bounds: true,
-            // if you need slider
-            slider: true,
-            // if you need zoomer
-            zoomer: true,
-            zoomRatio: 0.3,
-        });
-    });
+    // onMount(() => {
+    //     const zoomist = new Zoomist('.zoomist-container', {
+    //         // Optional parameters
+    //         maxScale: 4,
+    //         bounds: true,
+    //         // if you need slider
+    //         slider: true,
+    //         // if you need zoomer
+    //         zoomer: true,
+    //         zoomRatio: 0.3,
+    //     });
+    // });
     
     // let svg = frameToSvg(1);
 
 </script>
 
-<div class="display-container zoomist-container"
+
+<div class="display-container"
     role="img"
+    on:wheel={handleWheel}
     on:mousemove={handleMove}
     on:contextmenu={handleContextMenu}
     style={cssVarStyles}
-    >
+    > <!-- zoomist-container -->
 
-    <div class="zoomist-wrapper">
-    <div class="zoomist-image">
+    <!-- <div class="zoomist-wrapper">
+    <div class="zoomist-image"> -->
     
-        <img src="/test.png" alt="" class="zoomable" /> <!--zoomable-->
+        <img src="/test.png" alt="" class="zoomable" />
         
-        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" class="zoomable" on:contextmenu={handleContextMenu}> <!--zoomable-->
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" class="zoomable" on:contextmenu={handleContextMenu}>
             {#if $isSvgShown}
                 {#each $frames[$frameIndex].cells as cell}
                     <g>
@@ -199,8 +201,8 @@
             {/if}
         </svg>
 
-    </div>
-    </div>
+    <!-- </div>
+    </div> -->
     
 </div>
 
@@ -210,6 +212,7 @@
     }
 
     .display-container {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -226,11 +229,11 @@
         object-fit: contain;
         width: 100%;
         height: 100%;
-        /* height: var(--scale-percent);
+        height: var(--scale-percent);
         width: var(--scale-percent);
         transform: translate(var(--translate-x), var(--translate-y));
         transform-origin: center;
-        transition: transform 0.1s cubic-bezier(0.1, 1, 0.1, 1), width 0.1s cubic-bezier(0.1, 1, 0.1, 1), height 0.1s cubic-bezier(0.1, 1, 0.1, 1); */
+        transition: transform 0.1s cubic-bezier(0.1, 1, 0.1, 1), width 0.1s cubic-bezier(0.1, 1, 0.1, 1), height 0.1s cubic-bezier(0.1, 1, 0.1, 1);
     }
 
     .zoomist-image {
