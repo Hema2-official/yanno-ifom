@@ -21,6 +21,8 @@ export const svgStrokeSwitch = writable(true);
 export const minScale = writable(100);
 export const maxScale = writable(1000);
 
+export const cmOpacity = writable(90);
+
 export const backend_url = writable('https://example.com/api/');
 
 export const frames: Writable<FrameType[]> = writable([]);

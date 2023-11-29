@@ -1,5 +1,5 @@
 <script>
-	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch } from '../../stores';
+	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity } from '../../stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
@@ -41,6 +41,12 @@
 			max={255}
 			slide={(e) => ($svgAlpha = e.target.value)}
 			>SVG opacity</Slider
+		>
+		<Slider
+			value={$cmOpacity}
+			max={100}
+			slide={(e) => ($cmOpacity = e.target.value)}
+			>Context menu opacity</Slider
 		>
 		
 	</div>

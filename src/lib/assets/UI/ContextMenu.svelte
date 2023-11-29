@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { cmOpacity } from "../../stores";
+
     export let shown = false;
     export let position = { x: 0, y: 0 };
 
@@ -6,11 +8,13 @@
         'cm-display': shown ? 'flex' : 'none',
 		'cm-top': position.y,
         'cm-left': position.x,
+        'cm-opacity': $cmOpacity,
 	};
     const stylesUnits = {
         'cm-display': '',
 		'cm-top': 'px',
         'cm-left': 'px',
+        'cm-opacity': '%',
     };
 
     $: cssVarStyles = Object.entries(styles)
@@ -39,5 +43,6 @@
         display: var(--cm-display);
         flex-direction: column;
         align-items: start;
+        opacity: var(--cm-opacity);
     }
 </style>
