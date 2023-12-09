@@ -1,12 +1,9 @@
 <script lang="ts">
-	export let value = '';
-
-	// export function prop
-	export let tb: (event: any) => void;
+	export let value;
 </script>
 
 <div class="textbox-wrapper">
-    <input type="text" placeholder=" " {value} on:change={tb} class="" />
+    <input type="text" placeholder=" " bind:value={value} class="" />
 	<label class="tb-label"><span class="label-text"><slot /></span></label>
 </div>
 

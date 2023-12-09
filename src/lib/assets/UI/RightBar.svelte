@@ -12,48 +12,40 @@
 	<p class="title">Settings</p>
 	<div class="group">
 		<CheckBox
-			checked={$isSvgShown}
-			cb={(e) => ($isSvgShown = e.target ? e.target.checked : false)}
+			bind:checked={$isSvgShown}
 			>Show SVG</CheckBox
 		>
 		<CheckBox
-			checked={$svgStrokeSwitch}
-			cb={(e) => ($svgStrokeSwitch = e.target ? e.target.checked : false)}
+			bind:checked={$svgStrokeSwitch}
 			>Stroke</CheckBox
 		>
 		<ColorPicker
-			value={$svgStroke}
-			cp={(e) => ($svgStroke = e.target ? e.target.value : '#ffffff')}
+			bind:value={$svgStroke}
 			>SVG stroke color...</ColorPicker
 		>
 		<CheckBox
-			checked={$svgFillSwitch}
-			cb={(e) => ($svgFillSwitch = e.target ? e.target.checked : false)}
+			bind:checked={$svgFillSwitch}
 			>Fill</CheckBox
 		>
 		<ColorPicker
-			value={$svgFill}
-			cp={(e) => ($svgFill = e.target ? e.target.value : '#ffffff')}
+			bind:value={$svgFill}
 			>SVG fill color...</ColorPicker
 		>
 		<Slider
-			value={$svgAlpha}
+			bind:value={$svgAlpha}
 			max={255}
-			slide={(e) => ($svgAlpha = e.target.value)}
 			>SVG opacity</Slider
 		>
 		<Slider
-			value={$cmOpacity}
+			bind:value={$cmOpacity}
 			max={100}
-			slide={(e) => ($cmOpacity = e.target.value)}
 			>Context menu opacity</Slider
 		>
 		
 	</div>
 
 	<TextBox
-		value={$backend_url}
-		tb={(e) => ($backend_url = e.target ? e.target.value : '')}
+		bind:value={$backend_url}
 		>Backend url</TextBox
 	>
 	

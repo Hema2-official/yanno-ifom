@@ -1,13 +1,10 @@
 <script lang="ts">
 	export let checked = false;
-
-	// export function prop
-	export let cb: (event: any) => void;
 </script>
 
 <div class="labeled-input-wrapper">
 	<label>
-		<input type="checkbox" {checked} on:change={cb} class="labeled-input checkbox" />
+		<input type="checkbox" bind:checked={checked} class="labeled-input checkbox" />
 		<span class="checkmark"></span>
 		<span class="label-text"><slot /></span>
 	</label>
@@ -23,16 +20,17 @@
 		appearance: none;
 	}
 
-	.checkbox:hover {
+	.checkbox:hover, .checkbox:focus-visible {
+		outline: none;
 		border-color: var(--accent-color);
 	}
 
-
-	.checkbox:checked:hover {
+	.checkbox:checked:hover, .checkbox:checked:focus-visible {
+		outline: none;
 		background-color: var(--accent-color);
 	}
 
-	.checkmark::after {
+	.checkbox::after {
 		content: "";
 		position: absolute;
 		opacity: 0;
@@ -49,7 +47,7 @@
 		transform: rotate(45deg);
 	}
 
-	.checkbox:checked ~ .checkmark::after {
+	.checkbox:checked::after {
 		opacity: 1;
 	}
 </style>

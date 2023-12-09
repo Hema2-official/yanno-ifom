@@ -1,9 +1,8 @@
 <script lang="ts">
-	export let value = 0;
-	export let max = 1;
+	export let value;
+	export let min = 0;
+	export let max;
 
-	// export function prop
-	export let slide: (event: any) => void;
 	export let mDown: (event: Event) => void = null;
 	export let mUp: (event: Event) => void = null;
 </script>
@@ -13,10 +12,9 @@
 		<span class="label-text"><slot /></span>
 		<input
 			type="range"
-			min="0"
+			min="{min}"
 			max="{max}"
-			{value}
-			on:change={slide}
+			bind:value={value}
 			on:mousedown={mDown}
 			on:mouseup={mUp}
 			class="range range-success"
@@ -37,7 +35,8 @@
 		width: calc(100% - .4rem);
 		height: 10px;
 	}
-	input[type='range']:hover {
+	input[type='range']:hover, input[type='range']:focus-visible {
+		outline: none;
 		background-color: var(--accent-color);
 	}
 
