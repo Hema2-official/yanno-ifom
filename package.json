@@ -15,6 +15,7 @@
     "vite": "^4.4.5"
   },
   "dependencies": {
+    "svelte-i18n": "^4.0.0",
     "zoomist": "^2.0.11"
   }
 }
