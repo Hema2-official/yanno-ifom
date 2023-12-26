@@ -1,11 +1,12 @@
 <script>
+	import { _ } from "svelte-i18n";
 	import svgLogo from '/logo.svg'
 
 </script>
 
 <nav class="navbar">
 	<img src={svgLogo} class="logo" alt="Logo" />
-	<p class="title">IFOM annotation</p>
+	<p class="title">{$_("app_title")}</p>
 	<div class="input-container">
 		<input
 			type="file"

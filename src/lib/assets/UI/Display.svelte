@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { _ } from 'svelte-i18n';
     import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing } from '../../stores';
     import type { CellType, FrameType } from '../../types';
 
@@ -237,8 +238,8 @@
                 <button>Y</button>
             </div>
             <div class="right">
-                <button on:click={() => $isEditing = false} title="Quit editor">Done</button>
-                <button>Some</button>
+                <button on:click={() => $isEditing = false} title={$_("confirm_and_quit")}>Done</button>
+                <button title={$_("quit_without_saving")}>Some</button>
                 <div>
                     <button>G1</button>
                     <button>G2</button>
