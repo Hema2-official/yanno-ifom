@@ -1,5 +1,5 @@
 <script>
-	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity } from '../../stores';
+	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing } from '../../stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
@@ -40,6 +40,10 @@
 			bind:value={$cmOpacity}
 			max={100}
 			>Context menu opacity</Slider
+		>
+		<CheckBox
+			bind:checked={$isEditing}
+			>Edit mode</CheckBox
 		>
 		
 	</div>

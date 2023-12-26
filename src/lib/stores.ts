@@ -11,6 +11,8 @@ export const isPlaying = writable(false);
 
 export const isSvgShown = writable(true);
 
+export const isEditing = writable(false);
+
 export const svgFill = writable('#ffffff');
 export const svgStroke = writable('#000000');
 export const svgHoverFill = writable('#ff0000');
