@@ -15,7 +15,7 @@
 		display: inline-block;
 		border-radius: 4px;
 		border: 2px solid var(--gray-accent);
-		background-color: unset;
+		background-color: transparent;
 		transition: border-color 0.1s, background-color 0.1s;
 		appearance: none;
 	}
