@@ -283,6 +283,11 @@
         height: 100%;
         max-width: 100%;
         max-height: 100%;
+        cursor: grab;
+    }
+
+    .image-wrapper:active {
+        cursor: grabbing;
     }
 
     .zoomable {
