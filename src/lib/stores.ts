@@ -11,6 +11,8 @@ export const isPlaying = writable(false);
 
 export const isSvgShown = writable(true);
 
+export const pointerLockEnabled = writable(false);
+
 export const isEditing = writable(false);
 
 export const svgFill = writable('#ffffff');

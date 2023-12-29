@@ -1,18 +1,19 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
-    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing } from '../../stores';
+    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled } from '../../stores';
     import type { CellType, FrameType } from '../../types';
 
     import _data from '../../../data/data.json';
     import { onMount } from 'svelte';
     import { scale } from 'svelte/transition';
     import ContextMenu from './ContextMenu.svelte';
-    import { Mouse, isDown } from '../../utils';
+    import { Mouse, isDown, isUp } from '../../utils';
     import EditorControls from './EditorControls.svelte';
 
     $frames = _data.frames as FrameType[];
     
     let contextMenuComponent: ContextMenu;
+    let imageWrapperElement: HTMLElement;
 
     let editorCell: CellType;
     let testCoords = { x: 0, y: 0 };
@@ -24,17 +25,19 @@
         return path;
     }
 
-    $: styles = {
+    const styles = {
 		'scale-percent': 100,
         'translate-x': 0,
         'translate-y': 0,
         'image-top': 0,
+        'cursor': 'grab',
 	};
     const stylesUnits = {
         'scale-percent': '%',
         'translate-x': 'px',
         'translate-y': 'px',
         'image-top': 'px',
+        'cursor': '',
     };
 
     $: cssVarStyles = Object.entries(styles)
@@ -46,18 +49,16 @@
     }
 
     const movePixels = (x: number, y: number) => {
-        const container = document.querySelector('.display-container');
-        if (!container) return;
         const scale = styles['scale-percent'] / 100;
-        const scaledWidth = container.clientWidth * scale;
-        const scaledHeight = container.clientHeight * scale;
-        const offsetX = (Math.min(scaledHeight, scaledWidth) - container.clientWidth) / 2;
-        const offsetY = (Math.min(scaledHeight, scaledWidth) - container.clientHeight) / 2;
-        styles['translate-x'] = scaledHeight >= container.clientWidth ?
+        const scaledWidth = imageWrapperElement.clientWidth * scale;
+        const scaledHeight = imageWrapperElement.clientHeight * scale;
+        const offsetX = (Math.min(scaledHeight, scaledWidth) - imageWrapperElement.clientWidth) / 2;
+        const offsetY = (Math.min(scaledHeight, scaledWidth) - imageWrapperElement.clientHeight) / 2;
+        styles['translate-x'] = scaledHeight >= imageWrapperElement.clientWidth ?
             Math.max(-offsetX, Math.min(offsetX, x + styles['translate-x'])) : 0;
-        styles['translate-y'] = scaledWidth >= container.clientHeight ?
+        styles['translate-y'] = scaledWidth >= imageWrapperElement.clientHeight ?
             Math.max(-offsetY, Math.min(offsetY, y + styles['translate-y'])) : 0;
-        styles['image-top'] = -(scaledHeight - container.clientHeight) / 2;
+        styles['image-top'] = -(scaledHeight - imageWrapperElement.clientHeight) / 2;
     }
 
     const handleWheel = (e: WheelEvent) => {
@@ -97,39 +98,61 @@
         movePixels(distanceX, distanceY);
     };
 
-    const prevMouseStats = {
+    const prevMouse = {
         x: 0,
         y: 0,
-        down: false
+        down: false,
+        setPos: (pos: {x: number, y: number}) => {
+            prevMouse.x = pos.x;
+            prevMouse.y = pos.y;
+        }
     };
 
-    const handleMove = (e: any) => {
-        if (!e.target || !(isDown(Mouse.Primary, e.buttons) || isDown(Mouse.Secondary, e.buttons))) {
-            prevMouseStats.down = false;
-            return;
-        }
+    const handleDown = (e: MouseEvent) => {
+        e.preventDefault();
+        if (isUp(Mouse.Primary, e.buttons)) return;
+        if ($pointerLockEnabled) imageWrapperElement.requestPointerLock();
+        else prevMouse.setPos(getPointerCoords(e));
+        prevMouse.down = true;
+        styles['cursor'] = 'grabbing';
+    }
+
+    const handleUp = (e: MouseEvent) => {
+        e.preventDefault();
+        if (isDown(Mouse.Primary, e.buttons)) return;
+        if ($pointerLockEnabled) document.exitPointerLock();
+        prevMouse.down = false;
+        styles['cursor'] = 'grab';
+    }
+
+    const handleLeave = (e: MouseEvent) => {
+        e.preventDefault();
+        prevMouse.down = false;
+        styles['cursor'] = 'grab';
+    }
+
+    const handleMove = (e: MouseEvent) => {
+        e.preventDefault();
+        if (!prevMouse.down) return;
+        if (styles['scale-percent'] === $minScale) return;
+        if ($pointerLockEnabled) return handleMoveLocked(e);
 
         // find mouse pos
         const mouse = getPointerCoords(e);
-        if (!mouse) return;
-
-        // check if zoomed
-        if (styles['scale-percent'] === $minScale) return;
-
-        // handle pan
-        if (!prevMouseStats.down) {
-            prevMouseStats.x = mouse.x;
-            prevMouseStats.y = mouse.y;
-            prevMouseStats.down = true;
-            return;
-        }
 
         // adjust translate
-        movePixels(mouse.x - prevMouseStats.x, mouse.y - prevMouseStats.y);
+        movePixels(mouse.x - prevMouse.x, mouse.y - prevMouse.y);
 
-        // update prev stats
-        prevMouseStats.x = mouse.x;
-        prevMouseStats.y = mouse.y;
+        // update prev
+        prevMouse.x = mouse.x;
+        prevMouse.y = mouse.y;
+    }
+    const handleMoveLocked = (e: MouseEvent) => {
+        // check lock
+        if (!document.pointerLockElement) return;
+
+        // adjust translate
+        movePixels(e.movementX, e.movementY);
     }
 
     const ignoreContextMenu = (e: any) => {
@@ -163,19 +186,28 @@
 
 
 <div class="display-container"
-    role="img"
+role="presentation"
+on:contextmenu={ignoreContextMenu}
+on:mouseleave={handleLeave}
+style={cssVarStyles}
+>
+    <div class="image-wrapper"
+    role="presentation"
     on:wheel={handleWheel}
+    on:mousedown={handleDown}
+    on:mouseup={handleUp}
     on:mousemove={handleMove}
-    on:contextmenu={ignoreContextMenu}
-    style={cssVarStyles}
+    bind:this={imageWrapperElement}
     >
-    
-    <div class="image-wrapper">
 
         <img src="/test.png" alt="" class="zoomable" />
         
         {#if $isSvgShown}
-        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" class="zoomable" on:contextmenu={ignoreContextMenu}>
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        class="zoomable"
+        on:contextmenu={ignoreContextMenu}
+        >
             {#if !$isEditing}
             {#each $frames[$frameIndex].cells as cell}
             <g on:contextmenu={handleContextMenu} role="region">
@@ -188,7 +220,6 @@
                     opacity={$svgAlpha / 255}
                     role="img"
                     />
-                    <!-- If I ever remove the grouping, remember to also change the target in handleWheel accordingly! -->
             </g>
             {/each }
             {:else}
@@ -249,8 +280,6 @@
                 <button>Y</button>
             </div>
         </EditorControls>
-    {:else}
-    
     {/if}
     <ContextMenu bind:this={contextMenuComponent} on:mousemove={null}>
         <button on:click={edit}>Edit</button>
@@ -283,11 +312,7 @@
         height: 100%;
         max-width: 100%;
         max-height: 100%;
-        cursor: grab;
-    }
-
-    .image-wrapper:active {
-        cursor: grabbing;
+        cursor: var(--cursor);
     }
 
     .zoomable {
@@ -304,7 +329,7 @@
     }
 
     path {
-        cursor: context-menu;
+        cursor: default;
     }
 
     path:hover {

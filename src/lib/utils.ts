@@ -9,3 +9,7 @@ export enum Mouse {
 export function isDown(button: Mouse, raw_buttons: number) {
     return (raw_buttons & button) != 0;
 }
+
+export function isUp(button: Mouse, raw_buttons: number) {
+    return (raw_buttons & button) == 0;
+}
