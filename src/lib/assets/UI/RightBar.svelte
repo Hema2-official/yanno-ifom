@@ -54,3 +54,18 @@
 	>
 	
 </nav>
+
+<style>
+	.right-container {
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		width: var(--right-bar-width);
+		height: 100%;
+		top: 0;
+		right: 0;
+		padding: 1.3em;
+		border-left: 0.2rem solid var(--accent-color);
+		box-sizing: border-box;
+	}
+</style>

@@ -28,7 +28,7 @@
 		padding: 0 20px;
 		gap: 80px;
 		box-sizing: border-box;
-		border-bottom: 2px solid var(--accent-color);
+		border-bottom: 0.2rem solid var(--accent-color);
 	}
 
 	.input-container {

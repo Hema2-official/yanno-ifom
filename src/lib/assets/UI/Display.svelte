@@ -303,6 +303,10 @@
         transition: transform 100ms cubic-bezier(0.1, 1, 0.1, 1), width 100ms cubic-bezier(0.1, 1, 0.1, 1), height 100ms cubic-bezier(0.1, 1, 0.1, 1), top 100ms cubic-bezier(0.1, 1, 0.1, 1);
     }
 
+    path {
+        cursor: context-menu;
+    }
+
     path:hover {
         fill: #ff0000;
     }

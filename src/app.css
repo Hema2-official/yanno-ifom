@@ -20,7 +20,7 @@
   --focus-color: #8524d4e7; /* R.I.P. #646cffad */
   --gray-accent: #ffffff55;
 
-  --top-bar-height: 5em;
+  --top-bar-height: 5rem;
   --right-bar-width: 20%;
 }
 
@@ -39,15 +39,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-.card {
-  padding: 2em;
+  user-select: none;
 }
 
 #app {
@@ -65,23 +57,10 @@ main {
   height: calc(100% - var(--top-bar-height));
 }
 
-.right-container {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  width: var(--right-bar-width);
-  height: 100%;
-  top: 0;
-  right: 0;
-  padding: 20px;
-  border-left: 2px solid var(--accent-color);
-  box-sizing: border-box;
-}
-
 .title {
   text-align: center;
   line-height: normal;
-  font-size: 30px;
+  font-size: 1.8rem;
   font-weight: 600;
   margin-top: 1rem;
   margin: 1rem 0;
@@ -112,8 +91,8 @@ main {
 }
 
 .labeled-input {
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.25rem;
+  height: 1.25rem;
   margin: .25rem .5rem .25rem .25rem;
   padding: 0;
   outline: none;
@@ -121,13 +100,14 @@ main {
   cursor: pointer;
 }
 
+
+/*      Context menu      */
 .context-menu p {
   font-size: 1.2em;
   font-weight: bold;
   align-self: center;
   margin: 0.4em 0.6em;
 }
-
 .context-menu button {
   width: 100%;
   padding: 0.4em 1.2em;
@@ -145,6 +125,8 @@ main {
   background-color: var(--accent-color);
 }
 
+
+/*      Editor controls      */
 .editor-controls-wrapper > * {
   position: absolute;
   top: 1em;
@@ -209,7 +191,7 @@ main {
 }
 .editor-controls-wrapper > * > :not(button) > button:not(:first-child) {
   border: 0.2em solid transparent;
-  border-top: 2px solid var(--gray-accent);
+  border-top: 0.2em solid var(--gray-accent);
   border-bottom: none;
 }
 .editor-controls-wrapper > * > :not(button) > button:last-child {
