@@ -1,9 +1,10 @@
 <script lang="ts">
 	export let value;
+    export let disabled = false;
 </script>
 
 <div class="textbox-wrapper">
-    <input type="text" placeholder=" " bind:value={value} class="" />
+    <input type="text" placeholder=" " bind:value={value} class="" disabled={disabled} />
 	<label class="tb-label"><span class="label-text"><slot /></span></label>
 </div>
 
@@ -51,5 +52,14 @@
     }
     input[type='text']::placeholder {
         color: transparent;
+    }
+
+    input[type='text']:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+    input[type='text']:disabled + .tb-label {
+        opacity: 0.6;
+        cursor: default;
     }
 </style>

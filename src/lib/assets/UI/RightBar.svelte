@@ -43,6 +43,7 @@
 		>
 		<CheckBox
 			bind:checked={$isEditing}
+			disabled={!$isEditing}
 			>Edit mode</CheckBox
 		>
 		

@@ -1,11 +1,11 @@
 <script lang="ts">
 	export let checked = false;
+	export let disabled = false;
 </script>
 
 <div class="labeled-input-wrapper">
 	<label>
-		<input type="checkbox" bind:checked={checked} class="labeled-input checkbox" />
-		<span class="checkmark"></span>
+		<input type="checkbox" bind:checked={checked} class="labeled-input checkbox" disabled={disabled} />
 		<span class="label-text"><slot /></span>
 	</label>
 </div>
@@ -20,12 +20,12 @@
 		appearance: none;
 	}
 
-	.checkbox:hover, .checkbox:focus-visible {
+	.checkbox:not(:disabled):hover, .checkbox:not(:disabled):focus-visible {
 		outline: none;
 		border-color: var(--accent-color);
 	}
 
-	.checkbox:checked:hover, .checkbox:checked:focus-visible {
+	.checkbox:not(:disabled):checked:hover, .checkbox:not(:disabled):checked:focus-visible {
 		outline: none;
 		background-color: var(--accent-color);
 	}
@@ -50,4 +50,18 @@
 	.checkbox:checked::after {
 		opacity: 1;
 	}
+
+	.checkbox:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+	.checkbox:disabled + .label-text {
+		opacity: 0.6;
+		cursor: default;
+	}
+	label:has(.checkbox:disabled) {
+		cursor: default;
+	}
+
+
 </style>

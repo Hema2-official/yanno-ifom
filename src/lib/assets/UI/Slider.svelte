@@ -2,6 +2,7 @@
 	export let value;
 	export let min = 0;
 	export let max;
+	export let disabled = false;
 
 	export let mDown: (event: Event) => void = null;
 	export let mUp: (event: Event) => void = null;
@@ -18,6 +19,7 @@
 			on:mousedown={mDown}
 			on:mouseup={mUp}
 			class="range range-success"
+			disabled={disabled}
 		/>
 	</label>
 </div>
@@ -35,7 +37,7 @@
 		width: calc(100% - .4rem);
 		height: 10px;
 	}
-	input[type='range']:hover, input[type='range']:focus-visible {
+	input[type='range']:not(:disabled):hover, input[type='range']:not(:disabled):focus-visible {
 		outline: none;
 		background-color: var(--accent-color);
 	}
@@ -46,5 +48,17 @@
 		width: 100%;
 		gap: .1rem;
 		cursor: unset !important;
+	}
+
+	input[type='range']:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+	.label-text:has(+ input[type='range']:disabled) {
+		opacity: 0.6;
+		cursor: default;
+	}
+	label:has(input[type='range']:disabled) {
+		cursor: default;
 	}
 </style>
