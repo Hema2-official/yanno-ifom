@@ -72,13 +72,6 @@
         // hide context menu quickly
         contextMenuComponent.hide(false);
 
-        // find zoomable element
-        let target = e.target as HTMLElement;
-        if (target.classList.contains('display-container')) return;
-        while (!target?.classList.contains('zoomable'))
-            target = target.parentElement;
-        if (!target) return;
-
         // find mouse pos
         const mouse = getPointerCoords(e);
 
@@ -86,57 +79,58 @@
         const oldScalePercent = styles['scale-percent'];
         styles['scale-percent'] = Math.max($minScale, Math.min($maxScale, e.deltaY * -0.001 * styles['scale-percent'] + styles['scale-percent']));
 
-        // check if scale changed
-        if (oldScalePercent === styles['scale-percent']) return;
-
         // adjust translate
-        const { width, height, top, left } = target.getBoundingClientRect();
+        const { width, height, top, left } = svgElement.getBoundingClientRect();
         const scaleDiff = (styles['scale-percent'] / 100) / (oldScalePercent / 100) - 1;
         const distanceX = (width / 2 - mouse.x + left) * scaleDiff;
         const distanceY = (height / 2 - mouse.y + top) * scaleDiff;
         movePixels(distanceX, distanceY);
     };
 
-    const prevMousePan = {
-        x: 0,
-        y: 0,
+    const imageMouse = {
+        prevX: 0,
+        prevY: 0,
         down: false,
+        first: true,
         setPos: (pos: {x: number, y: number}) => {
-            prevMousePan.x = pos.x;
-            prevMousePan.y = pos.y;
+            imageMouse.prevX = pos.x;
+            imageMouse.prevY = pos.y;
         }
     };
 
     const imageMouseDown = (e: MouseEvent) => {
         e.preventDefault();
         if (isUp(Mouse.Primary, e.buttons)) return;
-        if ($pointerLockEnabled) imageWrapperElement.requestPointerLock();
-        else prevMousePan.setPos(getPointerCoords(e));
-        prevMousePan.down = true;
+        if ($pointerLockEnabled) {
+            imageWrapperElement.requestPointerLock();
+            imageMouse.first = true;
+        } else imageMouse.setPos(getPointerCoords(e));
+        imageMouse.down = true;
         styles['cursor'] = 'grabbing';
     }
 
     const imageMouseUp = (e: MouseEvent) => {
         e.preventDefault();
-        if (prevMouseMove.down) return handleMouseUp(e);
+        if (handleMouse.down) return handleMouseUp(e);
         if (isDown(Mouse.Primary, e.buttons)) return;
         if ($pointerLockEnabled) document.exitPointerLock();
-        prevMousePan.down = false;
+        imageMouse.down = false;
         styles['cursor'] = 'grab';
     }
 
     const displayMouseLeave = (e: MouseEvent) => {
         e.preventDefault();
-        prevMousePan.down = false;
-        prevMouseMove.down = false;
+        imageMouse.down = false;
+        handleMouse.down = false;
         styles['cursor'] = 'grab';
     }
 
     const imageMouseMove = (e: MouseEvent) => {
         e.preventDefault();
-        
-        if (prevMouseMove.down) {console.log('movedown'); return handleMouseMove(e);}
-        if (!prevMousePan.down) return;
+        e.stopPropagation();
+        // if a handle is being moved, pass the event to it
+        if (handleMouse.down) return handleMouseMove(e);
+        if (!imageMouse.down) return;
         if (styles['scale-percent'] === $minScale) return;
         if ($pointerLockEnabled) return imageMouseMoveLocked(e);
 
@@ -144,30 +138,39 @@
         const mouse = getPointerCoords(e);
 
         // adjust translate
-        movePixels(mouse.x - prevMousePan.x, mouse.y - prevMousePan.y);
+        movePixels(mouse.x - imageMouse.prevX, mouse.y - imageMouse.prevY);
 
         // update prev
-        prevMousePan.x = mouse.x;
-        prevMousePan.y = mouse.y;
+        imageMouse.prevX = mouse.x;
+        imageMouse.prevY = mouse.y;
     }
     const imageMouseMoveLocked = (e: MouseEvent) => {
-        // check lock
-        if (!document.pointerLockElement) return;
-
+        // check if it's the first one (this is needed because the first move is either noise or just 0)
+        if (imageMouse.first) {
+            // check lock
+            if (!document.pointerLockElement) return;
+            // reset
+            imageMouse.first = false;
+            return;
+        }
         // adjust translate
         movePixels(e.movementX, e.movementY);
     }
 
     
-    const prevMouseMove = {
+    const handleMouse = {
         down: false,
         handleId: 0,
     };
 
-    // needs improvement lmao
+    const getPointerSvgCoords = (e: MouseEvent) => {
+        const svgRect = svgElement.getBoundingClientRect();
+        return { x: e.clientX - svgRect.left,
+                y: e.clientY - svgRect.top };
+    }
+
     const getPointerViewBoxCoords = (e: MouseEvent) => {
-        // find mouse pos
-        const mouse = { x: (e as any).layerX as number, y: (e as any).layerY as number }; // non-standard event props!!!
+        const mouse = getPointerSvgCoords(e);
 
         const {width, height} = svgElement.getBoundingClientRect();
         const shorterSide = Math.min(width, height);
@@ -178,33 +181,33 @@
         return {
             x: (mouse.x - offsetX) / shorterSide * (svgViewBox[2] - svgViewBox[0]) + svgViewBox[0],
             y: (mouse.y - offsetY) / shorterSide * (svgViewBox[3] - svgViewBox[1]) + svgViewBox[1],
-        }
+        };
     }
 
     const handleMouseDown = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         if (isUp(Mouse.Primary, e.buttons)) return;
-        prevMouseMove.handleId = parseInt((e.target as HTMLElement).id.replace('hdl', ''));
-        prevMouseMove.down = true;
+        handleMouse.handleId = parseInt((e.target as HTMLElement).id.replace('hdl', ''));
+        handleMouse.down = true;
     }
     const handleMouseUp = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         if (isDown(Mouse.Primary, e.buttons)) return;
-        prevMouseMove.down = false;
+        handleMouse.down = false;
     }
     const handleMouseMove = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!prevMouseMove.down) return;
+        if (!handleMouse.down) return;
 
         // find mouse pos in viewBox coords
         const mouseViewBox = getPointerViewBoxCoords(e);
 
-        // adjust handle pos
-        editorCell.x[prevMouseMove.handleId] = mouseViewBox.x;
-        editorCell.y[prevMouseMove.handleId] = mouseViewBox.y;
+        // set handle pos
+        editorCell.x[handleMouse.handleId] = mouseViewBox.x;
+        editorCell.y[handleMouse.handleId] = mouseViewBox.y;
     }
 
     const ignoreContextMenu = (e: any) => {
@@ -241,6 +244,7 @@
 role="presentation"
 on:contextmenu={ignoreContextMenu}
 on:mouseleave={displayMouseLeave}
+on:mousemove={imageMouseMove}
 style={cssVarStyles}
 >
     <div class="image-wrapper"
