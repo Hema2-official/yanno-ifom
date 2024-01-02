@@ -24,6 +24,7 @@ export const svgStrokeSwitch = writable(true);
 
 export const minScale = writable(100);
 export const maxScale = writable(1000);
+export const scrollMultiplier = writable(1.0);
 
 export const cmOpacity = writable(90);
 

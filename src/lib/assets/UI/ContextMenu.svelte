@@ -45,13 +45,26 @@
         });
     }
 
+    const getMinimumHeight = () => {
+        const children = contextMenuElement?.children;
+        if (!children || children.length === 0) return 0;
+
+        const firstChild = children[0];
+        const lastChild = children[children.length - 1];
+        const computedStyle = getComputedStyle(contextMenuElement);
+
+        return lastChild.getBoundingClientRect().bottom - firstChild.getBoundingClientRect().top +
+            parseFloat(getComputedStyle(lastChild).marginBottom) + parseFloat(getComputedStyle(firstChild).marginTop) +
+            parseFloat(computedStyle.borderTopWidth) + parseFloat(computedStyle.borderBottomWidth);
+    }
+
     $: styles = {
         'cm-display': 'flex',
 		'cm-top': position.y,
         'cm-left': position.x,
         'cm-opacity': $cmOpacity,
         'cm-transition-duration': smooth ? 0.2 : 0,
-        'cm-wrapper-height': shown ? contextMenuElement?.offsetHeight : 0,
+        'cm-wrapper-height': shown ? getMinimumHeight() : 0,
 	};
     const stylesUnits = {
         'cm-display': '',
@@ -66,7 +79,7 @@
 		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
 		.join(';');
 
-    document.onmousedown = function(e: MouseEvent) {
+    document.addEventListener('mousedown', (e: MouseEvent) => {
         if (!shown) return;
         if (!e.target) return;
         let target = e.target as HTMLElement;
@@ -76,8 +89,8 @@
             target = target.parentElement;
         }
 
-        hide(!isDown(Mouse.Secondary, e.buttons));   
-    }
+        hide(!isDown(Mouse.Secondary, e.buttons));
+    });
 
 </script>
 

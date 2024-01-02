@@ -120,7 +120,11 @@ main {
   border-top: 0.15em solid var(--gray-accent);
   cursor: default;
 }
-.context-menu button:hover, .context-menu button:focus-visible {
+.context-menu button:hover {
+  outline: none;
+  background-color: var(--accent-color);
+}
+.context-menu button:focus-visible {
   outline: none;
   background-color: var(--accent-color);
 }
@@ -157,7 +161,11 @@ main {
   transition: border-color 0.1s, background-color 0.1s;
   cursor: default;
 }
-.editor-controls-wrapper > * > button:hover, .editor-controls-wrapper > * > button:focus-visible {
+.editor-controls-wrapper > * > button:hover {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > button:focus-visible {
   outline: none;
   border-color: var(--accent-color);
 }
@@ -199,12 +207,18 @@ main {
   border-bottom-right-radius: 0.6em;
   border-bottom: 0.2em solid transparent;
 }
-
-.editor-controls-wrapper > * > :not(button) > button:hover, .editor-controls-wrapper > * > :not(button) > button:focus-visible {
+.editor-controls-wrapper > * > :not(button) > button:hover {
   outline: none;
   border-color: var(--accent-color);
 }
-.editor-controls-wrapper > * > :not(button) > button:hover + button, .editor-controls-wrapper > * > :not(button) > button:focus-visible + button {
+.editor-controls-wrapper > * > :not(button) > button:focus-visible {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > :not(button) > button:hover + button {
+  border-top-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > :not(button) > button:focus-visible + button {
   border-top-color: var(--accent-color);
 }
 
@@ -219,8 +233,5 @@ main {
   }
   a:hover {
     color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
   }
 }

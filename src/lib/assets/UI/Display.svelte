@@ -1,6 +1,6 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
-    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled } from '../../stores';
+    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '../../stores';
     import type { CellType, FrameType } from '../../types';
 
     import _data from '../../../data/data.json';
@@ -21,7 +21,7 @@
 
     const cellToPath = (cell: CellType) => {
         let path = `M${cell.x[0]},${cell.y[0]} `;
-        for (let i = 0; i < cell.x.length; i++) path += `L${cell.x[i]},${cell.y[i]} `;
+        for (let i = 1; i < cell.x.length; i++) path += `L${cell.x[i]},${cell.y[i]} `;
         path += 'z';
         return path;
     }
@@ -45,7 +45,7 @@
 		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
 		.join(';');
 
-    const getPointerCoords = (e: any) => {
+    const getPointerCoords = (e: MouseEvent) => {
         return { x: e.clientX as number, y: e.clientY as number };
     }
 
@@ -77,7 +77,7 @@
 
         // adjust zoom (the bigger the scale, the faster the zoom)
         const oldScalePercent = styles['scale-percent'];
-        styles['scale-percent'] = Math.max($minScale, Math.min($maxScale, e.deltaY * -0.001 * styles['scale-percent'] + styles['scale-percent']));
+        styles['scale-percent'] = Math.max($minScale, Math.min($maxScale, $scrollMultiplier * e.deltaY * -0.001 * styles['scale-percent'] + styles['scale-percent']));
 
         // adjust translate
         const { width, height, top, left } = svgElement.getBoundingClientRect();
@@ -99,7 +99,6 @@
     };
 
     const imageMouseDown = (e: MouseEvent) => {
-        e.preventDefault();
         if (isUp(Mouse.Primary, e.buttons)) return;
         if ($pointerLockEnabled) {
             imageWrapperElement.requestPointerLock();
@@ -110,7 +109,6 @@
     }
 
     const imageMouseUp = (e: MouseEvent) => {
-        e.preventDefault();
         if (handleMouse.down) return handleMouseUp(e);
         if (isDown(Mouse.Primary, e.buttons)) return;
         if ($pointerLockEnabled) document.exitPointerLock();
@@ -126,8 +124,6 @@
     }
 
     const imageMouseMove = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
         // if a handle is being moved, pass the event to it
         if (handleMouse.down) return handleMouseMove(e);
         if (!imageMouse.down) return;

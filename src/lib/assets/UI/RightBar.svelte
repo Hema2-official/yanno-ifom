@@ -1,5 +1,5 @@
 <script>
-	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled } from '../../stores';
+	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier } from '../../stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
@@ -49,6 +49,12 @@
 		<CheckBox
 			bind:checked={$pointerLockEnabled}
 			>Enable pointer lock</CheckBox
+		>
+		<Slider
+			bind:value={$scrollMultiplier}
+			min={0.1}
+			max={10}
+			>Zoom multiplier</Slider
 		>
 		
 	</div>
