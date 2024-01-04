@@ -2,29 +2,24 @@
     import { _ } from 'svelte-i18n';
     import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
     import type { CellType, FrameType } from '$lib/types';
+    import { Mouse, isDown, isUp } from '$lib/utils/mouse';
+    import { cellToPath, getPointerCoords, ignoreContextMenu } from '$lib/utils/display';
+
+    import ContextMenu from './ContextMenu.svelte';
+    import EditorControls from './EditorControls.svelte';
+    import Editor from './Editor.svelte';
 
     import _data from '../../../data/data.json';
-    import { onMount } from 'svelte';
-    import { scale } from 'svelte/transition';
-    import ContextMenu from './ContextMenu.svelte';
-    import { Mouse, isDown, isUp } from '$lib/utils/mouse';
-    import EditorControls from './EditorControls.svelte';
 
     $frames = _data.frames as FrameType[];
 
     let contextMenuComponent: ContextMenu;
-    let imageWrapperElement: HTMLElement;
-    let svgElement: SVGElement;
+    let editorComponent: Editor;
+    let imageWrapperElement: HTMLDivElement;
+    let svgElement: SVGSVGElement;
 
     let editorCell: CellType;
     let testCoords = { x: 0, y: 0 };
-
-    const cellToPath = (cell: CellType) => {
-        let path = `M${cell.x[0]},${cell.y[0]} `;
-        for (let i = 1; i < cell.x.length; i++) path += `L${cell.x[i]},${cell.y[i]} `;
-        path += 'z';
-        return path;
-    }
 
     const styles = {
 		'scale-percent': 100,
@@ -45,9 +40,6 @@
 		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
 		.join(';');
 
-    const getPointerCoords = (e: MouseEvent) => {
-        return { x: e.clientX as number, y: e.clientY as number };
-    }
 
     const movePixels = (x: number, y: number) => {
         const scale = styles['scale-percent'] / 100;
@@ -95,121 +87,61 @@
         setPos: (pos: {x: number, y: number}) => {
             imageMouse.prevX = pos.x;
             imageMouse.prevY = pos.y;
+        },
+        mouseDown: (e: MouseEvent) => {
+            if (isUp(Mouse.Primary, e.buttons)) return;
+            if ($pointerLockEnabled) {
+                imageWrapperElement.requestPointerLock();
+                imageMouse.first = true;
+            } else imageMouse.setPos(getPointerCoords(e));
+            imageMouse.down = true;
+            styles['cursor'] = 'grabbing';
+        },
+        mouseUp: (e: MouseEvent) => {
+            if (editorComponent?.mouse.down) return editorComponent.mouse.mouseUp(e);
+            if (isDown(Mouse.Primary, e.buttons)) return;
+            if ($pointerLockEnabled) document.exitPointerLock();
+            imageMouse.down = false;
+            styles['cursor'] = 'grab';
+        },
+        mouseMove: (e: MouseEvent) => {
+            // if a handle is being moved, pass the event to it
+            if (editorComponent?.mouse.down) return editorComponent.mouse.mouseMove(e);
+            if (!imageMouse.down) return;
+            if (styles['scale-percent'] === $minScale) return;
+            if ($pointerLockEnabled) return imageMouse.mouseMoveLocked(e);
+
+            // find mouse pos
+            const mouse = getPointerCoords(e);
+
+            // adjust translate
+            movePixels(mouse.x - imageMouse.prevX, mouse.y - imageMouse.prevY);
+
+            // update prev
+            imageMouse.prevX = mouse.x;
+            imageMouse.prevY = mouse.y;
+        },
+        mouseMoveLocked: (e: MouseEvent) => {
+            // check if it's the first one (this is needed because the first move is either noise or just 0)
+            if (imageMouse.first) {
+                // check lock
+                if (!document.pointerLockElement) return;
+                // reset
+                imageMouse.first = false;
+                return;
+            }
+            // adjust translate
+            movePixels(e.movementX, e.movementY);
         }
     };
-
-    const imageMouseDown = (e: MouseEvent) => {
-        if (isUp(Mouse.Primary, e.buttons)) return;
-        if ($pointerLockEnabled) {
-            imageWrapperElement.requestPointerLock();
-            imageMouse.first = true;
-        } else imageMouse.setPos(getPointerCoords(e));
-        imageMouse.down = true;
-        styles['cursor'] = 'grabbing';
-    }
-
-    const imageMouseUp = (e: MouseEvent) => {
-        if (handleMouse.down) return handleMouseUp(e);
-        if (isDown(Mouse.Primary, e.buttons)) return;
-        if ($pointerLockEnabled) document.exitPointerLock();
-        imageMouse.down = false;
-        styles['cursor'] = 'grab';
-    }
 
     const displayMouseLeave = (e: MouseEvent) => {
         e.preventDefault();
         imageMouse.down = false;
-        handleMouse.down = false;
         styles['cursor'] = 'grab';
+        if (editorComponent) editorComponent.mouse.down = false;
     }
-
-    const imageMouseMove = (e: MouseEvent) => {
-        // if a handle is being moved, pass the event to it
-        if (handleMouse.down) return handleMouseMove(e);
-        if (!imageMouse.down) return;
-        if (styles['scale-percent'] === $minScale) return;
-        if ($pointerLockEnabled) return imageMouseMoveLocked(e);
-
-        // find mouse pos
-        const mouse = getPointerCoords(e);
-
-        // adjust translate
-        movePixels(mouse.x - imageMouse.prevX, mouse.y - imageMouse.prevY);
-
-        // update prev
-        imageMouse.prevX = mouse.x;
-        imageMouse.prevY = mouse.y;
-    }
-    const imageMouseMoveLocked = (e: MouseEvent) => {
-        // check if it's the first one (this is needed because the first move is either noise or just 0)
-        if (imageMouse.first) {
-            // check lock
-            if (!document.pointerLockElement) return;
-            // reset
-            imageMouse.first = false;
-            return;
-        }
-        // adjust translate
-        movePixels(e.movementX, e.movementY);
-    }
-
     
-    const handleMouse = {
-        down: false,
-        handleId: 0,
-    };
-
-    const getPointerSvgCoords = (e: MouseEvent) => {
-        const svgRect = svgElement.getBoundingClientRect();
-        return { x: e.clientX - svgRect.left,
-                y: e.clientY - svgRect.top };
-    }
-
-    const getPointerViewBoxCoords = (e: MouseEvent) => {
-        const mouse = getPointerSvgCoords(e);
-
-        const {width, height} = svgElement.getBoundingClientRect();
-        const shorterSide = Math.min(width, height);
-        const offsetX = (width - shorterSide) / 2;
-        const offsetY = (height - shorterSide) / 2;
-        const svgViewBox = svgElement.getAttribute('viewBox').split(' ').map(v => parseInt(v));
-
-        return {
-            x: (mouse.x - offsetX) / shorterSide * (svgViewBox[2] - svgViewBox[0]) + svgViewBox[0],
-            y: (mouse.y - offsetY) / shorterSide * (svgViewBox[3] - svgViewBox[1]) + svgViewBox[1],
-        };
-    }
-
-    const handleMouseDown = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (isUp(Mouse.Primary, e.buttons)) return;
-        handleMouse.handleId = parseInt((e.target as HTMLElement).id.replace('hdl', ''));
-        handleMouse.down = true;
-    }
-    const handleMouseUp = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (imageMouse.down) return imageMouseUp(e);
-        if (isDown(Mouse.Primary, e.buttons)) return;
-        handleMouse.down = false;
-    }
-    const handleMouseMove = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!handleMouse.down) return;
-
-        // find mouse pos in viewBox coords
-        const mouseViewBox = getPointerViewBoxCoords(e);
-
-        // set handle pos
-        editorCell.x[handleMouse.handleId] = mouseViewBox.x;
-        editorCell.y[handleMouse.handleId] = mouseViewBox.y;
-    }
-
-    const ignoreContextMenu = (e: any) => {
-        e.preventDefault();
-    }
 
     const cellContextMenu = (e: any) => {
         e.preventDefault();
@@ -241,15 +173,15 @@
 role="presentation"
 on:contextmenu={ignoreContextMenu}
 on:mouseleave={displayMouseLeave}
-on:mousemove={imageMouseMove}
+on:mousemove={imageMouse.mouseMove}
 style={cssVarStyles}
 >
     <div class="image-wrapper"
     role="presentation"
     on:wheel={imageWheel}
-    on:mousedown={imageMouseDown}
-    on:mouseup={imageMouseUp}
-    on:mousemove={imageMouseMove}
+    on:mousedown={imageMouse.mouseDown}
+    on:mouseup={imageMouse.mouseUp}
+    on:mousemove={imageMouse.mouseMove}
     bind:this={imageWrapperElement}
     >
 
@@ -276,38 +208,18 @@ style={cssVarStyles}
                 {/each }
                 </g>
             {:else}
-                <g>
-                    <path
-                        id="cell{editorCell.id}"
-                        d={cellToPath(editorCell)}
-                        fill={$svgFillSwitch ? $svgFill : 'transparent'}
-                        stroke={$svgStrokeSwitch ? $svgStroke : 'none'}
-                        stroke-width="2px"
-                        opacity={$svgAlpha / 255}
-                        role="img"
-                        />
-                </g>
+                
                 <!-- Draw point at testCoords -->
                 <!-- <circle cx={testCoords.x} cy={testCoords.y} r="1" fill="red" /> -->
 
-                <g role="presentation"
-                on:mousedown={handleMouseDown}
-                on:mouseup={handleMouseUp}
-                on:mousemove={handleMouseMove}
-                >
-                {#each editorCell.x as _, i}
-                    {@const halfSize = 1 / styles['scale-percent'] * 200}
-                    <rect id="hdl{i}"
-                        x={editorCell.x[i] - halfSize}
-                        y={editorCell.y[i] - halfSize}
-                        width={halfSize * 2}
-                        height={halfSize * 2}
-                        fill="pink"
-                        stroke="black"
-                        stroke-width={halfSize / 3}
-                        />
-                {/each}
-                </g>
+                <Editor
+                    cell={editorCell}
+                    bind:svgScalePercent={styles['scale-percent']}
+                    bind:svgElement={svgElement}
+                    imageMouse={imageMouse}
+                    bind:this={editorComponent}></Editor>
+
+                
             {/if}
         </svg>
         {/if}
@@ -390,9 +302,5 @@ style={cssVarStyles}
     }
     path:hover {
         fill: #ff0000;
-    }
-
-    rect {
-        cursor: crosshair;
     }
 </style>
