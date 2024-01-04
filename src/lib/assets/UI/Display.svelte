@@ -190,6 +190,7 @@
     const handleMouseUp = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (imageMouse.down) return imageMouseUp(e);
         if (isDown(Mouse.Primary, e.buttons)) return;
         handleMouse.down = false;
     }
