@@ -2,7 +2,15 @@ import { get } from 'svelte/store'
 import { _ } from "svelte-i18n";
 import type { DataType, FrameType, ChangeType } from "$lib/types";
 
+/**
+ * Creates a deep copy of the given object.
+ * 
+ * @param obj - The object to be copied.
+ * @returns A deep copy of the object.
+ */
 export function deepCopy<T>(obj: T): T {
+    if (structuredClone) return structuredClone(obj);
+    console.warn("The structuredClone method is not supported in this browser. Falling back to JSON goofery.");
     return JSON.parse(JSON.stringify(obj));
 }
 
