@@ -1,5 +1,5 @@
 <script>
-	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier } from '../../stores';
+	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
