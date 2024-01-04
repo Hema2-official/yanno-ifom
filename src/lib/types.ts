@@ -1,14 +1,21 @@
 export type CellType = {
     id: number,
-    x: number[],
-    y: number[]
+    x: number[] | null,
+    y: number[] | null
 };
 
 export type FrameType = {
+    index: number,
     cells: CellType[]
+};
+
+export type ChangeType = {
+    time: number,
+    frames: FrameType[]
 };
 
 export type DataType = {
     pos: number,
-    frames: FrameType[]
+    originalFrames: FrameType[],
+    changes: ChangeType[]
 };

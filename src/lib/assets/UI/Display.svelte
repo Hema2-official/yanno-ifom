@@ -1,17 +1,17 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
-    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '../../stores';
-    import type { CellType, FrameType } from '../../types';
+    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
+    import type { CellType, FrameType } from '$lib/types';
 
     import _data from '../../../data/data.json';
     import { onMount } from 'svelte';
     import { scale } from 'svelte/transition';
     import ContextMenu from './ContextMenu.svelte';
-    import { Mouse, isDown, isUp } from '../../utils';
+    import { Mouse, isDown, isUp } from '$lib/utils/mouse';
     import EditorControls from './EditorControls.svelte';
 
     $frames = _data.frames as FrameType[];
-    
+
     let contextMenuComponent: ContextMenu;
     let imageWrapperElement: HTMLElement;
     let svgElement: SVGElement;

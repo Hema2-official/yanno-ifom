@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { cmOpacity } from "../../stores";
-    import { Mouse, isDown } from "../../utils";
+    import { cmOpacity } from "$lib/stores";
+    import { Mouse, isDown } from "$lib/utils/mouse";
 
     let shown = false;
     let smooth = true;
