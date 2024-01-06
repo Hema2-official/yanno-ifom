@@ -2,9 +2,12 @@
     import { onMount } from "svelte";
     import { cmOpacity } from "$lib/stores";
     import { Mouse, isDown } from "$lib/utils/mouse";
+    import Editor from "./Editor.svelte";
 
     let contextMenuElement: HTMLElement;
     let editorControlsWrapperElement: HTMLElement;
+
+    export let editorComponent: Editor;
 
     $: styles = {
 	};
@@ -16,7 +19,11 @@
 		.join(';');
 </script>
 
-<div class="editor-controls-wrapper" style="{cssVarStyles}" bind:this={editorControlsWrapperElement}>
+<div class="editor-controls-wrapper"
+    style="{cssVarStyles}"
+    role="presentation"
+    on:mouseup={editorComponent.mouse.mouseUp}
+    bind:this={editorControlsWrapperElement}>
     <slot />
 </div>  
 

@@ -1,9 +1,9 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
     import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
-    import type { CellType, FrameType } from '$lib/types';
+    import { EditorMode, type CellType, type FrameType } from '$lib/types';
     import { Mouse, isDown, isUp } from '$lib/utils/mouse';
-    import { cellToPath, getPointerCoords, ignoreContextMenu } from '$lib/utils/display';
+    import { cellToPath, getPointerCoords, getPointerViewBoxCoords, ignoreContextMenu, radioSelect } from '$lib/utils/display';
 
     import ContextMenu from './ContextMenu.svelte';
     import EditorControls from './EditorControls.svelte';
@@ -19,7 +19,6 @@
     let svgElement: SVGSVGElement;
 
     let editorCell: CellType;
-    let testCoords = { x: 0, y: 0 };
 
     const styles = {
 		'scale-percent': 100,
@@ -105,7 +104,13 @@
             styles['cursor'] = 'grab';
         },
         mouseMove: (e: MouseEvent) => {
-            // if a handle is being moved, pass the event to it
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Update viewbox coord values
+            getPointerViewBoxCoords(e, svgElement);
+
+            // if editor has the cursor, pass the event to it
             if (editorComponent?.mouse.down) return editorComponent.mouse.mouseMove(e);
             if (!imageMouse.down) return;
             if (styles['scale-percent'] === $minScale) return;
@@ -139,9 +144,16 @@
         e.preventDefault();
         imageMouse.down = false;
         styles['cursor'] = 'grab';
-        if (editorComponent) editorComponent.mouse.down = false;
+        if (editorComponent) {
+            editorComponent.mouse.down = false;
+            editorComponent.$$set({ hoverElementsShown: false });
+        }
     }
     
+    const displayMouseOver = (e: MouseEvent) => {
+        if (editorComponent)
+            editorComponent.$$set({ hoverElementsShown: true });
+    }
 
     const cellContextMenu = (e: any) => {
         e.preventDefault();
@@ -161,8 +173,6 @@
         const x = editorCell.x.reduce((a, b) => a + b) / editorCell.x.length;
         const y = editorCell.y.reduce((a, b) => a + b) / editorCell.y.length;
 
-        //testCoords = { x: x, y: y };
-
 
     }
 
@@ -173,6 +183,8 @@
 role="presentation"
 on:contextmenu={ignoreContextMenu}
 on:mouseleave={displayMouseLeave}
+on:mouseenter={displayMouseOver}
+on:mouseup={imageMouse.mouseUp}
 on:mousemove={imageMouse.mouseMove}
 style={cssVarStyles}
 >
@@ -180,7 +192,6 @@ style={cssVarStyles}
     role="presentation"
     on:wheel={imageWheel}
     on:mousedown={imageMouse.mouseDown}
-    on:mouseup={imageMouse.mouseUp}
     on:mousemove={imageMouse.mouseMove}
     bind:this={imageWrapperElement}
     >
@@ -208,9 +219,6 @@ style={cssVarStyles}
                 {/each }
                 </g>
             {:else}
-                
-                <!-- Draw point at testCoords -->
-                <!-- <circle cx={testCoords.x} cy={testCoords.y} r="1" fill="red" /> -->
 
                 <Editor
                     cell={editorCell}
@@ -227,13 +235,22 @@ style={cssVarStyles}
     </div>
 
     {#if $isEditing}
-        <EditorControls>
+        <EditorControls editorComponent={editorComponent}>
             <div>
                 <button>Some</button>
                 <div>
-                    <button>G1</button>
-                    <button>G2</button>
-                    <button>G3</button>
+                    <button title={$_("point_tool")} class="selected"
+                        on:click={(e) => {radioSelect(e);
+                        editorComponent.$set( {editorMode: EditorMode.Point} )}}
+                        >G1</button>
+                    <button title={$_("whole_tool")}
+                        on:click={(e) => {radioSelect(e);
+                        editorComponent.$set( {editorMode: EditorMode.Whole} )}}
+                        >G2</button>
+                    <button title={$_("smooth_tool")}
+                        on:click={(e) => {radioSelect(e);
+                        editorComponent.$set( {editorMode: EditorMode.Smooth} )}}
+                        >G3</button>
                 </div>
                 <button>X</button>
                 <button>Y</button>

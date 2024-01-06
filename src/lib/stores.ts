@@ -28,6 +28,8 @@ export const scrollMultiplier = writable(1.0);
 
 export const cmOpacity = writable(90);
 
+export const lastPointerViewBoxCoords = writable({ x: 0, y: 0 });
+
 export const backend_url = writable('https://example.com/api/');
 
 export const frames: Writable<FrameType[]> = writable([]);

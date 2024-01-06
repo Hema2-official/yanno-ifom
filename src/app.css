@@ -6,6 +6,7 @@
   color-scheme: light dark;
   --color: rgba(255, 255, 255, 0.87);
   --background-color: #242424;
+  --background-color-translucent: #242424da;
   --empty-background-color: #1a1a1a;
   color: var(--color);
   background-color: var(--background-color);
@@ -155,17 +156,18 @@ main {
   right: 1em;
 }
 
+/* Single button */
 .editor-controls-wrapper > * > button {
   width: 3.4em;
   height: 3.4em;
   margin-bottom: 0.5em;
   font-size: 1em;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   color: var(--color);
   border: 0.2em solid transparent;
   border-radius: 0.6em;
-  background-color: var(--background-color);
+  background-color: var(--background-color-translucent);
   transition: border-color 0.1s, background-color 0.1s;
   cursor: default;
 }
@@ -191,10 +193,10 @@ main {
 .editor-controls-wrapper > * > :not(button) > button {
   height: 3.4em;
   font-size: 1em;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   color: var(--color);
-  background-color: var(--background-color);
+  background-color: var(--background-color-translucent);
   border: none;
   transition: border-color 0.1s, background-color 0.1s;
   cursor: default;
@@ -230,10 +232,19 @@ main {
   border-top-color: var(--accent-color);
 }
 
+.editor-controls-wrapper > * > button.selected, .editor-controls-wrapper > * > :not(button) > button.selected {
+  border-color: var(--accent-color);
+  background-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > button.selected + button, .editor-controls-wrapper > * > :not(button) > button.selected + button {
+  border-top-color: var(--accent-color);
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     --color: #213547;
     --background-color: #f9f9f9;
+    --background-color-translucent: #f9f9f9da;
     --empty-background-color: #e6e6e6;
     --accent-color: #646cffc4;
     --focus-color: rgb(100, 136, 255);

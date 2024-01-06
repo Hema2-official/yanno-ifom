@@ -19,3 +19,9 @@ export type DataType = {
     originalFrames: FrameType[],
     changes: ChangeType[]
 };
+
+export enum EditorMode {
+    Point,
+    Whole,
+    Smooth
+}
