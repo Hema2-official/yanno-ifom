@@ -1,13 +1,15 @@
-<script>
+<script lang="ts">
 	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
     import TextBox from './TextBox.svelte';
 
+	export let right: boolean = false;
+
 </script>
 
-<nav class="right-container">
+<nav class="side-container{right ? " right" : ""}">
 
 	<p class="title">Settings</p>
 	<div class="group">
@@ -67,16 +69,23 @@
 </nav>
 
 <style>
-	.right-container {
+	.side-container {
 		position: absolute;
 		display: flex;
 		flex-direction: column;
-		width: var(--right-bar-width);
+		width: var(--sidebar-width);
 		height: 100%;
 		top: 0;
-		right: 0;
+		left: 0;
 		padding: 1.3em;
-		border-left: 0.2rem solid var(--accent-color);
+		border-right: 0.2rem solid var(--accent-color);
 		box-sizing: border-box;
+	}
+
+	.side-container.right {
+		left: auto;
+		right: 0;
+		border-right: none;
+		border-left: 0.2rem solid var(--accent-color);
 	}
 </style>

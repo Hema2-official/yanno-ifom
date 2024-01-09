@@ -81,7 +81,7 @@
 		top: 0;
 		left: 0;
 		height: var(--top-bar-height);
-		width: calc(100% - var(--right-bar-width));
+		width: 100%;
 		display: flex;
 		align-items: center;
 		padding: 0 20px;

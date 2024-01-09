@@ -2,7 +2,7 @@
   import { addMessages, init } from "svelte-i18n";
   import Display from './lib/assets/UI/Display.svelte';
   import TopBar from './lib/assets/UI/TopBar.svelte';
-  import RightBar from './lib/assets/UI/RightBar.svelte';
+  import SideBar from './lib/assets/UI/SideBar.svelte';
 
   import en from "./lang/en.json";
   // import hu from "./lang/hu.json";
@@ -16,9 +16,9 @@
   });
 </script>
 
-<TopBar />
+<SideBar right />
+
 <main>
+  <TopBar />
   <Display />
 </main>
-
-<RightBar />

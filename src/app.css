@@ -22,7 +22,7 @@
   --gray-accent: #ffffff55;
 
   --top-bar-height: 5rem;
-  --right-bar-width: 20%;
+  --sidebar-width: 20%;
 }
 
 body > a {
@@ -61,9 +61,12 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  width: calc(100% - var(--right-bar-width));
-  height: calc(100% - var(--top-bar-height));
+  width: calc(100% - var(--sidebar-width));
+  height: 100%;
+  position: absolute;
+}
+.side-container:not(.right) + main {
+  right: 0;
 }
 
 .title {

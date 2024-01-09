@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "svelte-i18n": "^4.0.0",
+    "tiff": "^5.0.3",
     "zoomist": "^2.0.11"
   }
 }

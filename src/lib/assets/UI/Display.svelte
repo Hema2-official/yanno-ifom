@@ -168,12 +168,6 @@
     const edit = () => {
         contextMenuComponent.hide(false);
         $isEditing = true;
-        
-        // calculate center of cell
-        const x = editorCell.x.reduce((a, b) => a + b) / editorCell.x.length;
-        const y = editorCell.y.reduce((a, b) => a + b) / editorCell.y.length;
-
-
     }
 
 </script>
@@ -225,7 +219,7 @@ style={cssVarStyles}
                     bind:svgScalePercent={styles['scale-percent']}
                     bind:svgElement={svgElement}
                     imageMouse={imageMouse}
-                    bind:this={editorComponent}></Editor>
+                    bind:this={editorComponent} />
 
                 
             {/if}
