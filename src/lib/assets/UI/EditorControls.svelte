@@ -34,7 +34,6 @@
     on:mouseup={editorComponent.mouse.mouseUp}
     bind:this={editorControlsWrapperElement}>
     <div>
-        <button>Some</button>
         <div>
             <button title={$_("point_tool")} class="selected"
                 on:click={(e) => {radioSelect(e);
@@ -49,19 +48,10 @@
                 editorComponent.$set( {editorMode: EditorMode.Smooth} )}}
                 >S</button>
         </div>
-        <button>X</button>
-        <button>Y</button>
     </div>
     <div class="right">
         <button on:click={() => editorComponent.quit(true)} title={$_("confirm_and_quit")}>Save</button>
         <button on:click={() => editorComponent.quit(false)} title={$_("quit_without_saving")}>Nope</button>
-        <div>
-            <button>G1</button>
-            <button>G2</button>
-            <button>G3</button>
-        </div>
-        <button>X</button>
-        <button>Y</button>
     </div>
 </div>  
 
