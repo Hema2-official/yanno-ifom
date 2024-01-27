@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
+	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier, currentFrameIndex, displayFrames } from '$lib/stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
@@ -57,6 +57,12 @@
 			min={0.1}
 			max={10}
 			>Zoom multiplier</Slider
+		>
+		<Slider
+			bind:value={$currentFrameIndex}
+			min={0}
+			max={$displayFrames.length - 1}
+			>Frame index</Slider
 		>
 		
 	</div>

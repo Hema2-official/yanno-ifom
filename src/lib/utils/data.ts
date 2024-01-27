@@ -22,7 +22,7 @@ export function deepCopy<T>(obj: T): T {
  * @param progressUpdateCallback - An optional callback function to track the progress of the conversion.
  * @returns A Promise that resolves to a DataType object.
  */
-export function textToDataType(input: string, progressUpdateCallback?: (progress: number) => void) {
+export function textToDataType(input: string) {
     return new Promise<DataType>((resolve, reject) => {
         // Check if expected labels are present, and find their indices
         let firstLine = input.substring(0, input.indexOf('\n'));
@@ -31,15 +31,12 @@ export function textToDataType(input: string, progressUpdateCallback?: (progress
         firstLine.trim().split('\t').forEach((item, index) => { labels[item.toLowerCase()] = index; });
         if (!expectedLabels.every(item => (Object.keys(labels).includes(item)))) {
             reject(get(_)("unexpected_file_format") + expectedLabels.join('\t'));
-            return null;
         }
 
         // Parse each line
         let data: DataType = { pos: null, originalFrames: [], changes: [] };
         let lineStartIndex = firstLine.length + 1;
-        let newlineIndex = input.indexOf('\n', lineStartIndex);
-        let progressPercent = 0;
-        const callback = () => {
+        for (let newlineIndex = input.indexOf('\n', lineStartIndex); newlineIndex != -1; newlineIndex = input.indexOf('\n', lineStartIndex)) {
             // Get line
             const substr = input.substring(lineStartIndex, newlineIndex);
             lineStartIndex = newlineIndex + 1;
@@ -65,28 +62,8 @@ export function textToDataType(input: string, progressUpdateCallback?: (progress
             // Add coordinates
             data.originalFrames[realFrameIndex].cells[cellIndex].x.push(parseFloat(line[labels["x"]]));
             data.originalFrames[realFrameIndex].cells[cellIndex].y.push(parseFloat(line[labels["y"]]));
-
-            // Update progress
-            const oldProgressPercent = progressPercent;
-            progressPercent = newlineIndex * 100 / input.length;
-            let frameUpdateNeeded = false;
-            if (progressUpdateCallback && Math.floor(progressPercent) != Math.floor(oldProgressPercent)) {
-                progressUpdateCallback(Math.floor(progressPercent));
-                frameUpdateNeeded = true;
-            }
-
-            newlineIndex = input.indexOf('\n', lineStartIndex);
-            // Continue parsing
-            if (newlineIndex != -1) {
-                requestAnimationFrame(callback);
-            }
-            else {
-                // Send last progress update
-                if (progressUpdateCallback) progressUpdateCallback(100);
-                resolve(data);
-            }
-        };
-        requestAnimationFrame(callback);
+        }
+        resolve(data);
     });
 }
 
@@ -159,6 +136,7 @@ export function download(data: BlobPart, filename: string, type: string = "text/
  */
 export function getFramesAtChangeIndex(data: DataType, changeIndex: number): FrameType[] | null {
     // Check if changeIndex is valid
+    if (changeIndex === -1) return data.originalFrames;
     if (changeIndex < 0 || changeIndex >= data.changes.length) return null;
 
     // Copy original frames

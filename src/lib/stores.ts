@@ -29,7 +29,7 @@ export const backend_url = writable('https://example.com/api/');
 
 export const data: Writable<DataType> = writable();
 export const currentFrameIndex = writable(0);
-export const currentChangeIndex = writable(0);
+export const currentChangeIndex = writable(-1);
 export const displayFrames: Writable<FrameType[]> = writable([]);
 
 export const blob_pngs: Writable<Blob[]> = writable([]);
