@@ -1,10 +1,9 @@
 <script lang="ts">
-    import { lastPointerViewBoxCoords } from "$lib/stores";
-    import { EditorMode, type CellType } from "$lib/types";
-    import { deepCopy } from "$lib/utils/data";
+    import { currentChangeIndex, currentFrameId, data, isEditing, lastPointerViewBoxCoords } from "$lib/stores";
+    import { EditorMode, type CellType, type FrameType } from "$lib/types";
+    import { deepCopy, getFramesDifference } from "$lib/utils/data";
     import { cellToPath, getPointerViewBoxCoords } from "$lib/utils/display";
     import { Mouse, isDown, isUp } from "$lib/utils/mouse";
-    import { onMount } from "svelte";
 
     export let inputCell: CellType;
     let cell: CellType;
@@ -136,13 +135,24 @@
     };
 
     cell = deepCopy(inputCell);
-    // onMount(() => {
-    //     cell = deepCopy(inputCell);
-    //     if (cell.x.length === 0) {
-    //         cell.x = [0, 1, 2, 3, 4, 5];
-    //         cell.y = [0, 1, 2, 3, 4, 5];
-    //     }
-    // });
+    
+    function pushChanges() {
+        console.log("Pushing changes to data");
+        const diff = getFramesDifference([{ id: $currentFrameId, cells: [inputCell] }], [{ id: $currentFrameId, cells: [cell] }]);
+        if (diff.frames.length !== 0) {
+            data.update(d => {
+                d.changes.push(diff);
+                return d;
+            });
+        }
+        // if currentChangeIndex was the latest, make sure it still is
+        if (data && $currentChangeIndex + 2 === $data.changes.length) currentChangeIndex.set($data.changes.length - 1);
+    }
+
+    export function quit(commit: boolean) {
+        if (commit) pushChanges();
+        $isEditing = false;
+    }
 
 </script>
 
