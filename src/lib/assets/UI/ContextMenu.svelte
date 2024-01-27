@@ -60,15 +60,15 @@
 
     $: styles = {
         'cm-display': 'flex',
-		'cm-top': position.y,
+        'cm-top': position.y,
         'cm-left': position.x,
         'cm-opacity': $cmOpacity,
         'cm-transition-duration': smooth ? 0.2 : 0,
         'cm-wrapper-height': shown ? getMinimumHeight() : 0,
-	};
+    };
     const stylesUnits = {
         'cm-display': '',
-		'cm-top': 'px',
+        'cm-top': 'px',
         'cm-left': 'px',
         'cm-opacity': '%',
         'cm-transition-duration': 's',
@@ -76,8 +76,8 @@
     };
 
     $: cssVarStyles = Object.entries(styles)
-		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-		.join(';');
+        .map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
+        .join(';');
 
     document.addEventListener('mousedown', (e: MouseEvent) => {
         if (!shown) return;

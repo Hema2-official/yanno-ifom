@@ -1,13 +1,14 @@
 <script lang="ts">
-	export let value;
+    export let value;
     export let disabled = false;
+    export let title: string = "";
 </script>
 
 <div class="labeled-input-wrapper">
-	<label>
-		<input type="color" bind:value={value} class="labeled-input" style="background-color: {value};" disabled={disabled} />
-		<span class="label-text"><slot /></span>
-	</label>
+    <label>
+        <input type="color" bind:value={value} class="labeled-input" style="background-color: {value};" disabled={disabled} title="{title}" />
+        <span class="label-text"><slot /></span>
+    </label>
 </div>
 
 <style>
