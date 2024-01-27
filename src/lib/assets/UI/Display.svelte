@@ -234,11 +234,7 @@ style={cssVarStyles}
         <EditorControls editorComponent={editorComponent} />
     {/if}
 
-    <ContextMenu bind:this={contextMenuComponent} on:mousemove={null}>
-        <button on:click={edit}>Edit</button>
-        <button>Something</button>
-        <button>HII:3</button>
-    </ContextMenu>
+    <ContextMenu bind:this={contextMenuComponent} on:mousemove={null} />
 
 </div>
 

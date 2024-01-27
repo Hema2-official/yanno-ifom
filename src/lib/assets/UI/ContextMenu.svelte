@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { cmOpacity } from "$lib/stores";
+    import { cmOpacity, currentFrameId, data, displayFrames, isEditing } from "$lib/stores";
     import { Mouse, isDown } from "$lib/utils/mouse";
 
     let shown = false;
@@ -97,7 +97,18 @@
 <div class="context-menu-wrapper" style="{cssVarStyles}" bind:this={contextMenuWrapperElement}>
 <div class="context-menu" bind:this={contextMenuElement}>
     <p>Cell #{cellId}</p>
-    <slot />
+    <button on:click={() => {isEditing.set(true); hide(false);}}>Edit</button>
+    <button on:click={() => {data.update((d) => {
+        d.changes.push({
+            time: Date.now(),
+            frames: [{
+                id: $displayFrames[$currentFrameId].id,
+                cells: [{ id: cellId, x: null, y: null }]
+            }]
+        });
+        return d;
+    })}}>Delete</button>
+    <button>HII:3</button>
 </div>
 </div>
 
