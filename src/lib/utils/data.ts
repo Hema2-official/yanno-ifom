@@ -90,7 +90,10 @@ export function dataTypeToText(data: DataType, changeIndex: number = -1): string
     frames.forEach(frame => {
         frame.cells.forEach(cell => {
             cell.x.forEach((x, index) => {
-                text += `${data.pos}\t${frame.id}\t${cell.id}\t${x}\t${cell.y[index]}\n`;
+                // limit x and y values to 1 decimal place
+                const limX = Math.round(x * 10) / 10;
+                const limY = Math.round(cell.y[index] * 10) / 10;
+                text += `${data.pos}\t${frame.id}\t${cell.id}\t${limX}\t${limY}\n`;
             });
         });
     });
