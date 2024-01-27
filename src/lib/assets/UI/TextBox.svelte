@@ -26,14 +26,15 @@
 		flex-direction: column;
 		align-items: start;
         position: relative;
-        margin: 1rem .3rem;
+        margin: 0.5rem .3rem;
+        margin-top: 1.5rem;
 	}
 	.tb-label {
 		display: flex;
 		-webkit-user-select: none;
 		-moz-user-select: none;
 		user-select: none;
-		cursor: text;
+		cursor: default;
         position: absolute;
         left: 1px;
         transform-origin: 0 0;
