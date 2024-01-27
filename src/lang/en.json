@@ -6,5 +6,6 @@
   "nonexistent_frame": "Change history contains changes of nonexistent frames.\nIf this is not intentional, contact developer or report a bug.",
   "point_tool": "Point tool\nEnables editing the cell accurately by draggig each point.",
   "whole_tool": "Whole tool\nEnables editing the entire cell by moving, resizing and rotating it.",
-  "smooth_tool": "Smooth tool\nEnables the quick editing of the cell's border by dragging a portion of it."
+  "smooth_tool": "Smooth tool\nEnables the quick editing of the cell's border by dragging a portion of it.",
+  "unsupported_tiff": "The TIF/TIFF file used is not supported by this application.\nPlease contact the developer, or report a bug."
 }

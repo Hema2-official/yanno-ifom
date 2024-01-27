@@ -1,6 +1,6 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
-    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
+    import { isSvgShown, svgStroke, svgFill, currentFrameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier, displayFrames } from '$lib/stores';
     import { EditorMode, type CellType, type FrameType } from '$lib/types';
     import { Mouse, isDown, isUp } from '$lib/utils/mouse';
     import { cellToPath, getPointerCoords, getPointerViewBoxCoords, ignoreContextMenu, radioSelect } from '$lib/utils/display';
@@ -9,16 +9,10 @@
     import EditorControls from './EditorControls.svelte';
     import Editor from './Editor.svelte';
 
-    import _data from '../../../data/data.json';
-
-    $frames = _data.frames as FrameType[];
-
     let contextMenuComponent: ContextMenu;
     let editorComponent: Editor;
     let imageWrapperElement: HTMLDivElement;
     let svgElement: SVGSVGElement;
-
-    let editorCell: CellType;
 
     const styles = {
 		'scale-percent': 100,
@@ -159,7 +153,7 @@
         e.preventDefault();
         const cellId = e.target.id.replace('cell', '');
         contextMenuComponent.$set({ cellId: cellId });
-        editorCell = $frames[$frameIndex].cells.find(c => c.id == cellId);
+        editorComponent.setCell($displayFrames[$currentFrameIndex].cells.find(c => c.id == cellId));
         contextMenuComponent.show(getPointerCoords(e));
     }
     
@@ -201,7 +195,7 @@ style={cssVarStyles}
         >
             {#if !$isEditing}
                 <g on:contextmenu={cellContextMenu} role="region">
-                {#each $frames[$frameIndex].cells as cell}
+                {#each $displayFrames[$currentFrameIndex].cells as cell}
                     <path
                         id="cell{cell.id}"
                         d={cellToPath(cell)}
@@ -215,7 +209,6 @@ style={cssVarStyles}
             {:else}
 
                 <Editor
-                    cell={editorCell}
                     bind:svgScalePercent={styles['scale-percent']}
                     bind:svgElement={svgElement}
                     imageMouse={imageMouse}

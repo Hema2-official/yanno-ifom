@@ -1,10 +1,11 @@
 <script lang="ts">
     import { lastPointerViewBoxCoords } from "$lib/stores";
     import { EditorMode, type CellType } from "$lib/types";
+  import { deepCopy } from "$lib/utils/data";
     import { cellToPath, getPointerViewBoxCoords } from "$lib/utils/display";
     import { Mouse, isDown, isUp } from "$lib/utils/mouse";
 
-    export let cell: CellType;
+    let cell: CellType;
     export let svgElement: SVGSVGElement;
     export let svgScalePercent: number;
     export let imageMouse: {
@@ -15,6 +16,7 @@
     };
     export let editorMode: EditorMode = EditorMode.Point;
     export let hoverElementsShown: boolean = true;
+    export const setCell = (c: CellType) => cell = deepCopy(c);
      
     let testCoords = { x: 0, y: 0 };
 
