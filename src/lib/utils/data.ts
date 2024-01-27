@@ -50,18 +50,18 @@ export function textToDataType(input: string) {
             }
 
             // Check if frame exists
-            const frameIndex = parseInt(line[labels["f"]]);
-            let realFrameIndex = data.originalFrames.findIndex(frame => frame.index === frameIndex);
-            if (realFrameIndex == -1) realFrameIndex = data.originalFrames.push({ index: frameIndex, cells: [] }) - 1;
+            const frameId = parseInt(line[labels["f"]]);
+            let frameIndex = data.originalFrames.findIndex(frame => frame.id === frameId);
+            if (frameIndex == -1) frameIndex = data.originalFrames.push({ id: frameId, cells: [] }) - 1;
 
             // Check if cell exists
             const cellID = parseInt(line[labels["cellnum"]]);
-            let cellIndex = data.originalFrames[realFrameIndex].cells.findIndex(cell => cell.id === cellID);
-            if (cellIndex == -1) cellIndex = data.originalFrames[realFrameIndex].cells.push({ id: cellID, x: [], y: [] }) - 1;
+            let cellIndex = data.originalFrames[frameIndex].cells.findIndex(cell => cell.id === cellID);
+            if (cellIndex == -1) cellIndex = data.originalFrames[frameIndex].cells.push({ id: cellID, x: [], y: [] }) - 1;
 
             // Add coordinates
-            data.originalFrames[realFrameIndex].cells[cellIndex].x.push(parseFloat(line[labels["x"]]));
-            data.originalFrames[realFrameIndex].cells[cellIndex].y.push(parseFloat(line[labels["y"]]));
+            data.originalFrames[frameIndex].cells[cellIndex].x.push(parseFloat(line[labels["x"]]));
+            data.originalFrames[frameIndex].cells[cellIndex].y.push(parseFloat(line[labels["y"]]));
         }
         resolve(data);
     });
@@ -82,7 +82,7 @@ export function dataTypeToText(data: DataType, changeIndex: number = -1): string
     const frames = deepCopy( changeIndex == -1 ? data.originalFrames : getFramesAtChangeIndex(data, changeIndex) );
 
     // Sort frames and cells
-    frames.sort((a, b) => a.index - b.index);
+    frames.sort((a, b) => a.id - b.id);
     frames.forEach(frame => frame.cells.sort((a, b) => a.id - b.id));
 
     // Generate text
@@ -90,7 +90,7 @@ export function dataTypeToText(data: DataType, changeIndex: number = -1): string
     frames.forEach(frame => {
         frame.cells.forEach(cell => {
             cell.x.forEach((x, index) => {
-                text += `${data.pos}\t${frame.index}\t${cell.id}\t${x}\t${cell.y[index]}\n`;
+                text += `${data.pos}\t${frame.id}\t${cell.id}\t${x}\t${cell.y[index]}\n`;
             });
         });
     });
@@ -146,25 +146,25 @@ export function getFramesAtChangeIndex(data: DataType, changeIndex: number): Fra
     for (let i = 0; i <= changeIndex; i++) {
         const change = deepCopy(data.changes[i]);
         change.frames.forEach(frame => {
-            let realFrameIndex = newFrames.findIndex(f => f.index === frame.index);
-            if (realFrameIndex == -1) {
+            let frameIndex = newFrames.findIndex(f => f.id === frame.id);
+            if (frameIndex == -1) {
                 alert(get(_)("nonexistent_frame"));
                 newFrames.push(frame);
             } else {
                 frame.cells.forEach(cell => {
-                    const cellIndex = newFrames[realFrameIndex].cells.findIndex(c => c.id === cell.id);
+                    const cellIndex = newFrames[frameIndex].cells.findIndex(c => c.id === cell.id);
                     const markedForDeletion = (cell.x === null || cell.y === null);
 
                     // If cell is not found and isn't marked for deletion, add it
-                    if (cellIndex === -1 && !markedForDeletion) newFrames[realFrameIndex].cells.push(cell);
+                    if (cellIndex === -1 && !markedForDeletion) newFrames[frameIndex].cells.push(cell);
 
                     // If cell is found and is marked for deletion, delete it
-                    else if (cellIndex !== -1 && markedForDeletion) newFrames[realFrameIndex].cells.splice(cellIndex, 1);
+                    else if (cellIndex !== -1 && markedForDeletion) newFrames[frameIndex].cells.splice(cellIndex, 1);
                     
                     // If cell is found and isn't marked for deletion, update it
                     else if (cellIndex !== -1 && !markedForDeletion) {
-                        newFrames[realFrameIndex].cells[cellIndex].x = cell.x;
-                        newFrames[realFrameIndex].cells[cellIndex].y = cell.y;
+                        newFrames[frameIndex].cells[cellIndex].x = cell.x;
+                        newFrames[frameIndex].cells[cellIndex].y = cell.y;
                     }
                 });
             }
@@ -172,7 +172,7 @@ export function getFramesAtChangeIndex(data: DataType, changeIndex: number): Fra
     }
 
     // Sort frames and cells
-    newFrames.sort((a, b) => a.index - b.index);
+    newFrames.sort((a, b) => a.id - b.id);
     newFrames.forEach(frame => frame.cells.sort((a, b) => a.id - b.id));
 
     return newFrames;
@@ -193,7 +193,7 @@ export function getFramesDifference(oldFrames: FrameType[], newFrames: FrameType
 
     // Find differences between each frame
     newFramesCopy.forEach(newFrame => {
-        let oldFrameIndex = oldFrames.findIndex(f => f.index === newFrame.index);
+        let oldFrameIndex = oldFrames.findIndex(f => f.id === newFrame.id);
         if (oldFrameIndex == -1) {
             alert(get(_)("nonexistent_frame"));
             change.frames.push(newFrame);
@@ -213,12 +213,12 @@ export function getFramesDifference(oldFrames: FrameType[], newFrames: FrameType
             });
 
             // If anything changed, add frame
-            if (changedCells.length > 0) change.frames.push({ index: newFrame.index, cells: changedCells });
+            if (changedCells.length > 0) change.frames.push({ id: newFrame.id, cells: changedCells });
         }
     });
 
     // Sort frames and cells
-    change.frames.sort((a, b) => a.index - b.index);
+    change.frames.sort((a, b) => a.id - b.id);
     change.frames.forEach(frame => frame.cells.sort((a, b) => a.id - b.id));
 
     return change;

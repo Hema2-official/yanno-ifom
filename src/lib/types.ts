@@ -5,7 +5,7 @@ export type CellType = {
 };
 
 export type FrameType = {
-    index: number,
+    id: number,
     cells: CellType[]
 };
 

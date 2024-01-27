@@ -1,8 +1,7 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { cmOpacity } from "$lib/stores";
-    import { Mouse, isDown } from "$lib/utils/mouse";
+    import { _ } from "svelte-i18n";
     import Editor from "./Editor.svelte";
+    import { EditorMode } from "$lib/types";
 
     let contextMenuElement: HTMLElement;
     let editorControlsWrapperElement: HTMLElement;
@@ -10,13 +9,23 @@
     export let editorComponent: Editor;
 
     $: styles = {
-	};
+    };
     const stylesUnits = {
     };
 
     $: cssVarStyles = Object.entries(styles)
-		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-		.join(';');
+        .map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
+        .join(';');
+
+        
+    function radioSelect(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
+        e.currentTarget.classList.add('selected');
+        const siblings = e.currentTarget.parentElement?.children;
+        if (siblings)
+            for (const sibling of siblings)
+                if (sibling !== e.currentTarget) sibling.classList.remove('selected');
+    }
+
 </script>
 
 <div class="editor-controls-wrapper"
@@ -24,7 +33,36 @@
     role="presentation"
     on:mouseup={editorComponent.mouse.mouseUp}
     bind:this={editorControlsWrapperElement}>
-    <slot />
+    <div>
+        <button>Some</button>
+        <div>
+            <button title={$_("point_tool")} class="selected"
+                on:click={(e) => {radioSelect(e);
+                editorComponent.$set( {editorMode: EditorMode.Point} )}}
+                >P</button>
+            <button title={$_("whole_tool")}
+                on:click={(e) => {radioSelect(e);
+                editorComponent.$set( {editorMode: EditorMode.Whole} )}}
+                >W</button>
+            <button title={$_("smooth_tool")}
+                on:click={(e) => {radioSelect(e);
+                editorComponent.$set( {editorMode: EditorMode.Smooth} )}}
+                >S</button>
+        </div>
+        <button>X</button>
+        <button>Y</button>
+    </div>
+    <div class="right">
+        <button on:click={() => editorComponent.quit(true)} title={$_("confirm_and_quit")}>Save</button>
+        <button on:click={() => editorComponent.quit(false)} title={$_("quit_without_saving")}>Nope</button>
+        <div>
+            <button>G1</button>
+            <button>G2</button>
+            <button>G3</button>
+        </div>
+        <button>X</button>
+        <button>Y</button>
+    </div>
 </div>  
 
 <style>

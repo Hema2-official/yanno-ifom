@@ -32,7 +32,7 @@ export const lastPointerViewBoxCoords = writable({ x: 0, y: 0 });
 export const backend_url = writable('https://example.com/api/');
 
 export const data: Writable<DataType> = writable();
-export const currentFrameIndex = writable(0);
+export const currentFrameId = writable(0);
 export const currentChangeIndex = writable(-1);
 export const displayFrames: Writable<FrameType[]> = writable([]);
 

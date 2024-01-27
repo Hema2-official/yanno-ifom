@@ -1,9 +1,9 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
-    import { isSvgShown, svgStroke, svgFill, currentFrameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier, displayFrames, data, currentChangeIndex, blob_pngs } from '$lib/stores';
+    import { isSvgShown, svgStroke, svgFill, currentFrameId, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier, displayFrames, data, currentChangeIndex, blob_pngs } from '$lib/stores';
     import { EditorMode, type CellType, type FrameType } from '$lib/types';
     import { Mouse, isDown, isUp } from '$lib/utils/mouse';
-    import { cellToPath, getPointerCoords, getPointerViewBoxCoords, ignoreContextMenu, radioSelect } from '$lib/utils/display';
+    import { cellToPath, getPointerCoords, getPointerViewBoxCoords, ignoreContextMenu } from '$lib/utils/display';
     import { getFramesAtChangeIndex } from '$lib/utils/data';
 
     import ContextMenu from './ContextMenu.svelte';
@@ -11,6 +11,7 @@
     import Editor from './Editor.svelte';
 
     $: $displayFrames = getFramesAtChangeIndex($data, $currentChangeIndex);
+    $currentChangeIndex = $data.changes.length - 1;
 
     let contextMenuComponent: ContextMenu;
     let editorComponent: Editor;
@@ -20,12 +21,12 @@
     let editorCell: CellType;
 
     const styles = {
-		'scale-percent': 100,
+        'scale-percent': 100,
         'translate-x': 0,
         'translate-y': 0,
         'image-top': 0,
         'cursor': 'grab',
-	};
+    };
     const stylesUnits = {
         'scale-percent': '%',
         'translate-x': 'px',
@@ -35,8 +36,8 @@
     };
 
     $: cssVarStyles = Object.entries(styles)
-		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-		.join(';');
+        .map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
+        .join(';');
 
 
     const movePixels = (x: number, y: number) => {
@@ -158,8 +159,10 @@
         e.preventDefault();
         const cellId = e.target.id.replace('cell', '');
         contextMenuComponent.$set({ cellId: cellId });
-        editorCell = $displayFrames[$currentFrameIndex].cells.find(c => c.id == cellId);
-        contextMenuComponent.show(getPointerCoords(e));
+        editorCell = $displayFrames.find(f => f.id == $currentFrameId).cells.find(c => c.id == cellId);
+        const pos = getPointerCoords(e);
+        pos.x -= imageWrapperElement.parentElement.getBoundingClientRect().left;
+        contextMenuComponent.show(pos);
     }
     
     // let svg = frameToSvg(1);
@@ -189,7 +192,7 @@ style={cssVarStyles}
     bind:this={imageWrapperElement}
     >
 
-        <img src="{URL.createObjectURL($blob_pngs[$currentFrameIndex])}" alt="" class="zoomable" />
+        <img src="{URL.createObjectURL($blob_pngs[$currentFrameId - 1])}" alt="" class="zoomable" />
         
         {#if $isSvgShown}
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"
@@ -200,7 +203,7 @@ style={cssVarStyles}
         >
             {#if !$isEditing}
                 <g on:contextmenu={cellContextMenu} role="region">
-                {#each $displayFrames[$currentFrameIndex].cells as cell}
+                {#each $displayFrames.find(f => f.id == $currentFrameId).cells as cell}
                     <path
                         id="cell{cell.id}"
                         d={cellToPath(cell)}
@@ -228,39 +231,9 @@ style={cssVarStyles}
     </div>
 
     {#if $isEditing}
-        <EditorControls editorComponent={editorComponent}>
-            <div>
-                <button>Some</button>
-                <div>
-                    <button title={$_("point_tool")} class="selected"
-                        on:click={(e) => {radioSelect(e);
-                        editorComponent.$set( {editorMode: EditorMode.Point} )}}
-                        >G1</button>
-                    <button title={$_("whole_tool")}
-                        on:click={(e) => {radioSelect(e);
-                        editorComponent.$set( {editorMode: EditorMode.Whole} )}}
-                        >G2</button>
-                    <button title={$_("smooth_tool")}
-                        on:click={(e) => {radioSelect(e);
-                        editorComponent.$set( {editorMode: EditorMode.Smooth} )}}
-                        >G3</button>
-                </div>
-                <button>X</button>
-                <button>Y</button>
-            </div>
-            <div class="right">
-                <button on:click={() => $isEditing = false} title={$_("confirm_and_quit")}>Done</button>
-                <button title={$_("quit_without_saving")}>Some</button>
-                <div>
-                    <button>G1</button>
-                    <button>G2</button>
-                    <button>G3</button>
-                </div>
-                <button>X</button>
-                <button>Y</button>
-            </div>
-        </EditorControls>
+        <EditorControls editorComponent={editorComponent} />
     {/if}
+
     <ContextMenu bind:this={contextMenuComponent} on:mousemove={null}>
         <button on:click={edit}>Edit</button>
         <button>Something</button>

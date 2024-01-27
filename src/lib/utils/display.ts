@@ -39,11 +39,3 @@ export function getPointerViewBoxCoords(e: MouseEvent, svgElement: SVGSVGElement
     lastPointerViewBoxCoords.set(coords);
     return coords;
 }
-
-export function radioSelect(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
-    e.currentTarget.classList.add('selected');
-    const siblings = e.currentTarget.parentElement?.children;
-    if (siblings)
-        for (const sibling of siblings)
-            if (sibling !== e.currentTarget) sibling.classList.remove('selected');
-}
