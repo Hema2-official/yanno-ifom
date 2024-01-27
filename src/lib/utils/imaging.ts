@@ -1,58 +1,58 @@
-import { decode } from 'tiff';
-import { encode, type BitDepth } from 'fast-png';
+import type TiffIfd from 'tiff/lib/tiffIfd';
+import { encode } from 'fast-png';
 import 'colormap'
-import { get } from 'svelte/store';
+import { get, type Writable } from 'svelte/store';
 import { _ } from 'svelte-i18n';
 import createColormap from 'colormap';
 
 /**
  * Decodes a TIFF file and returns an array of PNG frames.
  * 
- * @param tiffData - The TIFF file data as an ArrayBuffer.
- * @param progressUpdateCallback - An optional callback function to track the progress of decoding.
- * @returns A Promise that resolves to an array of Uint8Array representing the PNG frames.
+ * @param tiff_ifds - A TiffIfd array representing the decoded TIFF file.
+ * @param destination - A Svelte store to write the PNG frames to.
+ * @param colormap - The colormap to use for the conversion. Default: 'viridis'
+ * @returns A Promise that resolves to nothing.
  * @throws If the TIFF file is unsupported or contains invalid data.
  */
-export function getTiffFramesAsPngs(tiffData: ArrayBuffer) {
-    return new Promise<Blob[]>((resolve, reject) => {
-        const ifds = decode(tiffData);
-        const pngs: Blob[] = [];
-        for (let i = 0; i < ifds.length; i++) {
-            const ifd = ifds[i];
+export function tiffToPngBlobs(tiff_ifds: TiffIfd[], destination: Writable<Blob[]>, colormap = 'viridis') {
+    return new Promise<void>((resolve, reject) => {
+        for (let i = 0; i < tiff_ifds.length; i++) {
+            const ifd = tiff_ifds[i];
             if (ifd.alpha || ![8, 16].includes(ifd.bitsPerSample))
                 reject(get(_)("unsupported_tiff" + `\nalpha: ${ifd.alpha}, bitsPerSample: ${ifd.bitsPerSample}`));
-            // const viridis = toViridis(ifd.data as Uint8Array | Uint16Array, ifd.alpha, ifd.bitsPerSample);
-            // const png = encode({
-            //     width: ifd.width,
-            //     height: ifd.height,
-            //     data: viridis,
-            //     depth: 8,
-            //     channels: 4
-            // });
+            const mapped = toColormap(ifd.data as Uint8Array | Uint16Array, ifd.alpha, ifd.bitsPerSample, colormap);
             const png = encode({
                 width: ifd.width,
                 height: ifd.height,
-                data: ifd.data as Uint8Array | Uint16Array,
-                depth: ifd.bitsPerSample as BitDepth,
-                channels: ifd.alpha ? 2 : 1
+                data: mapped,
+                depth: 8,
+                channels: 4
             });
-            pngs.push(new Blob([png.buffer], { type: 'image/png' }));
+            destination.update((d) => {
+                d[i] = new Blob([png.buffer], { type: 'image/png' });
+                return d;
+            });
         };
-        resolve(pngs);
+        resolve();
     });
 }
 
-function toViridis(data: Uint8Array | Uint16Array, hasAlpha = false, bitsPerSample = 8) {
-    const colors = createColormap({ colormap: 'viridis', nshades: 256, format: 'float', alpha: 1 });
-    const viridis = new Uint8Array(data.length * 4);
+function toColormap(data: Uint8Array | Uint16Array, hasAlpha: boolean, bitsPerSample: number, colormap = 'viridis') {
+    const colors = createColormap({ colormap: colormap, nshades: 65536, format: 'float', alpha: 1 });
+    const mapped = new Uint16Array(hasAlpha ? data.length * 2 : data.length * 4);
+    const n = Math.ceil(Math.ceil(Math.log2(Math.max(...data) + 1)) / 4) * 4;
+    const original_max = 2 ** bitsPerSample - 1;
+    const normal_max = 2 ** n - 1;
     for (let i = 0; i < data.length; i++) {
-        const val = hasAlpha ? data[i] >> 8 : data[i] / (2 ** bitsPerSample - 1);
-        const color = colors[val];
+        // skip alpha channel
+        if (hasAlpha && i % 2 === 1) continue;
+        // map to viridis
+        const color = colors[Math.round((data[i] * original_max) / normal_max)];
         const j = i * 4;
-        viridis[j] = color[0] * 255;
-        viridis[j + 1] = color[1] * 255;
-        viridis[j + 2] = color[2] * 255;
-        viridis[j + 3] = hasAlpha ? data[i] : 255;
+        mapped[j] = color[0] * 65535;
+        mapped[j + 1] = color[1] * 65535;
+        mapped[j + 2] = color[2] * 65535;
+        mapped[j + 3] = color[3] * 65535;
     }
-    return viridis;
+    return mapped;
 }

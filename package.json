@@ -17,10 +17,8 @@
   },
   "dependencies": {
     "colormap": "^2.3.2",
-    "decode-tiff": "^0.2.1",
     "fast-png": "^6.2.0",
     "svelte-i18n": "^4.0.0",
-    "tiff": "^5.0.3",
-    "zoomist": "^2.0.11"
+    "tiff": "^5.0.3"
   }
 }

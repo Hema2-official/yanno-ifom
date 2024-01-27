@@ -5,10 +5,10 @@
   import SideBar from '$lib/assets/UI/SideBar.svelte';
 
   import en from "./lang/en.json";
-  import { blob_pngs, data } from "$lib/stores";
+  import { blob_pngs, data, decodedTiffIfds, globalColormap } from "$lib/stores";
   import { textToDataType } from "$lib/utils/data";
-  import { getTiffFramesAsPngs } from "$lib/utils/imaging";
   import { onMount } from "svelte";
+  import { decode } from "tiff";
   // import hu from "./lang/hu.json";
 
   addMessages("en", en);
@@ -48,9 +48,7 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        getTiffFramesAsPngs(reader.result as ArrayBuffer).then((pngs) => {
-          blob_pngs.set(pngs);
-        });
+        decodedTiffIfds.set(decode(reader.result as ArrayBuffer));
       };
       reader.readAsArrayBuffer(file);
     });

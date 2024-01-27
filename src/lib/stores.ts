@@ -1,5 +1,8 @@
 import { writable, type Writable } from 'svelte/store';
 import type { DataType, FrameType } from './types';
+import type TiffIfd from 'tiff/lib/tiffIfd';
+import { tiffToPngBlobs } from './utils/imaging';
+import { get } from 'svelte/store';
 
 export const speed = writable(0);
 export const tick = writable(0);
@@ -32,4 +35,16 @@ export const currentFrameIndex = writable(0);
 export const currentChangeIndex = writable(-1);
 export const displayFrames: Writable<FrameType[]> = writable([]);
 
+export const globalColormap = writable('viridis');
+export const decodedTiffIfds: Writable<TiffIfd[]> = writable([]);
 export const blob_pngs: Writable<Blob[]> = writable([]);
+
+decodedTiffIfds.subscribe((tiff) => {
+    tiffToPngBlobs(tiff, blob_pngs, get(globalColormap));
+        // .then((pngs) => blob_pngs.set(pngs));
+});
+
+globalColormap.subscribe((colormap) => {
+    tiffToPngBlobs(get(decodedTiffIfds), blob_pngs, colormap);
+        // .then((pngs) => blob_pngs.set(pngs));
+});

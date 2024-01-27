@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier, currentFrameIndex, displayFrames } from '$lib/stores';
+	import { backend_url, isSvgShown, svgStroke, svgFill, svgAlpha, svgStrokeSwitch, svgFillSwitch, cmOpacity, isEditing, pointerLockEnabled, scrollMultiplier, currentFrameIndex, displayFrames, globalColormap } from '$lib/stores';
 	import CheckBox from './CheckBox.svelte';
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
@@ -65,12 +65,16 @@
 			>Frame index</Slider
 		>
 		
+		<TextBox
+			bind:value={$globalColormap}
+			>Color map</TextBox
+		>
+		<TextBox
+			bind:value={$backend_url}
+			>Backend url</TextBox
+		>
 	</div>
 
-	<TextBox
-		bind:value={$backend_url}
-		>Backend url</TextBox
-	>
 	
 </nav>
 

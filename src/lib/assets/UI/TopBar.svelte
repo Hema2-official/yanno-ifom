@@ -2,7 +2,6 @@
 	import { _ } from "svelte-i18n";
 	import svgLogo from '/logo.svg'
     import { getFramesDifference, getFramesAtChangeIndex, textToDataType, dataTypeToText, download } from "$lib/utils/data";
-    import { getTiffFramesAsPngs } from "$lib/utils/imaging";
  	import { blob_pngs } from "$lib/stores";
 	
 	const handleTxtFileInput = (e: Event) => {
@@ -59,38 +58,27 @@
 		reader.readAsText(file);
 	}
 
-	const handleTifFileInput = (e: Event) => {
-		const file = (e.currentTarget as HTMLInputElement).files[0];
-		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = () => {
-			const buf = reader.result as ArrayBuffer;
-			getTiffFramesAsPngs(buf).then((frames) => {
-				console.log(frames);
-				blob_pngs.set(frames);
-			});
-			console.log("Promise returned");
-		}
-		reader.readAsArrayBuffer(file);
-		console.log("Reading file");
-	}
+	// const handleTifFileInput = (e: Event) => {
+	// 	const file = (e.currentTarget as HTMLInputElement).files[0];
+	// 	if (!file) return;
+	// 	const reader = new FileReader();
+	// 	reader.onload = () => {
+	// 		const buf = reader.result as ArrayBuffer;
+	// 		getTiffFramesAsPngs(buf).then((frames) => {
+	// 			console.log(frames);
+	// 			blob_pngs.set(frames);
+	// 		});
+	// 		console.log("Promise returned");
+	// 	}
+	// 	reader.readAsArrayBuffer(file);
+	// 	console.log("Reading file");
+	// }
 
 </script>
 
 <nav class="navbar">
 	<img src={svgLogo} class="logo" alt="Logo" />
 	<p class="title">{$_("app_title")}</p>
-	<div class="input-container">
-		<input type="file"
-			accept=".txt"
-			on:change={handleTxtFileInput} />
-	</div>
-	<div class="input-container">
-		<input type="file" 
-			accept=".tif,.tiff"
-			on:change={handleTifFileInput}
-			/>
-	</div>
 </nav>
 
 <style>
@@ -106,11 +94,6 @@
 		gap: 80px;
 		box-sizing: border-box;
 		border-bottom: 0.2rem solid var(--accent-color);
-	}
-
-	.input-container {
-		display: flex;
-		flex-direction: column;
 	}
 
 	.logo {
