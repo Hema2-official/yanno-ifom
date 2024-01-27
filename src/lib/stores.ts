@@ -41,10 +41,13 @@ export const blob_pngs: Writable<Blob[]> = writable([]);
 
 decodedTiffIfds.subscribe((tiff) => {
     tiffToPngBlobs(tiff, blob_pngs, get(globalColormap));
-        // .then((pngs) => blob_pngs.set(pngs));
 });
 
 globalColormap.subscribe((colormap) => {
     tiffToPngBlobs(get(decodedTiffIfds), blob_pngs, colormap);
-        // .then((pngs) => blob_pngs.set(pngs));
+});
+
+data.subscribe((data) => {
+    // if valid, save to session storage
+    if (data) sessionStorage.setItem("demo_data", JSON.stringify(data));
 });

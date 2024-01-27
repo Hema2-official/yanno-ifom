@@ -1,14 +1,14 @@
 <script lang="ts">
-	export let value;
+	export let value: number;
 	export let min = 0;
-	export let max;
+	export let max: number;
 	export let disabled = false;
 
 	export let mDown: (event: Event) => void = null;
 	export let mUp: (event: Event) => void = null;
 </script>
 
-<div class="labeled-input-wrapper">
+<div class="labeled-input-wrapper" title="{value.toString()}">
 	<label class="range-label">
 		<span class="label-text"><slot /></span>
 		<input

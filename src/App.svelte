@@ -21,7 +21,7 @@
 
   // display demo data
   const stored_data = sessionStorage.getItem("demo_data");
-  if (stored_data) {
+  if (stored_data && stored_data !== "undefined") {
     data.set(JSON.parse(stored_data));
   } else {
     onMount(() => {
@@ -33,7 +33,6 @@
           const text = reader.result as string;
           textToDataType(text).then((d) => {
             data.set(d);
-            sessionStorage.setItem("demo_data", JSON.stringify(d));
           });
         };
         reader.readAsText(file);

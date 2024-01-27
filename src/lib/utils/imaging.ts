@@ -46,8 +46,8 @@ function toColormap(data: Uint8Array | Uint16Array, hasAlpha: boolean, bitsPerSa
     for (let i = 0; i < data.length; i++) {
         // skip alpha channel
         if (hasAlpha && i % 2 === 1) continue;
-        // map to viridis
-        const color = colors[Math.round((data[i] * original_max) / normal_max)];
+        // map to color map
+        const color = colors[Math.round(data[i] * original_max / normal_max)];
         const j = i * 4;
         mapped[j] = color[0] * 65535;
         mapped[j + 1] = color[1] * 65535;
