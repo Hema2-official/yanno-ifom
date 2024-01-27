@@ -14,62 +14,57 @@ export function deepCopy<T>(obj: T): T {
     return JSON.parse(JSON.stringify(obj));
 }
 
+
 /**
- * Converts the text input into a DataType object.
+ * Converts a text input into a DataType object.
  * 
  * @param input - The input text to be converted.
  * @param progressUpdateCallback - An optional callback function to track the progress of the conversion.
- * @returns The converted DataType object.
+ * @returns A Promise that resolves to a DataType object.
  */
-export function textToDataType(input: string, progressUpdateCallback?: (progress: number) => void): DataType {
-    // Check if expected labels are present, and find their indices
-    let firstLine = input.substring(0, input.indexOf('\n'));
-    const expectedLabels = ["pos", "f", "cellnum", "x", "y"];
-    const labels = {};
-    firstLine.trim().split('\t').forEach((item, index) => { labels[item.toLowerCase()] = index; });
-    if (!expectedLabels.every(item => (Object.keys(labels).includes(item)))) {
-        alert(get(_)("unexpected_file_format") + expectedLabels.join('\t'));
-        return null;
-    }
-    
-    // Parse each line
-    let data: DataType = { pos: null, originalFrames: [], changes: [] };
-    let lineStartIndex = firstLine.length + 1;
-    let progressPercent = 0;
-    for (let newlineIndex = input.indexOf('\n', lineStartIndex); newlineIndex != -1; newlineIndex = input.indexOf('\n', newlineIndex + 1)) {
-        // Get line
-        const substr = input.substring(lineStartIndex, newlineIndex);
-        lineStartIndex = newlineIndex + 1;
-        const line = substr.split('\t');
+export function textToDataType(input: string) {
+    return new Promise<DataType>((resolve, reject) => {
+        // Check if expected labels are present, and find their indices
+        let firstLine = input.substring(0, input.indexOf('\n'));
+        const expectedLabels = ["pos", "f", "cellnum", "x", "y"];
+        const labels = {};
+        firstLine.trim().split('\t').forEach((item, index) => { labels[item.toLowerCase()] = index; });
+        if (!expectedLabels.every(item => (Object.keys(labels).includes(item)))) {
+            reject(get(_)("unexpected_file_format") + expectedLabels.join('\t'));
+        }
 
-        // Check for POS consistency
-        if (data.pos === null) data.pos = parseInt(line[labels["pos"]]);
-        else if (data.pos != parseInt(line[labels["pos"]])) { console.warn("POS value changes over time. Look into this one."); data.pos = parseInt(line[labels["pos"]]); }
+        // Parse each line
+        let data: DataType = { pos: null, originalFrames: [], changes: [] };
+        let lineStartIndex = firstLine.length + 1;
+        for (let newlineIndex = input.indexOf('\n', lineStartIndex); newlineIndex != -1; newlineIndex = input.indexOf('\n', lineStartIndex)) {
+            // Get line
+            const substr = input.substring(lineStartIndex, newlineIndex);
+            lineStartIndex = newlineIndex + 1;
+            const line = substr.split('\t');
 
-        // Check if frame exists
-        const frameIndex = parseInt(line[labels["f"]]);
-        let realFrameIndex = data.originalFrames.findIndex(frame => frame.index === frameIndex);
-        if (realFrameIndex == -1) realFrameIndex = data.originalFrames.push({ index: frameIndex, cells: [] }) - 1;
+            // Check for POS consistency
+            if (data.pos === null) data.pos = parseInt(line[labels["pos"]]);
+            else if (data.pos != parseInt(line[labels["pos"]])) {
+                console.warn("POS value changes over time. Look into this one.");
+                data.pos = parseInt(line[labels["pos"]]);
+            }
 
-        // Check if cell exists
-        const cellID = parseInt(line[labels["cellnum"]]);
-        let cellIndex = data.originalFrames[realFrameIndex].cells.findIndex(cell => cell.id === cellID);
-        if (cellIndex == -1) cellIndex = data.originalFrames[realFrameIndex].cells.push({ id: cellID, x: [], y: [] }) - 1;
+            // Check if frame exists
+            const frameIndex = parseInt(line[labels["f"]]);
+            let realFrameIndex = data.originalFrames.findIndex(frame => frame.index === frameIndex);
+            if (realFrameIndex == -1) realFrameIndex = data.originalFrames.push({ index: frameIndex, cells: [] }) - 1;
 
-        // Add coordinates
-        data.originalFrames[realFrameIndex].cells[cellIndex].x.push(parseFloat(line[labels["x"]]));
-        data.originalFrames[realFrameIndex].cells[cellIndex].y.push(parseFloat(line[labels["y"]]));
+            // Check if cell exists
+            const cellID = parseInt(line[labels["cellnum"]]);
+            let cellIndex = data.originalFrames[realFrameIndex].cells.findIndex(cell => cell.id === cellID);
+            if (cellIndex == -1) cellIndex = data.originalFrames[realFrameIndex].cells.push({ id: cellID, x: [], y: [] }) - 1;
 
-        // Update progress
-        const oldProgressPercent = progressPercent;
-        progressPercent = newlineIndex * 100 / input.length;
-        if (progressUpdateCallback && Math.floor(progressPercent) != Math.floor(oldProgressPercent)) progressUpdateCallback(Math.floor(progressPercent));
-    }
-
-    // Send last progress update
-    if (progressUpdateCallback) progressUpdateCallback(100);
-
-    return data;
+            // Add coordinates
+            data.originalFrames[realFrameIndex].cells[cellIndex].x.push(parseFloat(line[labels["x"]]));
+            data.originalFrames[realFrameIndex].cells[cellIndex].y.push(parseFloat(line[labels["y"]]));
+        }
+        resolve(data);
+    });
 }
 
 /**
@@ -141,6 +136,7 @@ export function download(data: BlobPart, filename: string, type: string = "text/
  */
 export function getFramesAtChangeIndex(data: DataType, changeIndex: number): FrameType[] | null {
     // Check if changeIndex is valid
+    if (changeIndex === -1) return data.originalFrames;
     if (changeIndex < 0 || changeIndex >= data.changes.length) return null;
 
     // Copy original frames

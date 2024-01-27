@@ -1,10 +1,13 @@
 <script lang="ts">
     import { lastPointerViewBoxCoords } from "$lib/stores";
     import { EditorMode, type CellType } from "$lib/types";
+    import { deepCopy } from "$lib/utils/data";
     import { cellToPath, getPointerViewBoxCoords } from "$lib/utils/display";
     import { Mouse, isDown, isUp } from "$lib/utils/mouse";
+    import { onMount } from "svelte";
 
-    export let cell: CellType;
+    export let inputCell: CellType;
+    let cell: CellType;
     export let svgElement: SVGSVGElement;
     export let svgScalePercent: number;
     export let imageMouse: {
@@ -131,6 +134,15 @@
             }
         }
     };
+
+    cell = deepCopy(inputCell);
+    // onMount(() => {
+    //     cell = deepCopy(inputCell);
+    //     if (cell.x.length === 0) {
+    //         cell.x = [0, 1, 2, 3, 4, 5];
+    //         cell.y = [0, 1, 2, 3, 4, 5];
+    //     }
+    // });
 
 </script>
 

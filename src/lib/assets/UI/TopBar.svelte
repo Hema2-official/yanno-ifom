@@ -2,62 +2,77 @@
 	import { _ } from "svelte-i18n";
 	import svgLogo from '/logo.svg'
     import { getFramesDifference, getFramesAtChangeIndex, textToDataType, dataTypeToText, download } from "$lib/utils/data";
+    import { getTiffFramesAsPngs } from "$lib/utils/imaging";
+ 	import { blob_pngs } from "$lib/stores";
 	
-	let fileInputElement: HTMLInputElement;
-	let progressElement: HTMLProgressElement;
-	
-	const handleFileInput = () => {
-		const file = fileInputElement.files[0];
+	const handleTxtFileInput = (e: Event) => {
+		const file = (e.currentTarget as HTMLInputElement).files[0];
 		if (!file) return;
 		const reader = new FileReader();
 		reader.onload = () => {
 			const text = reader.result as string;
-			const data = textToDataType(text, (progress) => {
-				progressElement.value = progress;
+			textToDataType(text).then((d) => {
+				d.changes.push({
+					time: Date.now(),
+					frames: [
+						{
+							index: 25,
+							cells: [
+								{
+									id: 7,
+									x: [0, 1, 2, 3, 4, 5],
+									y: [0, 1, 2, 3, 4, 5],
+								}
+							]
+						}
+					]
+				});
+				d.changes.push({
+					time: Date.now(),
+					frames: [
+						{
+							index: 25,
+							cells: [
+								{
+									id: 2,
+									x: null,
+									y: null,
+								}
+							]
+						}
+					]
+				});
+
+				console.log(d.changes);
+
+				const processed = getFramesAtChangeIndex(d, 1);
+				const difference = getFramesDifference(d.originalFrames, processed);
+				console.log(processed);
+				console.log(difference);
+
+				const backtotext = dataTypeToText(d, 1);
+				download(backtotext, "test.txt", "text/plain");
 			});
 
-			data.changes.push({
-				time: Date.now(),
-				frames: [
-					{
-						index: 25,
-						cells: [
-							{
-								id: 7,
-								x: [0, 1, 2, 3, 4, 5],
-								y: [0, 1, 2, 3, 4, 5],
-							}
-						]
-					}
-				]
-			});
-			data.changes.push({
-				time: Date.now(),
-				frames: [
-					{
-						index: 25,
-						cells: [
-							{
-								id: 2,
-								x: null,
-								y: null,
-							}
-						]
-					}
-				]
-			});
-
-			console.log(data.changes);
-
-			const processed = getFramesAtChangeIndex(data, 1);
-			const difference = getFramesDifference(data.originalFrames, processed);
-			console.log(processed);
-			console.log(difference);
-
-			const backtotext = dataTypeToText(data, 1);
-			download(backtotext, "test.txt", "text/plain");
+			
 		}
 		reader.readAsText(file);
+	}
+
+	const handleTifFileInput = (e: Event) => {
+		const file = (e.currentTarget as HTMLInputElement).files[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = () => {
+			const buf = reader.result as ArrayBuffer;
+			getTiffFramesAsPngs(buf).then((frames) => {
+				console.log(frames);
+				blob_pngs.set(frames);
+			});
+			console.log("Promise returned");
+		}
+		reader.readAsArrayBuffer(file);
+		console.log("Reading file");
 	}
 
 </script>
@@ -68,10 +83,13 @@
 	<div class="input-container">
 		<input type="file"
 			accept=".txt"
-			bind:this={fileInputElement}
-			on:change={handleFileInput}
+			on:change={handleTxtFileInput} />
+	</div>
+	<div class="input-container">
+		<input type="file" 
+			accept=".tif,.tiff"
+			on:change={handleTifFileInput}
 			/>
-		<progress value="0" bind:this={progressElement}></progress>
 	</div>
 </nav>
 
@@ -91,7 +109,8 @@
 	}
 
 	.input-container {
-		gap: 20px;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.logo {

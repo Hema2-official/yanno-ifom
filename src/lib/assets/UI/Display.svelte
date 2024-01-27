@@ -1,17 +1,16 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
-    import { isSvgShown, svgStroke, svgFill, frames, frameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier } from '$lib/stores';
+    import { isSvgShown, svgStroke, svgFill, currentFrameIndex, svgAlpha, svgFillSwitch, svgStrokeSwitch, minScale, maxScale, isEditing, pointerLockEnabled, scrollMultiplier, displayFrames, data, currentChangeIndex, blob_pngs } from '$lib/stores';
     import { EditorMode, type CellType, type FrameType } from '$lib/types';
     import { Mouse, isDown, isUp } from '$lib/utils/mouse';
     import { cellToPath, getPointerCoords, getPointerViewBoxCoords, ignoreContextMenu, radioSelect } from '$lib/utils/display';
+    import { getFramesAtChangeIndex } from '$lib/utils/data';
 
     import ContextMenu from './ContextMenu.svelte';
     import EditorControls from './EditorControls.svelte';
     import Editor from './Editor.svelte';
 
-    import _data from '../../../data/data.json';
-
-    $frames = _data.frames as FrameType[];
+    $: $displayFrames = getFramesAtChangeIndex($data, $currentChangeIndex);
 
     let contextMenuComponent: ContextMenu;
     let editorComponent: Editor;
@@ -159,7 +158,7 @@
         e.preventDefault();
         const cellId = e.target.id.replace('cell', '');
         contextMenuComponent.$set({ cellId: cellId });
-        editorCell = $frames[$frameIndex].cells.find(c => c.id == cellId);
+        editorCell = $displayFrames[$currentFrameIndex].cells.find(c => c.id == cellId);
         contextMenuComponent.show(getPointerCoords(e));
     }
     
@@ -190,7 +189,7 @@ style={cssVarStyles}
     bind:this={imageWrapperElement}
     >
 
-        <img src="/test.png" alt="" class="zoomable" />
+        <img src="{URL.createObjectURL($blob_pngs[$currentFrameIndex])}" alt="" class="zoomable" />
         
         {#if $isSvgShown}
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"
@@ -201,7 +200,7 @@ style={cssVarStyles}
         >
             {#if !$isEditing}
                 <g on:contextmenu={cellContextMenu} role="region">
-                {#each $frames[$frameIndex].cells as cell}
+                {#each $displayFrames[$currentFrameIndex].cells as cell}
                     <path
                         id="cell{cell.id}"
                         d={cellToPath(cell)}
@@ -215,7 +214,7 @@ style={cssVarStyles}
             {:else}
 
                 <Editor
-                    cell={editorCell}
+                    inputCell={editorCell}
                     bind:svgScalePercent={styles['scale-percent']}
                     bind:svgElement={svgElement}
                     imageMouse={imageMouse}
