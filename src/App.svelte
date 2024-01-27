@@ -5,7 +5,7 @@
   import SideBar from '$lib/assets/UI/SideBar.svelte';
 
   import en from "./lang/en.json";
-  import { blob_pngs, data, decodedTiffIfds, globalColormap } from "$lib/stores";
+  import { blob_pngs, data, decodedTiffIfds, globalColormap, sidebarRight } from "$lib/stores";
   import { textToDataType } from "$lib/utils/data";
   import { onMount } from "svelte";
   import { decode } from "tiff";
@@ -69,9 +69,9 @@
 {/if}
 
 {#if $data && $blob_pngs.length > 0}
-  <SideBar right />
+  <TopBar />
+  <SideBar right={$sidebarRight} />
   <main>
-    <TopBar />
     <Display />
   </main>
 {/if}
