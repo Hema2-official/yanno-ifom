@@ -9,7 +9,7 @@
     export let mUp: (event: Event) => void = null;
 </script>
 
-<div class="labeled-input-wrapper" title="{value.toString()}">
+<div class="labeled-input-wrapper" title="{title ? title : value.toString()}">
     <label class="range-label">
         <span class="label-text"><slot /></span>
         <input
@@ -21,7 +21,6 @@
             on:mouseup={mUp}
             class="range range-success"
             disabled={disabled}
-            title="{title}"
         />
     </label>
 </div>
