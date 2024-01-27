@@ -4,6 +4,8 @@
     import ColorPicker from './ColorPicker.svelte';
     import Slider from './Slider.svelte';
     import TextBox from './TextBox.svelte';
+	import Button from './Button.svelte';
+  import { dataTypeToText, download } from '$lib/utils/data';
 
     export let right: boolean = false;
 
@@ -85,6 +87,14 @@
         <TextBox
             bind:value={$backend_url}
             >Backend url</TextBox>
+
+		<Button
+            click={(e) => {download(dataTypeToText($data, $currentChangeIndex), "output.txt");}}
+            >Save as .txt</Button>
+
+        <Button
+            click={(e) => {sessionStorage.clear(); location.reload();}}
+            >Delete session</Button>
 
     </div>
 
