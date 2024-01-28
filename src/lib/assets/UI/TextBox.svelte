@@ -1,13 +1,12 @@
 <script lang="ts">
-	export let value = '';
-
-	// export function prop
-	export let tb: (event: any) => void;
+    export let value;
+    export let disabled = false;
+    export let title: string = "";
 </script>
 
-<div class="textbox-wrapper">
-    <input type="text" placeholder=" " {value} on:change={tb} class="" />
-	<label class="tb-label"><span class="label-text"><slot /></span></label>
+<div class="textbox-wrapper" title="{title}">
+    <input type="text" placeholder=" " bind:value={value} class="" disabled={disabled} />
+    <label class="tb-label"><span class="label-text"><slot /></span></label>
 </div>
 
 <style>
@@ -18,30 +17,31 @@
         font-size: 1rem;
         font-weight: 400;
         border-bottom: 2px solid var(--gray-accent);
-		transition: border-color .1s ease-in-out;
+        transition: border-color .1s ease-in-out;
         padding: 1px;
         margin: 0;
         width: 100%;
     }
-	.textbox-wrapper {
-		display: flex;
-		flex-direction: column;
-		align-items: start;
+    .textbox-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
         position: relative;
-        margin: 1rem .3rem;
-	}
-	.tb-label {
-		display: flex;
-		-webkit-user-select: none;
-		-moz-user-select: none;
-		user-select: none;
-		cursor: text;
+        margin: 0.5rem .3rem;
+        margin-top: 1.5rem;
+    }
+    .tb-label {
+        display: flex;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        cursor: default;
         position: absolute;
         left: 1px;
         transform-origin: 0 0;
         color: var(--gray-accent);
         transition: transform .1s ease-in-out, color .1s ease-in-out;
-	}
+    }
     
     input[type='text']:focus {
         border-color: var(--focus-color);
@@ -54,5 +54,14 @@
     }
     input[type='text']::placeholder {
         color: transparent;
+    }
+
+    input[type='text']:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+    input[type='text']:disabled + .tb-label {
+        opacity: 0.6;
+        cursor: default;
     }
 </style>

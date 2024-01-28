@@ -1,26 +1,38 @@
 <script lang="ts">
-	export let value = '#ffffff';
-
-	// export function prop
-	export let cp: (event: any) => void;
+    export let value;
+    export let disabled = false;
+    export let title: string = "";
 </script>
 
 <div class="labeled-input-wrapper">
-	<label>
-		<input type="color" {value} on:change={cp} class="labeled-input" style="background-color: {value};" />
-		<span class="label-text"><slot /></span>
-	</label>
+    <label>
+        <input type="color" bind:value={value} class="labeled-input" style="background-color: {value};" disabled={disabled} title="{title}" />
+        <span class="label-text"><slot /></span>
+    </label>
 </div>
 
 <style>
     input[type='color'] {
-        transition: transform .1s ease-in-out, border-color .1s ease-in-out;
-        border: 1px solid transparent;
+        transition: transform .1s ease-in-out, border-color .1s ease-in-out, box-shadow .1s ease-in-out;
+        box-shadow: none;
     }
 
-    input[type='color']:hover {
+    input[type='color']:not(:disabled):hover, input[type='color']:not(:disabled):focus-visible {
+        outline: none;
         transform: rotate(10deg);
-        border-color: var(--gray-accent);
+        box-shadow: 3px 3px 1px 0 var(--accent-color);
+    }
+
+    input[type='color']:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+    input[type='color']:disabled + .label-text {
+        opacity: 0.6;
+        cursor: default;
+    }
+    label:has(input[type='color']:disabled) {
+        cursor: default;
     }
     
 </style>

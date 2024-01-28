@@ -6,6 +6,8 @@
   color-scheme: light dark;
   --color: rgba(255, 255, 255, 0.87);
   --background-color: #242424;
+  --background-color-translucent: #242424da;
+  --empty-background-color: #1a1a1a;
   color: var(--color);
   background-color: var(--background-color);
 
@@ -19,8 +21,16 @@
   --focus-color: #8524d4e7; /* R.I.P. #646cffad */
   --gray-accent: #ffffff55;
 
-  --top-bar-height: 5em;
-  --right-bar-width: 20%;
+  --top-bar-height: 5rem;
+  --sidebar-width: 18rem;
+}
+
+body > a {
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0;
+  cursor: unset;
 }
 
 a {
@@ -38,15 +48,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-.card {
-  padding: 2em;
+  user-select: none;
 }
 
 #app {
@@ -59,50 +61,21 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  width: calc(100% - var(--right-bar-width));
+  width: calc(100% - var(--sidebar-width));
   height: calc(100% - var(--top-bar-height));
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: var(--accent-color);
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.right-container {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  width: var(--right-bar-width);
-  height: 100%;
-  top: 0;
+}
+.side-container:not(.right) + main {
   right: 0;
-  padding: 20px;
-  border-left: 2px solid var(--accent-color);
-  box-sizing: border-box;
 }
 
 .title {
   text-align: center;
   line-height: normal;
-  font-size: 30px;
+  font-size: 1.8rem;
   font-weight: 600;
-  margin-top: 1rem;
-  margin: 1rem 0;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .labeled-input-wrapper {
@@ -110,7 +83,7 @@ button:focus-visible {
   flex-direction: column;
   align-items: start;
   margin: .5rem .25rem;
-  overflow: hidden;
+  overflow: visible;
 }
 .labeled-input-wrapper label {
   display: flex;
@@ -125,13 +98,13 @@ button:focus-visible {
 }
 .label-text {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.25rem;
 }
 
 .labeled-input {
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.25rem;
+  height: 1.25rem;
   margin: .25rem .5rem .25rem .25rem;
   padding: 0;
   outline: none;
@@ -139,25 +112,148 @@ button:focus-visible {
   cursor: pointer;
 }
 
-.checkbox:checked {
+
+/*      Context menu      */
+.context-menu p {
+  font-size: 1.2em;
+  font-weight: bold;
+  align-self: center;
+  margin: 0.4em 0.6em;
+}
+.context-menu button {
+  width: 100%;
+  padding: 0.4em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: unset;
+  transition: background-color 0.1s;
+  border: none;
+  border-top: 0.15em solid var(--gray-accent);
+  cursor: default;
+}
+.context-menu button:hover {
+  outline: none;
+  background-color: var(--accent-color);
+}
+.context-menu button:focus-visible {
+  outline: none;
   background-color: var(--accent-color);
 }
 
+
+/*      Editor controls      */
+.editor-controls-wrapper > * {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  background-color: unset;
+  pointer-events: all;
+}
+.editor-controls-wrapper > .right {
+  left: auto;
+  right: 1em;
+}
+
+/* Single button */
+.editor-controls-wrapper > * > button {
+  width: 3.4em;
+  height: 3.4em;
+  margin-bottom: 0.5em;
+  font-size: 1em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color);
+  border: 0.2em solid transparent;
+  border-radius: 0.6em;
+  background-color: var(--background-color-translucent);
+  transition: border-color 0.1s, background-color 0.1s;
+  cursor: default;
+}
+.editor-controls-wrapper > * > button:hover {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > button:focus-visible {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+/* Group of buttons */
+.editor-controls-wrapper > * > :not(button) {
+  width: 3.4em;
+  height: auto;
+  margin-bottom: 0.5em;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grouped button */
+.editor-controls-wrapper > * > :not(button) > button {
+  height: 3.4em;
+  font-size: 1em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color);
+  background-color: var(--background-color-translucent);
+  border: none;
+  transition: border-color 0.1s, background-color 0.1s;
+  cursor: default;
+}
+.editor-controls-wrapper > * > :not(button) > button:first-child {
+  border-top-left-radius: 0.6em;
+  border-top-right-radius: 0.6em;
+  border: 0.2em solid transparent;
+  border-bottom: none;
+}
+.editor-controls-wrapper > * > :not(button) > button:not(:first-child) {
+  border: 0.2em solid transparent;
+  border-top: 0.2em solid var(--gray-accent);
+  border-bottom: none;
+}
+.editor-controls-wrapper > * > :not(button) > button:last-child {
+  border-bottom-left-radius: 0.6em;
+  border-bottom-right-radius: 0.6em;
+  border-bottom: 0.2em solid transparent;
+}
+.editor-controls-wrapper > * > :not(button) > button:hover {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > :not(button) > button:focus-visible {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > :not(button) > button:hover + button {
+  border-top-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > :not(button) > button:focus-visible + button {
+  border-top-color: var(--accent-color);
+}
+
+.editor-controls-wrapper > * > button.selected, .editor-controls-wrapper > * > :not(button) > button.selected {
+  border-color: var(--accent-color);
+  background-color: var(--accent-color);
+}
+.editor-controls-wrapper > * > button.selected + button, .editor-controls-wrapper > * > :not(button) > button.selected + button {
+  border-top-color: var(--accent-color);
+}
 
 @media (prefers-color-scheme: light) {
   :root {
     --color: #213547;
     --background-color: #f9f9f9;
-    color: var(--color);
-    background-color: var(--background-color);
+    --background-color-translucent: #f9f9f9da;
+    --empty-background-color: #e6e6e6;
     --accent-color: #646cffc4;
     --focus-color: rgb(100, 136, 255);
     --gray-accent: #00000055;
   }
   a:hover {
     color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
   }
 }
