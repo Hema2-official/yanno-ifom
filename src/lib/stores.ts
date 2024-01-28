@@ -48,7 +48,10 @@ globalColormap.subscribe((colormap) => {
     tiffToPngBlobs(get(decodedTiffIfds), blob_pngs, colormap);
 });
 
-data.subscribe((data) => {
+data.subscribe((d) => {
     // if valid, save to session storage
-    if (data) sessionStorage.setItem("demo_data", JSON.stringify(data));
+    if (d) sessionStorage.setItem("demo_data", JSON.stringify(d));
+    
+    // if currentChangeIndex was the latest, make sure it still is
+    if (d && get(currentChangeIndex) + 2 === get(data).changes.length) currentChangeIndex.set(get(data).changes.length - 1);
 });

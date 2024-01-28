@@ -145,8 +145,6 @@
                 return d;
             });
         }
-        // if currentChangeIndex was the latest, make sure it still is
-        if (data && $currentChangeIndex + 2 === $data.changes.length) currentChangeIndex.set($data.changes.length - 1);
     }
 
     export function quit(commit: boolean) {
