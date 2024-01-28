@@ -157,7 +157,7 @@
 
     const cellContextMenu = (e: any) => {
         e.preventDefault();
-        const cellId = e.target.id.replace('cell', '');
+        const cellId = parseInt(e.target.id.replace('cell', ''));
         contextMenuComponent.$set({ cellId: cellId });
         editorCell = $displayFrames.find(f => f.id == $currentFrameId).cells.find(c => c.id == cellId);
         const pos = getPointerCoords(e);

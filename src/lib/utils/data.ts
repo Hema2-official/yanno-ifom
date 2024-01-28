@@ -149,13 +149,13 @@ export function getFramesAtChangeIndex(data: DataType, changeIndex: number): Fra
     for (let i = 0; i <= changeIndex; i++) {
         const change = deepCopy(data.changes[i]);
         change.frames.forEach(frame => {
-            let frameIndex = newFrames.findIndex(f => f.id === frame.id);
+            let frameIndex = newFrames.findIndex(f => f.id == frame.id);
             if (frameIndex == -1) {
                 alert(get(_)("nonexistent_frame"));
                 newFrames.push(frame);
             } else {
                 frame.cells.forEach(cell => {
-                    const cellIndex = newFrames[frameIndex].cells.findIndex(c => c.id === cell.id);
+                    const cellIndex = newFrames[frameIndex].cells.findIndex(c => c.id == cell.id);
                     const markedForDeletion = (cell.x === null || cell.y === null);
 
                     // If cell is not found and isn't marked for deletion, add it
@@ -196,14 +196,14 @@ export function getFramesDifference(oldFrames: FrameType[], newFrames: FrameType
 
     // Find differences between each frame
     newFramesCopy.forEach(newFrame => {
-        let oldFrameIndex = oldFrames.findIndex(f => f.id === newFrame.id);
+        let oldFrameIndex = oldFrames.findIndex(f => f.id == newFrame.id);
         if (oldFrameIndex == -1) {
             alert(get(_)("nonexistent_frame"));
             change.frames.push(newFrame);
         } else {
             // Look for cells that were added or modified
             let changedCells = newFrame.cells.filter(newCell => {
-                let oldCellIndex = oldFrames[oldFrameIndex].cells.findIndex(c => c.id === newCell.id);
+                let oldCellIndex = oldFrames[oldFrameIndex].cells.findIndex(c => c.id == newCell.id);
                 if (oldCellIndex == -1) return true;
                 else if (oldFrames[oldFrameIndex].cells[oldCellIndex].x.join(',') != newCell.x.join(',') || oldFrames[oldFrameIndex].cells[oldCellIndex].y.join(',') != newCell.y.join(',')) return true;
                 else return false;
@@ -211,7 +211,7 @@ export function getFramesDifference(oldFrames: FrameType[], newFrames: FrameType
 
             // Look for cells that were deleted
             oldFrames[oldFrameIndex].cells.forEach(oldCell => {
-                let newCellIndex = newFrame.cells.findIndex(c => c.id === oldCell.id);
+                let newCellIndex = newFrame.cells.findIndex(c => c.id == oldCell.id);
                 if (newCellIndex == -1) changedCells.push({ id: oldCell.id, x: null, y: null });
             });
 
