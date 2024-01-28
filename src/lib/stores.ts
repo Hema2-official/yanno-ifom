@@ -1,5 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
-import type { DataType, FrameType } from './types';
+import { type DataType, type FrameType, EditorMode } from './types';
 import type TiffIfd from 'tiff/lib/tiffIfd';
 import { tiffToPngBlobs } from './utils/imaging';
 import { get } from 'svelte/store';
@@ -13,6 +13,7 @@ export const isSvgShown = writable(true);
 export const pointerLockEnabled = writable(false);
 export const isEditing = writable(false);
 export const sidebarRight = writable(true);
+export const selectedEditorMode = writable(EditorMode.Point);
 
 export const svgFill = writable('#ffffff');
 export const svgStroke = writable('#000000');

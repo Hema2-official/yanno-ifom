@@ -2,6 +2,7 @@
     import { _ } from "svelte-i18n";
     import Editor from "./Editor.svelte";
     import { EditorMode } from "$lib/types";
+  import { selectedEditorMode } from "$lib/stores";
 
     let contextMenuElement: HTMLElement;
     let editorControlsWrapperElement: HTMLElement;
@@ -18,13 +19,13 @@
         .join(';');
 
         
-    function radioSelect(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
-        e.currentTarget.classList.add('selected');
-        const siblings = e.currentTarget.parentElement?.children;
-        if (siblings)
-            for (const sibling of siblings)
-                if (sibling !== e.currentTarget) sibling.classList.remove('selected');
-    }
+    // function radioSelect(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
+    //     e.currentTarget.classList.add('selected');
+    //     const siblings = e.currentTarget.parentElement?.children;
+    //     if (siblings)
+    //         for (const sibling of siblings)
+    //             if (sibling !== e.currentTarget) sibling.classList.remove('selected');
+    // }
 
 </script>
 
@@ -35,18 +36,12 @@
     bind:this={editorControlsWrapperElement}>
     <div>
         <div>
-            <button title={$_("point_tool")} class="selected"
-                on:click={(e) => {radioSelect(e);
-                editorComponent.$set( {editorMode: EditorMode.Point} )}}
-                >P</button>
-            <button title={$_("whole_tool")}
-                on:click={(e) => {radioSelect(e);
-                editorComponent.$set( {editorMode: EditorMode.Whole} )}}
-                >W</button>
-            <button title={$_("smooth_tool")}
-                on:click={(e) => {radioSelect(e);
-                editorComponent.$set( {editorMode: EditorMode.Smooth} )}}
-                >S</button>
+            <button title={$_("point_tool")} class="{$selectedEditorMode === EditorMode.Point ? 'selected' : ''}"
+                on:click={(e) => selectedEditorMode.set(EditorMode.Point)}>P</button>
+            <button title={$_("whole_tool")} class="{$selectedEditorMode === EditorMode.Whole ? 'selected' : ''}"
+                on:click={(e) => selectedEditorMode.set(EditorMode.Whole)}>W</button>
+            <button title={$_("smooth_tool")} class="{$selectedEditorMode === EditorMode.Smooth ? 'selected' : ''}"
+                on:click={(e) => selectedEditorMode.set(EditorMode.Smooth)}>S</button>
         </div>
     </div>
     <div class="right">

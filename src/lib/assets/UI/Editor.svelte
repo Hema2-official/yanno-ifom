@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { currentChangeIndex, currentFrameId, data, isEditing, lastPointerViewBoxCoords } from "$lib/stores";
+    import { currentChangeIndex, currentFrameId, data, isEditing, lastPointerViewBoxCoords, selectedEditorMode } from "$lib/stores";
     import { EditorMode, type CellType, type FrameType } from "$lib/types";
     import { deepCopy, getFramesDifference } from "$lib/utils/data";
     import { cellToPath, getPointerViewBoxCoords } from "$lib/utils/display";
@@ -15,7 +15,10 @@
         mouseDown: (e: MouseEvent) => void; mouseUp: (e: MouseEvent) => any;
         mouseMove: (e: MouseEvent) => any; mouseMoveLocked: (e: MouseEvent) => void;
     };
-    export let editorMode: EditorMode = EditorMode.Point;
+
+    let editorMode: EditorMode = EditorMode.Point;
+    $: editorMode = $selectedEditorMode;
+    
     export let hoverElementsShown: boolean = true;
      
     let testCoords = { x: 0, y: 0 };
