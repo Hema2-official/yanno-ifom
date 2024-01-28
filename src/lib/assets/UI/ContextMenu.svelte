@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { cmOpacity, currentFrameId, data, displayFrames, isEditing } from "$lib/stores";
+    import { cmOpacity, currentChangeIndex, currentFrameId, data, displayFrames, isEditing } from "$lib/stores";
     import { Mouse, isDown } from "$lib/utils/mouse";
+  import { deepCopy } from "$lib/utils/data";
 
     let shown = false;
     let smooth = true;
@@ -98,17 +98,44 @@
 <div class="context-menu" bind:this={contextMenuElement}>
     <p>Cell #{cellId}</p>
     <button on:click={() => {isEditing.set(true); hide(false);}}>Edit</button>
-    <button on:click={() => {data.update((d) => {
-        d.changes.push({
-            time: Date.now(),
-            frames: [{
-                id: $currentFrameId,
-                cells: [{ id: cellId, x: null, y: null }]
-            }]
+    <button on:click={() => {
+        data.update((d) => {
+            d.changes.push({
+                time: Date.now(),
+                frames: [{
+                    id: $currentFrameId,
+                    cells: [{ id: cellId, x: null, y: null }]
+                }]
+            });
+            return d;
         });
-        return d;
-    })}}>Delete</button>
-    <button>HII:3</button>
+        hide(false);
+    }}>Delete</button>
+    <button on:click={() => {
+        hide(false);
+        // check if we're on the last change
+        if ($currentChangeIndex !== $data.changes.length - 1) { alert('You must be on the last change to do this.'); return; };
+        // prompt for new ID and check validity
+        const newId = parseInt(prompt(`Change ID from ${cellId} to:`, cellId.toString()));
+        if (newId === null) return; // cancelled
+        if (newId !== 0 && !newId) { alert('Invalid input.'); return; }; // NaN, parseInt failed
+        if (newId === cellId) return; // no change needed
+        if ($displayFrames.find((f) => f.id == $currentFrameId).cells.findIndex((c) => c.id == newId) !== -1)
+            { alert('This ID is already taken on this frame.'); return; }; // ID already exists
+        // add change
+        data.update((d) => {
+            const renamedCell = deepCopy($displayFrames.find((f) => f.id == $currentFrameId).cells.find((c) => c.id == cellId));
+            renamedCell.id = newId;
+            d.changes.push({
+                time: Date.now(),
+                frames: [{
+                    id: $currentFrameId,
+                    cells: [{ id: cellId, x: null, y: null }, renamedCell]
+                }]
+            });
+            return d;
+        });
+    }}>Rename</button>
 </div>
 </div>
 
