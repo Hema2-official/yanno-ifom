@@ -102,7 +102,7 @@
         d.changes.push({
             time: Date.now(),
             frames: [{
-                id: $displayFrames[$currentFrameId].id,
+                id: $currentFrameId,
                 cells: [{ id: cellId, x: null, y: null }]
             }]
         });
