@@ -42,17 +42,18 @@ export const decodedTiffIfds: Writable<TiffIfd[]> = writable([]);
 export const blob_pngs: Writable<Blob[]> = writable([]);
 
 decodedTiffIfds.subscribe((tiff) => {
-    tiffToPngBlobs(tiff, blob_pngs, get(globalColormap));
+	tiffToPngBlobs(tiff, blob_pngs, get(globalColormap));
 });
 
 globalColormap.subscribe((colormap) => {
-    tiffToPngBlobs(get(decodedTiffIfds), blob_pngs, colormap);
+	tiffToPngBlobs(get(decodedTiffIfds), blob_pngs, colormap);
 });
 
 data.subscribe((d) => {
-    // if valid, save to session storage
-    if (d) sessionStorage.setItem("demo_data", JSON.stringify(d));
-    
-    // if currentChangeIndex was the latest, make sure it still is
-    if (d && get(currentChangeIndex) + 2 === get(data).changes.length) currentChangeIndex.set(get(data).changes.length - 1);
+	// if valid, save to session storage
+	if (d) sessionStorage.setItem('demo_data', JSON.stringify(d));
+
+	// if currentChangeIndex was the latest, make sure it still is
+	if (d && get(currentChangeIndex) + 2 === get(data).changes.length)
+		currentChangeIndex.set(get(data).changes.length - 1);
 });

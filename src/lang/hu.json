@@ -1,11 +1,11 @@
 {
-  "app_title": "IFOM annotáció",
-  "confirm_and_quit": "Változtatások megerősítése és kilépés",
-  "quit_without_saving": "Kilépés mentés nélkül",
-  "unexpected_file_format": "Váratlan fájlformátum, a betöltés megszakítva.\n\nVárt oszlopcímkék:\n",
-  "nonexistent_frame": "A változtatáselőzmények egy nem létező képkocka változásait tartalmazzák.\nHa ez nem szándékos, lépjen kapcsolatba a fejlesztővel, vagy jelentse a hibát.",
-  "point_tool": "Pont eszköz\n\nLehetővé teszi a cella pontos szerkesztését az egyes pontok húzásával.",
-  "whole_tool": "Teljes eszköz\nLehetővé teszi az egész sejt szerkesztését mozgatással, átméretezéssel és elforgatással.",
-  "smooth_tool": "Sima eszköz\nLehetővé teszi a sejt szegélyének gyors szerkesztését egy részének húzásával.",
-  "unsupported_tiff": "A használt TIF/TIFF fájlt ez az alkalmazás nem támogatja.\n\nKérjük, lépjen kapcsolatba a fejlesztővel, vagy jelentse a hibát."
+	"app_title": "IFOM annotáció",
+	"confirm_and_quit": "Változtatások megerősítése és kilépés",
+	"quit_without_saving": "Kilépés mentés nélkül",
+	"unexpected_file_format": "Váratlan fájlformátum, a betöltés megszakítva.\n\nVárt oszlopcímkék:\n",
+	"nonexistent_frame": "A változtatáselőzmények egy nem létező képkocka változásait tartalmazzák.\nHa ez nem szándékos, lépjen kapcsolatba a fejlesztővel, vagy jelentse a hibát.",
+	"point_tool": "Pont eszköz\n\nLehetővé teszi a cella pontos szerkesztését az egyes pontok húzásával.",
+	"whole_tool": "Teljes eszköz\nLehetővé teszi az egész sejt szerkesztését mozgatással, átméretezéssel és elforgatással.",
+	"smooth_tool": "Sima eszköz\nLehetővé teszi a sejt szegélyének gyors szerkesztését egy részének húzásával.",
+	"unsupported_tiff": "A használt TIF/TIFF fájlt ez az alkalmazás nem támogatja.\n\nKérjük, lépjen kapcsolatba a fejlesztővel, vagy jelentse a hibát."
 }
