@@ -51,6 +51,16 @@ export function tiffToPngBlobs(
 	});
 }
 
+function getMax(arr: Uint8Array | Uint16Array) {
+	let len = arr.length;
+	let max = -Infinity;
+
+	while (len--) {
+		max = arr[len] > max ? arr[len] : max;
+	}
+	return max;
+}
+
 function toColormap(
 	data: Uint8Array | Uint16Array,
 	hasAlpha: boolean,
@@ -64,7 +74,7 @@ function toColormap(
 		alpha: 1
 	});
 	const mapped = new Uint16Array(hasAlpha ? data.length * 2 : data.length * 4);
-	const n = Math.ceil(Math.ceil(Math.log2(Math.max(...data) + 1)) / 4) * 4;
+	const n = Math.ceil(Math.ceil(Math.log2(getMax(data) + 1)) / 4) * 4;
 	const original_max = 2 ** bitsPerSample - 1;
 	const normal_max = 2 ** n - 1;
 	for (let i = 0; i < data.length; i++) {

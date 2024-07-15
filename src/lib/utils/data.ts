@@ -1,6 +1,11 @@
 import { get } from 'svelte/store';
 import { _ } from 'svelte-i18n';
-import type { DataType, FrameType, ChangeType } from '$lib/types';
+import type {
+	NewDataType,
+	NewFrameType,
+	NewChangeType,
+	CellBodyType
+} from '$lib/types/annotation.type';
 
 /**
  * Creates a deep copy of the given object.
@@ -16,6 +21,64 @@ export function deepCopy<T>(obj: T): T {
 	return JSON.parse(JSON.stringify(obj));
 }
 
+export function cellBodiesEqual<T extends CellBodyType | CellBodyType[]>(a: T, b: T): boolean {
+	// Check if both are arrays
+	if (Array.isArray(a) && Array.isArray(b)) {
+		if (a.length !== b.length) return false;
+		for (let i = 0; i < a.length; i++) {
+			if (!cellBodiesEqual(a[i], b[i])) return false;
+		}
+		return true;
+	}
+
+	// Both are not arrays, so they must be CellBodyType objects
+	if (Array.isArray(a) || Array.isArray(b))
+		throw new Error('Cannot compare array with non-array.');
+
+	// Warning: This assumes that the lengths of x and y are the same
+	if (a.x.length !== a.y.length || b.x.length !== b.y.length)
+		console.warn('x and y lengths differ in cell body comparison:', a, b);
+
+	if (a.x.length !== b.x.length || a.y.length !== b.y.length) return false;
+	for (let i = 0; i < a.x.length; i++) {
+		if (a.x[i] !== b.x[i] || a.y[i] !== b.y[i]) return false;
+	}
+	return true;
+}
+
+// /**
+//  * Compares two objects and returns true if they are deeply equal.
+//  *
+//  * @param obj1 - The first object to compare.
+//  * @param obj2 - The second object to compare.
+//  * @returns True if the objects are deeply equal, false otherwise.
+//  */
+// function deepEqual(obj1: object, obj2: object): boolean {
+// 	if (obj1 === obj2)
+// 		// it's just the same object. No need to compare.
+// 		return true;
+
+// 	if (isPrimitive(obj1) && isPrimitive(obj2))
+// 		// compare primitives
+// 		return obj1 === obj2;
+
+// 	if (Object.keys(obj1).length !== Object.keys(obj2).length) return false;
+
+// 	// compare objects with same number of keys
+// 	for (const key in obj1) {
+// 		if (!(key in obj2)) return false; //other object doesn't have this prop
+// 		// @ts-expect-error - obj1[key] and obj2[key] CAN be indexed with key frfr
+// 		if (!deepEqual(obj1[key], obj2[key])) return false;
+// 	}
+
+// 	return true;
+// }
+
+// //check if value is primitive
+// function isPrimitive(obj: unknown): boolean {
+// 	return obj !== Object(obj);
+// }
+
 /**
  * Converts a text input into a DataType object.
  *
@@ -23,67 +86,69 @@ export function deepCopy<T>(obj: T): T {
  * @param progressUpdateCallback - An optional callback function to track the progress of the conversion.
  * @returns A Promise that resolves to a DataType object.
  */
-export function textToDataType(input: string) {
-	return new Promise<DataType>((resolve, reject) => {
-		// Check if expected labels are present, and find their indices
-		let firstLine = input.substring(0, input.indexOf('\n'));
-		const expectedLabels = ['pos', 'f', 'cellnum', 'x', 'y'];
-		const labels = {};
-		firstLine
-			.trim()
-			.split('\t')
-			.forEach((item, index) => {
-				labels[item.toLowerCase()] = index;
-			});
-		if (!expectedLabels.every((item) => Object.keys(labels).includes(item))) {
-			reject(get(_)('unexpected_file_format') + expectedLabels.join('\t'));
+export async function textToDataType(input: string): Promise<NewDataType> {
+	// Check if expected labels are present, and find their indices
+	const firstLine = input.substring(0, input.indexOf('\n'));
+	const expectedLabels = ['pos', 'f', 'cellnum', 'x', 'y'];
+	const labels: { [key: string]: number } = {};
+	firstLine
+		.trim()
+		.split('\t')
+		.forEach((item, index) => {
+			labels[item.toLowerCase()] = index;
+		});
+	if (!expectedLabels.every((item) => Object.keys(labels).includes(item))) {
+		throw new Error(get(_)('unexpected_file_format') + expectedLabels.join('\t'));
+	}
+
+	// Parse each line
+	const data: NewDataType = { pos: null, originalFrames: [], changes: [] };
+	let lineStartIndex = firstLine.length + 1;
+	for (
+		let newlineIndex = input.indexOf('\n', lineStartIndex);
+		newlineIndex != -1;
+		newlineIndex = input.indexOf('\n', lineStartIndex)
+	) {
+		// Get line
+		const substr = input.substring(lineStartIndex, newlineIndex);
+		lineStartIndex = newlineIndex + 1;
+		const line = substr.split('\t');
+
+		// Check for POS consistency
+		if (data.pos === null) data.pos = parseInt(line[labels['pos']]);
+		else if (data.pos != parseInt(line[labels['pos']])) {
+			console.warn('POS value changes over time. Look into this one.');
+			data.pos = parseInt(line[labels['pos']]);
 		}
 
-		// Parse each line
-		let data: DataType = { pos: null, originalFrames: [], changes: [] };
-		let lineStartIndex = firstLine.length + 1;
-		for (
-			let newlineIndex = input.indexOf('\n', lineStartIndex);
-			newlineIndex != -1;
-			newlineIndex = input.indexOf('\n', lineStartIndex)
-		) {
-			// Get line
-			const substr = input.substring(lineStartIndex, newlineIndex);
-			lineStartIndex = newlineIndex + 1;
-			const line = substr.split('\t');
+		// Check if frame exists
+		const frameId = parseInt(line[labels['f']]);
+		let frameIndex = data.originalFrames.findIndex((frame) => frame.id === frameId);
+		if (frameIndex == -1) frameIndex = data.originalFrames.push({ id: frameId, cells: [] }) - 1;
 
-			// Check for POS consistency
-			if (data.pos === null) data.pos = parseInt(line[labels['pos']]);
-			else if (data.pos != parseInt(line[labels['pos']])) {
-				console.warn('POS value changes over time. Look into this one.');
-				data.pos = parseInt(line[labels['pos']]);
-			}
+		// Check if cell exists
+		const cellID = parseInt(line[labels['cellnum']]);
+		let cellIndex = data.originalFrames[frameIndex].cells.findIndex(
+			(cell) => cell.id === cellID
+		);
 
-			// Check if frame exists
-			const frameId = parseInt(line[labels['f']]);
-			let frameIndex = data.originalFrames.findIndex((frame) => frame.id === frameId);
-			if (frameIndex == -1)
-				frameIndex = data.originalFrames.push({ id: frameId, cells: [] }) - 1;
+		// If doesn't exist yet, create a cell with a single empty body
+		if (cellIndex == -1)
+			cellIndex =
+				data.originalFrames[frameIndex].cells.push({
+					id: cellID,
+					bodies: [{ x: [], y: [] }]
+				}) - 1;
 
-			// Check if cell exists
-			const cellID = parseInt(line[labels['cellnum']]);
-			let cellIndex = data.originalFrames[frameIndex].cells.findIndex(
-				(cell) => cell.id === cellID
-			);
-			if (cellIndex == -1)
-				cellIndex =
-					data.originalFrames[frameIndex].cells.push({
-						id: cellID,
-						x: [],
-						y: []
-					}) - 1;
-
-			// Add coordinates
-			data.originalFrames[frameIndex].cells[cellIndex].x.push(parseFloat(line[labels['x']]));
-			data.originalFrames[frameIndex].cells[cellIndex].y.push(parseFloat(line[labels['y']]));
-		}
-		resolve(data);
-	});
+		// Add coordinates
+		data.originalFrames[frameIndex].cells[cellIndex].bodies[0].x.push(
+			parseFloat(line[labels['x']])
+		);
+		data.originalFrames[frameIndex].cells[cellIndex].bodies[0].y.push(
+			parseFloat(line[labels['y']])
+		);
+	}
+	return data;
 }
 
 /**
@@ -93,14 +158,13 @@ export function textToDataType(input: string) {
  * @param changeIndex - The index of the change to consider. Defaults to -1 meaning the original data.
  * @returns The formatted text representation of the data, or null in case of invalid parameters.
  */
-export function dataTypeToText(data: DataType, changeIndex: number = -1): string | null {
+export function dataTypeToText(data: NewDataType, changeIndex: number = -1): string {
 	// Check if changeIndex is valid
-	if (changeIndex < -1 || changeIndex >= data.changes.length) return null;
+	if (changeIndex < -1 || changeIndex >= data.changes.length)
+		throw new Error('Invalid change index.');
 
 	// Get frames
-	const frames = deepCopy(
-		changeIndex == -1 ? data.originalFrames : getFramesAtChangeIndex(data, changeIndex)
-	);
+	const frames = getFramesAtChangeIndex(data, changeIndex);
 
 	// Sort frames and cells
 	frames.sort((a, b) => a.id - b.id);
@@ -110,10 +174,22 @@ export function dataTypeToText(data: DataType, changeIndex: number = -1): string
 	let text = 'POS\tF\tCELLNUM\tX\tY\n';
 	frames.forEach((frame) => {
 		frame.cells.forEach((cell) => {
-			cell.x.forEach((x, index) => {
+			if (cell.bodies.length > 1) {
+				alert(get(_)('multiple_bodies'));
+				throw new Error('Multiple bodies in a single cell.');
+			}
+
+			if (cell.bodies.length === 0) {
+				console.warn('Cell marked for deletion? Cell:', cell.id);
+				return; // continue
+			}
+
+			cell.bodies[0].x.forEach((x, index) => {
 				// limit x and y values to 1 decimal place
 				const limX = Math.round(x * 10) / 10;
-				const limY = Math.round(cell.y[index] * 10) / 10;
+				const limY = Math.round(cell.bodies[0].y[index] * 10) / 10;
+
+				// Append line
 				text += `${data.pos}\t${frame.id}\t${cell.id}\t${limX}\t${limY}\n`;
 			});
 		});
@@ -130,24 +206,17 @@ export function dataTypeToText(data: DataType, changeIndex: number = -1): string
  * @param type - The MIME type of the file (default: "text/plain").
  */
 export function download(data: BlobPart, filename: string, type: string = 'text/plain') {
-	var file = new Blob([data], { type: type });
-	// IE10+
-	if ((window.navigator as any).msSaveOrOpenBlob)
-		(window.navigator as any).msSaveOrOpenBlob(file, filename);
-	// Others
-	else {
-		var a = document.createElement('a'),
-			url = URL.createObjectURL(file);
-		a.href = url;
-		a.download = filename;
-		a.tabIndex = -1;
-		document.body.appendChild(a);
-		a.click();
-		setTimeout(function () {
-			document.body.removeChild(a);
-			window.URL.revokeObjectURL(url);
-		}, 0);
-	}
+	const url = URL.createObjectURL(new Blob([data], { type: type }));
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	a.tabIndex = -1;
+	document.body.appendChild(a);
+	a.click();
+	setTimeout(function () {
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	}, 0);
 }
 
 /**
@@ -155,40 +224,44 @@ export function download(data: BlobPart, filename: string, type: string = 'text/
  * If the change index is invalid, returns null.
  *
  * @param data - The data containing original frames and changes.
- * @param changeIndex - The index of the change to retrieve frames from.
- * @returns An array of frames at the specified change index, or null if the change index is invalid.
+ * @param changeIndex - Either -1 (original frames) or valid index of the data.changes array.
+ * @returns An array of frames at the specified change index, separated in memory with deepCopy.
+ * @throws An error if the change index is invalid.
  */
-export function getFramesAtChangeIndex(data: DataType, changeIndex: number): FrameType[] | null {
+export function getFramesAtChangeIndex(data: NewDataType, changeIndex: number): NewFrameType[] {
 	// Check if changeIndex is valid
-	if (changeIndex === -1) return data.originalFrames;
-	if (changeIndex < 0 || changeIndex >= data.changes.length) return null;
+	if (changeIndex < -1 || changeIndex >= data.changes.length)
+		throw new Error('Invalid change index.');
+
+	// Return original frames when changeIndex is -1
+	if (changeIndex === -1) return deepCopy(data.originalFrames);
 
 	// Copy original frames
-	let newFrames = deepCopy(data.originalFrames);
+	const newFrames = deepCopy(data.originalFrames);
 
 	// Apply changes
 	for (let i = 0; i <= changeIndex; i++) {
 		const change = deepCopy(data.changes[i]);
 		change.frames.forEach((frame) => {
-			let frameIndex = newFrames.findIndex((f) => f.id == frame.id);
+			const frameIndex = newFrames.findIndex((f) => f.id == frame.id);
 			if (frameIndex == -1) {
 				alert(get(_)('nonexistent_frame'));
 				newFrames.push(frame);
 			} else {
 				frame.cells.forEach((cell) => {
 					const cellIndex = newFrames[frameIndex].cells.findIndex((c) => c.id == cell.id);
-					const markedForDeletion = cell.x === null || cell.y === null;
+					const cellFound = cellIndex !== -1;
+					const markedForDeletion = cell.bodies.length === 0;
 
 					// If cell is not found and isn't marked for deletion, add it
-					if (cellIndex === -1 && !markedForDeletion)
-						newFrames[frameIndex].cells.push(cell);
+					if (!cellFound && !markedForDeletion) newFrames[frameIndex].cells.push(cell);
 					// If cell is found and is marked for deletion, delete it
-					else if (cellIndex !== -1 && markedForDeletion)
+					else if (cellFound && markedForDeletion)
 						newFrames[frameIndex].cells.splice(cellIndex, 1);
 					// If cell is found and isn't marked for deletion, update it
-					else if (cellIndex !== -1 && !markedForDeletion) {
-						newFrames[frameIndex].cells[cellIndex].x = cell.x;
-						newFrames[frameIndex].cells[cellIndex].y = cell.y;
+					else if (cellFound && !markedForDeletion) {
+						// !!! bodies are already deep copied in the change object !!!
+						newFrames[frameIndex].cells[cellIndex].bodies = cell.bodies;
 					}
 				});
 			}
@@ -211,40 +284,39 @@ export function getFramesAtChangeIndex(data: DataType, changeIndex: number): Fra
  * @returns The object representing the changes between the old and new frames.
  */
 export function getFramesDifference(
-	oldFrames: FrameType[],
-	newFrames: FrameType[],
+	oldFrames: NewFrameType[],
+	newFrames: NewFrameType[],
 	changeTime: number = Date.now()
-): ChangeType {
+): NewChangeType {
 	// Create empty change
-	const change: ChangeType = { time: changeTime, frames: [] };
+	const change: NewChangeType = { time: changeTime, frames: [] };
 	const newFramesCopy = deepCopy(newFrames);
 
 	// Find differences between each frame
 	newFramesCopy.forEach((newFrame) => {
-		let oldFrameIndex = oldFrames.findIndex((f) => f.id == newFrame.id);
+		const oldFrameIndex = oldFrames.findIndex((f) => f.id == newFrame.id);
 		if (oldFrameIndex == -1) {
 			alert(get(_)('nonexistent_frame'));
 			change.frames.push(newFrame);
 		} else {
 			// Look for cells that were added or modified
-			let changedCells = newFrame.cells.filter((newCell) => {
-				let oldCellIndex = oldFrames[oldFrameIndex].cells.findIndex(
+			const changedCells = newFrame.cells.filter((newCell) => {
+				const oldCellIndex = oldFrames[oldFrameIndex].cells.findIndex(
 					(c) => c.id == newCell.id
 				);
-				if (oldCellIndex == -1) return true;
-				else if (
-					oldFrames[oldFrameIndex].cells[oldCellIndex].x.join(',') !=
-						newCell.x.join(',') ||
-					oldFrames[oldFrameIndex].cells[oldCellIndex].y.join(',') != newCell.y.join(',')
-				)
-					return true;
-				else return false;
+
+				// Cell was added in newFrame
+				if (oldCellIndex === -1) return true;
+
+				// Check if bodies are different
+				const oldCell = oldFrames[oldFrameIndex].cells[oldCellIndex];
+				return !cellBodiesEqual(oldCell.bodies, newCell.bodies);
 			});
 
 			// Look for cells that were deleted
 			oldFrames[oldFrameIndex].cells.forEach((oldCell) => {
-				let newCellIndex = newFrame.cells.findIndex((c) => c.id == oldCell.id);
-				if (newCellIndex == -1) changedCells.push({ id: oldCell.id, x: null, y: null });
+				const newCellExists = newFrame.cells.some((newCell) => newCell.id == oldCell.id);
+				if (!newCellExists) changedCells.push({ id: oldCell.id, bodies: [] });
 			});
 
 			// If anything changed, add frame
