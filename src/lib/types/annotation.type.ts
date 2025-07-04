@@ -1,3 +1,5 @@
+import type { Delta } from 'jsondiffpatch';
+
 export type CellBodyType = {
 	x: number[];
 	y: number[];
@@ -25,25 +27,57 @@ export type NewDataType = {
 	changes: NewChangeType[];
 };
 
-export type CellType = {
-	id: number;
-	// bodies: CellBodyType[];
-	x: number[] | null;
-	y: number[] | null;
+// export type CellType = {
+// 	id: number;
+// 	// bodies: CellBodyType[];
+// 	x: number[] | null;
+// 	y: number[] | null;
+// };
+
+// export type FrameType = {
+// 	id: number;
+// 	cells: CellType[];
+// };
+
+// export type ChangeType = {
+// 	time: number;
+// 	frames: FrameType[];
+// };
+
+// export type DataType = {
+// 	pos: number | null;
+// 	originalFrames: FrameType[];
+// 	changes: ChangeType[];
+// };
+
+export type RLEType = {
+	size: [number, number];
+	counts: string;
 };
 
-export type FrameType = {
-	id: number;
-	cells: CellType[];
+export type BoundingBoxType = [number, number, number, number];
+
+export type TrackType = {
+	Frame: number;
+	ObjectID: string;
+	SegmentationRLE: RLEType;
+	LocalTrackRLE: RLEType[];
+	Centroid: [number, number];
+	SegBbox: BoundingBoxType;
+	TrackBbox: BoundingBoxType;
+	PrevID: string | null;
+	NextID: string | null;
+	TrackID: number;
+	Interpolated: boolean;
 };
 
 export type ChangeType = {
-	time: number;
-	frames: FrameType[];
+	time?: string; // ISO 8601
+	msg?: string;
+	reverse: Delta;
 };
 
-export type DataType = {
-	pos: number | null;
-	originalFrames: FrameType[];
+export type VersionManaged<T> = {
+	current: T;
 	changes: ChangeType[];
 };

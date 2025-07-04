@@ -1,0 +1,11 @@
+{
+	"editor.rulers": [100],
+	// "window.title": "Cell tracking frontend", // TODO yet to find out
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"eslint.validate": ["javascript", "javascriptreact", "svelte"],
+	"i18n-ally.localesPaths": ["src/lib/lang"],
+	"i18n-ally.keystyle": "nested"
+}

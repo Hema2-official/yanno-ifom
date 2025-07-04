@@ -4,8 +4,8 @@
 	import { goto } from '$app/navigation';
 
 	import { addMessages, init } from 'svelte-i18n';
-	import en from '$lib/assets/lang/en.json';
-	// import hu from "$lib/assets/lang/hu.json";
+	import en from '$lib/lang/en.json';
+	// import hu from "$lib/lang/hu.json";
 
 	addMessages('en', en);
 	// addMessages("hu", hu);

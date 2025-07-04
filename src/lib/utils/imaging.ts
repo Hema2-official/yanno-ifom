@@ -14,41 +14,38 @@ import createColormap from 'colormap';
  * @returns A Promise that resolves to nothing.
  * @throws If the TIFF file is unsupported or contains invalid data.
  */
-export function tiffToPngBlobs(
+export async function tiffToPngBlobs(
 	tiff_ifds: TiffIfd[],
 	destination: Writable<Blob[]>,
 	colormap = 'viridis'
 ) {
-	return new Promise<void>((resolve, reject) => {
-		for (let i = 0; i < tiff_ifds.length; i++) {
-			const ifd = tiff_ifds[i];
-			if (ifd.alpha || ![8, 16].includes(ifd.bitsPerSample))
-				reject(
-					get(_)(
-						'unsupported_tiff' +
-							`\nalpha: ${ifd.alpha}, bitsPerSample: ${ifd.bitsPerSample}`
-					)
-				);
-			const mapped = toColormap(
-				ifd.data as Uint8Array | Uint16Array,
-				ifd.alpha,
-				ifd.bitsPerSample,
-				colormap
+	for (let i = 0; i < tiff_ifds.length; i++) {
+		const ifd = tiff_ifds[i];
+		if (ifd.alpha || ![8, 16].includes(ifd.bitsPerSample))
+			throw new Error(
+				get(_)(
+					'unsupported_tiff' +
+						`\nalpha: ${ifd.alpha}, bitsPerSample: ${ifd.bitsPerSample}`
+				)
 			);
-			const png = encode({
-				width: ifd.width,
-				height: ifd.height,
-				data: mapped,
-				depth: 8,
-				channels: 4
-			});
-			destination.update((d) => {
-				d[i] = new Blob([png.buffer], { type: 'image/png' });
-				return d;
-			});
-		}
-		resolve();
-	});
+		const mapped = toColormap(
+			ifd.data as Uint8Array | Uint16Array,
+			ifd.alpha,
+			ifd.bitsPerSample,
+			colormap
+		);
+		const png = encode({
+			width: ifd.width,
+			height: ifd.height,
+			data: mapped,
+			depth: 8,
+			channels: 4
+		});
+		destination.update((d) => {
+			d[i] = new Blob([new Uint8Array(png.buffer)], { type: 'image/png' });
+			return d;
+		});
+	}
 }
 
 function getMax(arr: Uint8Array | Uint16Array) {

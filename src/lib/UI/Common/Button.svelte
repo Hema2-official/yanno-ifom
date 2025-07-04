@@ -27,7 +27,10 @@
 		background: transparent;
 		transition:
 			border-color 0.1s,
-			background-color 0.1s;
+			background-color 0.1s,
+			opacity 0.1s,
+			box-shadow 0.1s;
+
 		appearance: none;
 		font-size: 16px;
 		font-weight: 600;
@@ -41,13 +44,15 @@
 		&:not(:disabled):hover,
 		&:not(:disabled):focus-visible {
 			outline: none;
-			border-color: var(--accent-color);
+			border-color: var(--focus-color);
+			opacity: 0.8;
+			box-shadow: 0 1px 0 1px var(--focus-color);
 		}
 
 		&:not(:disabled):active:hover,
 		&:not(:disabled):active:focus-visible {
 			outline: none;
-			background-color: var(--accent-color);
+			background-color: var(--focus-color);
 		}
 	}
 </style>

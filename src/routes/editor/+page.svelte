@@ -5,9 +5,7 @@
 	import Spinner from '$lib/UI/Common/Spinner.svelte';
 
 	import getProject from '$lib/api/projects/getProject';
-	import downloadEditorData from '$lib/api/projects/downloadEditorData';
-	import downloadSourceData from '$lib/api/projects/downloadSourceData';
-	import downloadVersion from '$lib/api/projects/downloadVersion';
+	import { downloadEditorData, downloadSourceData, getVersionData } from '$lib/api/projects';
 
 	import { annotation, currentProject, currentProjectVersion } from '$lib/stores/data';
 	import { decodedTiffIfds } from '$lib/stores/images';
@@ -53,25 +51,16 @@
 
 			// Download annotation
 			loading_message = 'Downloading annotation...';
-			const annotationBlob = await downloadVersion(
-				$currentProject.id,
-				$currentProjectVersion
-			);
 
-			// Load annotation
-			loading_message = 'Processing annotation...';
-			const reader = new FileReader();
-			reader.onload = () => {
-				// This is needed on TXT files
-				// textToDataType(reader.result as string).then((d) => {
-				// 	$annotation = d;
-				// 	loading = false;
-				// });
+			// TODO: fix
+			// $annotation = await getVersionData($currentProject.id, $currentProjectVersion);
+			loading = false;
 
-				$annotation = JSON.parse(reader.result as string);
-				loading = false;
-			};
-			reader.readAsText(annotationBlob);
+			// This is needed on TXT files
+			// textToDataType(reader.result as string).then((d) => {
+			// 	$annotation = d;
+			// 	loading = false;
+			// });
 		} catch (error) {
 			error_message = String(error);
 			loading = false;

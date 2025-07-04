@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 
 	// handle project selection
-	const handleOpen = (project: Project) => {
+	const handleSelect = (project: Project) => {
 		console.log('Selected project:', project);
 
 		// Check if the project is ready
@@ -19,7 +19,7 @@
 </script>
 
 <div class="project-selector">
-	<ProjectList onOpen={handleOpen} />
+	<ProjectList onSelect={handleSelect} />
 </div>
 
 <style lang="scss">
