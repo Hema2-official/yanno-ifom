@@ -9,17 +9,13 @@ export type MeResponse = {
 	updated_at: string;
 };
 
-export enum VersionStep {
-	segmentation = 'segmentation',
-	tracking = 'tracking',
-	inheritance = 'inheritance'
-}
+const stepOrder = ['segmentation', 'tracking', 'inheritance'] as const;
+export type VersionStep = (typeof stepOrder)[number];
 
 export function getNextStep(step?: VersionStep): VersionStep | null {
-	if (!step) return VersionStep.segmentation;
-	if (step === VersionStep.segmentation) return VersionStep.tracking;
-	if (step === VersionStep.tracking) return VersionStep.inheritance;
-	return null;
+	if (!step) return stepOrder[0];
+	const currentIndex = stepOrder.indexOf(step);
+	return currentIndex < stepOrder.length - 1 ? stepOrder[currentIndex + 1] : null;
 }
 
 export type ProjectVersion = {
