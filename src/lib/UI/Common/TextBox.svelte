@@ -1,17 +1,41 @@
 <script lang="ts">
+	import type { ChangeEventHandler } from 'svelte/elements';
+
 	export let value: string;
 	export let disabled = false;
 	export let title: string = '';
 	export let type: 'text' | 'email' | 'password' = 'text';
+	export let onChange: ChangeEventHandler<HTMLInputElement> = () => {};
 </script>
 
 <div class="textbox-wrapper" {title}>
 	{#if type === 'email'}
-		<input type="email" placeholder=" " bind:value class="tb-input" {disabled} />
+		<input
+			type="email"
+			placeholder=" "
+			bind:value
+			class="tb-input"
+			{disabled}
+			on:change={onChange}
+		/>
 	{:else if type === 'password'}
-		<input type="password" placeholder=" " bind:value class="tb-input" {disabled} />
+		<input
+			type="password"
+			placeholder=" "
+			bind:value
+			class="tb-input"
+			{disabled}
+			on:change={onChange}
+		/>
 	{:else}
-		<input type="text" placeholder=" " bind:value class="tb-input" {disabled} />
+		<input
+			type="text"
+			placeholder=" "
+			bind:value
+			class="tb-input"
+			{disabled}
+			on:change={onChange}
+		/>
 	{/if}
 	<label class="tb-label"><span class="label-text"><slot /></span></label>
 </div>

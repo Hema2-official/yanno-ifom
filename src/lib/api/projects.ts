@@ -1,5 +1,12 @@
 import axios from './axiosConfig';
-import type { Project, ProjectVersion, VideoColor } from '$lib/types/api.type';
+import type {
+	InheritanceParams,
+	Project,
+	ProjectVersion,
+	SegmentationParams,
+	TrackingParams,
+	VideoColor
+} from '$lib/types/api.type';
 import { handleError } from './errors';
 import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
 
@@ -81,12 +88,14 @@ export async function downloadEditorData(project_id: string) {
 export async function createProjectVersion(
 	project_id: string,
 	name: string,
+	parameters: SegmentationParams | TrackingParams | InheritanceParams,
 	source_version_id?: string
 ) {
 	try {
 		const response = await axios.post<ProjectVersion>(`projects/${project_id}/versions`, {
 			name,
-			source_version_id
+			source_version_id,
+			parameters
 		});
 		return response.data;
 	} catch (error) {

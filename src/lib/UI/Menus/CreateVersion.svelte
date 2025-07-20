@@ -3,8 +3,17 @@
 	import Button from '../Common/Button.svelte';
 	import { createProjectVersion } from '$lib/api/projects';
 	import { onMount } from 'svelte';
-	import { type Project, type ProjectVersion, getNextStep } from '$lib/types/api.type';
+	import {
+		type InheritanceParams,
+		type Project,
+		type ProjectVersion,
+		defaultSegmentationParams,
+		defaultTrackingParams,
+		getAutoName,
+		getNextStep
+	} from '$lib/types/api.type';
 	import TextBox from '../Common/TextBox.svelte';
+	import Dropdown from '../Common/Dropdown.svelte';
 
 	export let onCreate: () => void;
 	export let onCancel: () => void;
@@ -16,22 +25,40 @@
 	let loading = false;
 	let error_message: string | undefined;
 
-	let name = '';
-	let source_version_id: string | undefined;
-	$: sourceVersion = project.versions.find((version) => version.id === source_version_id);
+	let selectedIdx: number | undefined;
+	$: possibleVersions = project.versions.filter((version) => version.step !== 'inheritance');
+	$: sourceVersion = selectedIdx !== undefined ? possibleVersions[selectedIdx] : undefined;
+	$: step = getNextStep(sourceVersion?.step);
 
-	$: allowSubmit = name.length > 0;
+	$: autoName = getAutoName(step!, sourceVersion?.name);
+	let nameChanged = false;
+	let name: string = '';
+	$: if (!nameChanged) name = autoName;
+
+	$: parameters = {
+		segmentation: defaultSegmentationParams,
+		tracking: defaultTrackingParams,
+		inheritance: {} as InheritanceParams
+	}[step!];
+
+	$: allowSubmit = !!name;
+
+	const onChange = () => {
+		nameChanged = name !== autoName;
+	};
 
 	const handleCancel = () => {
 		onCancel();
 	};
 
 	const handleCreate = () => {
+		if (!name) return;
+
 		loading = true;
 		error_message = undefined;
 
-		console.debug('Creating version:', project.id, name, source_version_id);
-		createProjectVersion(project.id, name, source_version_id)
+		console.debug('Creating version:', project.id, name, sourceVersion?.id);
+		createProjectVersion(project.id, name, parameters, sourceVersion?.id)
 			.then((response: ProjectVersion) => {
 				console.debug('Created version:', response);
 				onCreate();
@@ -45,11 +72,6 @@
 			});
 	};
 
-	// Default names:
-	// segmentation: Segmentation
-	// tracking: ... (tracked)
-	// inheritance: ... (inheritance predicted)
-
 	onMount(() => {
 		// Get focus
 		containerElement.querySelector('input')?.focus();
@@ -59,13 +81,18 @@
 <div class="create-version-container" bind:this={containerElement}>
 	<form class="create-version" class:loading>
 		<h3 class="title">New Version</h3>
-		<TextBox bind:value={name} disabled={loading}>Name</TextBox>
-		<select bind:value={source_version_id}>
-			{#each project.versions as version}
-				<option value={version.id}>{version.name}</option>
-			{/each}
-		</select>
-		Creating will automatically run {getNextStep(sourceVersion?.step)}
+
+		<div class="run-on-wrapper">
+			Run {getNextStep(sourceVersion?.step)} on
+			<Dropdown
+				bind:selected={selectedIdx}
+				options={project.versions.map((version) => version.name)}
+				emptyText="Original data"
+				emptySelectable
+			/>
+		</div>
+		<TextBox bind:value={name} disabled={loading} {onChange}>Name</TextBox>
+
 		{#if error_message}<p class="error-message">{error_message}</p>{/if}
 		{#if loading}
 			<Spinner />
@@ -95,7 +122,7 @@
 	.create-version {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
+		align-items: start;
 		width: 400px;
 		background-color: var(--background-color);
 		padding: 16px 24px;
@@ -107,6 +134,12 @@
 			font-size: 24px;
 			font-weight: 500;
 			color: var(--color);
+		}
+
+		.run-on-wrapper {
+			display: flex;
+			align-items: center;
+			gap: 4px;
 		}
 
 		.buttons {

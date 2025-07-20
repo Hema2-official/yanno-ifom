@@ -1,20 +1,19 @@
 <script lang="ts">
-	import type { Project } from '$lib/types/api.type';
+	import type { ProjectVersion } from '$lib/types/api.type';
 	import ProjectList from '$lib/UI/Menus/ProjectList.svelte';
-	import { goto } from '$app/navigation';
 
 	// handle project selection
-	const handleSelect = (project: Project) => {
-		console.log('Selected project:', project);
+	const handleSelect = (version: ProjectVersion) => {
+		console.log('Selected project version:', version);
 
 		// Check if the project is ready
-		if (project.status !== 'ready') {
+		if (!version.ready) {
 			alert('Project is not ready yet');
 			return;
 		}
 
 		// Go to editor page referencing the selected project
-		goto(`/editor?project=${project.id}&version=edit1`);
+		// goto(`/editor?project=${project.id}&version=edit1`);
 	};
 </script>
 
@@ -27,7 +26,7 @@
 	.project-selector {
 		display: flex;
 		justify-content: center;
-		width: 500px;
+		width: 80%;
 		margin: 100px auto;
 	}
 </style>

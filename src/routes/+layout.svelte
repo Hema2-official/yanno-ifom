@@ -25,7 +25,7 @@
 			.then((me) => {
 				if (me.id) isLoggedIn = true;
 			})
-			.catch(() => null)
+			.catch(() => {})
 			.finally(() => {
 				if (!isLoggedIn && !isAuthenticating) {
 					if (window.location.pathname === '/logout') goto('/login');

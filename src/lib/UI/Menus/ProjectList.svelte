@@ -7,12 +7,17 @@
 	import PlusSVG from '$lib/UI/SVG/PlusSVG.svelte';
 	import UploadSVG from '$lib/UI/SVG/UploadSVG.svelte';
 	import EditProject from './EditProject.svelte';
-	import { type Project, ProjectStatus } from '$lib/types/api.type';
+	import {
+		type Project,
+		ProjectStatus,
+		type ProjectVersion,
+		versionStepOrder
+	} from '$lib/types/api.type';
 	import { deleteProject, uploadSourceData } from '$lib/api/projects';
 	import { onMount } from 'svelte';
 	import CreateVersion from './CreateVersion.svelte';
 
-	export let onSelect: (project: Project) => void;
+	export let onSelect: (version: ProjectVersion) => void;
 
 	let loading = true;
 
@@ -31,11 +36,10 @@
 		getProjects()
 			.then((response) => {
 				console.log(response);
-				projects = response;
 
 				// Sort projects by status:
 				const order = [ProjectStatus.uploading, ProjectStatus.ready, ProjectStatus.pending];
-				projects.sort((a, b) => {
+				projects = response.sort((a, b) => {
 					return order.indexOf(a.status) - order.indexOf(b.status);
 				});
 			})
@@ -73,6 +77,7 @@
 			const file = event.target.files?.[0];
 			if (!file) return;
 			project.status = ProjectStatus.uploading;
+			projects = projects; // trigger re-render
 			uploadSourceData(project.id, file).then(refresh);
 		};
 		file.click();
@@ -86,7 +91,7 @@
 		<Spinner />
 	{:else}
 		{#each projects as project}
-			<button class="project-card" on:click={() => onSelect(project)}>
+			<div class="project-card">
 				<div class="header">
 					<h3 class="name">{project.name}</h3>
 					<div class="controls">
@@ -102,14 +107,7 @@
 						>
 							<PencilSVG size={20} />
 						</button>
-						{#if project.status === ProjectStatus.ready}
-							<button
-								class="control-button"
-								on:click|stopPropagation={() => onCreateVersion(project)}
-							>
-								<PlusSVG size={20} />
-							</button>
-						{:else if project.status === ProjectStatus.pending}
+						{#if project.status === ProjectStatus.pending}
 							<button
 								class="control-button"
 								on:click|stopPropagation={() => onUpload(project)}
@@ -117,15 +115,12 @@
 								<UploadSVG size={20} />
 							</button>
 						{:else if project.status === ProjectStatus.uploading}
-							<Spinner size={20} />
+							<Spinner size={20} thickness={4} />
 						{/if}
 					</div>
 				</div>
 				<div class="status">
 					<p class="status-text {project.status}">Status: {project.status}</p>
-					<!-- {#if project.status === 'processing'}
-						<Spinner size={14} thickness={3} transitionSpeed={0.3} />
-					{/if} -->
 				</div>
 				<div class="status">
 					<p class="status-text {project.color}">Color: {project.color}</p>
@@ -140,10 +135,37 @@
 						Start period: {project.start_period}
 					</p>
 				</div>
-			</button>
+				<div class="version-columns">
+					{#if project.status === ProjectStatus.ready}
+						{#each versionStepOrder as step, index}
+							<div class="step-column">
+								<h3 class="step-header">{step}</h3>
+								{#each project.versions.filter((version) => version.step === step) as version}
+									<button class="version-card" on:click={() => onSelect(version)}>
+										<p class="version-name">{version.name}</p>
+										<p class="version-detail">
+											{version.ready ? 'Ready' : 'Not ready'}
+										</p>
+									</button>
+								{/each}
+								{#if index === 0 && project.status === ProjectStatus.ready}
+									<button
+										class="new-version"
+										on:click={() => onCreateVersion(project)}
+									>
+										<PlusSVG size="var(--plus-svg-size)" />
+										New {step}
+									</button>
+								{/if}
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
 		{/each}
 		<button class="new-project" on:click={() => (createProjectShown = true)}>
-			+ New Project
+			<PlusSVG size="var(--plus-svg-size)" />
+			New project
 		</button>
 	{/if}
 	{#if createProjectShown}
@@ -195,7 +217,6 @@
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 		transition: box-shadow 0.3s;
 		user-select: none;
-		cursor: pointer;
 
 		.header {
 			display: flex;
@@ -267,7 +288,71 @@
 		}
 	}
 
-	.new-project {
+	.version-columns {
+		display: flex;
+		flex-direction: row;
+		align-items: start;
+		gap: 16px;
+		width: 100%;
+
+		.step-column {
+			display: flex;
+			flex-direction: column;
+			align-items: start;
+			gap: 8px;
+			flex: 1;
+
+			.step-header {
+				font-size: 18px;
+				font-weight: 600;
+				color: var(--color);
+				margin: 0;
+				width: 100%;
+				text-align: center;
+				text-transform: capitalize;
+			}
+		}
+
+		.version-card {
+			display: flex;
+			flex-direction: column;
+			align-items: start;
+			width: 100%;
+			padding: 16px;
+			border-radius: 8px;
+			border: none;
+			outline: none;
+			background: none;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+			transition: box-shadow 0.3s;
+			user-select: none;
+			cursor: pointer;
+
+			.version-name {
+				font-size: 18px;
+				font-weight: 600;
+				color: var(--color);
+				margin: 0;
+			}
+
+			.version-detail {
+				font-size: 14px;
+				margin: 0;
+			}
+
+			&:hover,
+			&:focus-visible {
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+			}
+		}
+	}
+
+	.new-project,
+	.new-version {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
 		width: 100%;
 		padding: 16px 16px;
 		margin-bottom: 24px;
@@ -282,6 +367,8 @@
 		opacity: 0.7;
 		transition: opacity 0.3s;
 		cursor: pointer;
+
+		--plus-svg-size: 18px;
 
 		&:hover {
 			opacity: 1;
