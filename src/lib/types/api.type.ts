@@ -9,13 +9,24 @@ export type MeResponse = {
 	updated_at: string;
 };
 
-const stepOrder = ['segmentation', 'tracking', 'inheritance'] as const;
-export type VersionStep = (typeof stepOrder)[number];
+export const versionStepOrder = ['segmentation', 'tracking', 'inheritance'] as const;
+export type VersionStep = (typeof versionStepOrder)[number];
 
 export function getNextStep(step?: VersionStep): VersionStep | null {
-	if (!step) return stepOrder[0];
-	const currentIndex = stepOrder.indexOf(step);
-	return currentIndex < stepOrder.length - 1 ? stepOrder[currentIndex + 1] : null;
+	if (!step) return versionStepOrder[0];
+	const currentIndex = versionStepOrder.indexOf(step);
+	return currentIndex < versionStepOrder.length - 1 ? versionStepOrder[currentIndex + 1] : null;
+}
+
+export function getAutoName(step: VersionStep, source_name: string | undefined) {
+	switch (step) {
+		case 'segmentation':
+			return 'Segmentation';
+		case 'tracking':
+			return `${source_name} (tracked)`;
+		case 'inheritance':
+			return `${source_name} (inheritance predicted)`;
+	}
 }
 
 export type ProjectVersion = {
