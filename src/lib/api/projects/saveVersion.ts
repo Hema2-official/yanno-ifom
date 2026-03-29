@@ -2,7 +2,7 @@ import axios from '../axiosConfig';
 import { isAxiosError, type AxiosError } from 'axios';
 import type { APIError } from '$lib/types/api.type';
 
-const saveVersion = async (project_id: number, version: string, data: BlobPart) => {
+const saveVersion = async (project_id: string, version: string, data: BlobPart) => {
 	try {
 		const blob = new Blob([data], { type: 'application/json' });
 		const formData = new FormData();

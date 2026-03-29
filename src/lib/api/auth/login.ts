@@ -1,10 +1,10 @@
-import type { APIError, CredentialsError, LoginResponse } from '$lib/types/api.type';
+import type { APIError, CredentialsError, AuthResponse } from '$lib/types/api.type';
 import axios from '../axiosConfig';
 import { isAxiosError, type AxiosError } from 'axios';
 
 const login = async (email: string, password: string) => {
 	try {
-		const response = await axios.post<LoginResponse>(`auth/login`, { email, password });
+		const response = await axios.post<AuthResponse>(`auth/login`, { email, password });
 		return response.data;
 	} catch (error) {
 		if (isAxiosError(error)) {
