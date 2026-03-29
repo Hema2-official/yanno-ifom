@@ -10,7 +10,7 @@
 	--color-focus: var(--focus-color);
 	--color-gray-accent: var(--gray-accent);
 	--color-light-gray-accent: var(--light-gray-accent);
-	--color-border: var(--gray-accent);
+	--color-border: rgba(255, 255, 255, 0.15);
 
 	--color-popover: var(--background-color);
 	--color-popover-foreground: var(--color);
@@ -71,13 +71,22 @@
 		--focus-color: rgb(100, 136, 255);
 		--gray-accent: #00000055;
 		--light-gray-accent: #00000022;
+		--color-border: rgba(0, 0, 0, 0.15);
 	}
 }
 
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
+@layer base {
+	/* Workaround: Tailwind v4's `border` utility no longer sets border-color,
+	   so shadcn components using `border` (without `border-border`) fall back
+	   to currentcolor. This sets a sensible default so all borders use
+	   --color-border. Ideally shadcn-svelte should ship with `border-border`
+	   in its Tailwind v4 templates — see https://github.com/huntabyte/shadcn-svelte/issues */
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		border-color: var(--color-border);
+	}
 }
 
 body {
