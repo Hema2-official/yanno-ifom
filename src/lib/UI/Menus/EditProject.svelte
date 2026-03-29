@@ -7,15 +7,16 @@
 	import { VideoColor, type Project } from '$lib/types/api.type';
 	import { updateProject } from '$lib/api/projects';
 
-	export let onEdit: () => void;
-	export let onCancel: () => void;
-
-	export let project: Project;
+	let {
+		onEdit,
+		onCancel,
+		project
+	}: { onEdit: () => void; onCancel: () => void; project: Project } = $props();
 
 	let containerElement: HTMLDivElement;
 
-	let loading = false;
-	let error_message: string | undefined;
+	let loading = $state(false);
+	let error_message: string | undefined = $state(undefined);
 
 	// $: allowSubmit = name.length > 0;
 
@@ -44,14 +45,23 @@
 			});
 	};
 
-	let isGrayscale = project.color === VideoColor.GRAYSCALE;
-	$: project.color = isGrayscale ? VideoColor.GRAYSCALE : VideoColor.RGB;
+	let isGrayscale = $state(project.color === VideoColor.GRAYSCALE);
 
-	let channel_period = String(project.channel_period);
-	$: project.channel_period = Number(channel_period);
+	$effect(() => {
+		project.color = isGrayscale ? VideoColor.GRAYSCALE : VideoColor.RGB;
+	});
 
-	let start_period = String(project.start_period);
-	$: project.start_period = Number(start_period);
+	let channel_period = $state(String(project.channel_period));
+
+	$effect(() => {
+		project.channel_period = Number(channel_period);
+	});
+
+	let start_period = $state(String(project.start_period));
+
+	$effect(() => {
+		project.start_period = Number(start_period);
+	});
 
 	onMount(() => {
 		// Get focus

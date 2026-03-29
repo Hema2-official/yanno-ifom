@@ -1,9 +1,9 @@
 <script lang="ts">
-	export let size: number | string = 24;
-	export let color = 'white';
+	import type { SVGProps } from './types';
 
-	// if size is a number, append 'px' to it
-	$: _size = typeof size === 'number' ? `${size}px` : size;
+	let { size = 24, color = 'white' }: SVGProps = $props();
+
+	let _size = $derived(typeof size === 'number' ? `${size}px` : size);
 </script>
 
 <svg

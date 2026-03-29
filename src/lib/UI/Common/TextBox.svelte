@@ -1,73 +1,63 @@
 <script lang="ts">
-	import type { ChangeEventHandler } from 'svelte/elements';
+	import type { Snippet } from 'svelte';
 
-	export let value: string;
-	export let disabled = false;
-	export let title: string = '';
-	export let type: 'text' | 'email' | 'password' = 'text';
-	export let onChange: ChangeEventHandler<HTMLInputElement> = () => {};
+	let {
+		value = $bindable(),
+		disabled = false,
+		title = '',
+		type = 'text' as 'text' | 'email' | 'password',
+		onChange = () => {},
+		children
+	}: {
+		value: string;
+		disabled?: boolean;
+		title?: string;
+		type?: 'text' | 'email' | 'password';
+		onChange?: (event: Event & { currentTarget: EventTarget & HTMLInputElement }) => void;
+		children?: Snippet;
+	} = $props();
 </script>
 
-<div class="textbox-wrapper" {title}>
+<div class="textbox-wrapper relative flex flex-col items-start pt-[22px] px-1 pb-2 w-full" {title}>
 	{#if type === 'email'}
 		<input
 			type="email"
 			placeholder=" "
 			bind:value
-			class="tb-input"
+			class="tb-input w-full p-px m-0 border-none outline-none bg-transparent text-base font-normal border-b-2 border-b-border transition-[border-color] duration-100 ease-in-out focus:border-b-focus"
 			{disabled}
-			on:change={onChange}
+			onchange={onChange}
 		/>
 	{:else if type === 'password'}
 		<input
 			type="password"
 			placeholder=" "
 			bind:value
-			class="tb-input"
+			class="tb-input w-full p-px m-0 border-none outline-none bg-transparent text-base font-normal border-b-2 border-b-border transition-[border-color] duration-100 ease-in-out focus:border-b-focus"
 			{disabled}
-			on:change={onChange}
+			onchange={onChange}
 		/>
 	{:else}
 		<input
 			type="text"
 			placeholder=" "
 			bind:value
-			class="tb-input"
+			class="tb-input w-full p-px m-0 border-none outline-none bg-transparent text-base font-normal border-b-2 border-b-border transition-[border-color] duration-100 ease-in-out focus:border-b-focus"
 			{disabled}
-			on:change={onChange}
+			onchange={onChange}
 		/>
 	{/if}
-	<label class="tb-label"><span class="label-text"><slot /></span></label>
+	<label
+		class="tb-label absolute left-[5px] flex text-border origin-top-left transition-all duration-100 ease-in-out cursor-default select-none"
+	>
+		<span class="text-base font-medium leading-5">{@render children?.()}</span>
+	</label>
 </div>
 
 <style lang="scss">
-	.textbox-wrapper {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: start;
-		padding: 22px 4px 8px 4px;
-		width: 100%;
-	}
-
 	.tb-input {
-		width: 100%;
-		padding: 1px;
-		margin: 0;
-		border: none;
-		outline: none;
-		background-color: unset;
-		font-size: 16px;
-		font-weight: 400;
-		border-bottom: 2px solid var(--gray-accent);
-		transition: border-color 0.1s ease-in-out;
-
-		&:focus {
-			border-color: var(--focus-color);
-
-			& + .tb-label {
-				color: var(--focus-color);
-			}
+		&:focus + .tb-label {
+			color: var(--focus-color);
 		}
 
 		&:focus + .tb-label,
@@ -92,20 +82,5 @@
 		&:-webkit-autofill {
 			-webkit-background-clip: text;
 		}
-	}
-
-	.tb-label {
-		position: absolute;
-		left: 5px; // 4px padding + 1px
-		display: flex;
-		color: var(--gray-accent);
-		transform-origin: 0 0;
-		transition:
-			transform 0.1s ease-in-out,
-			color 0.1s ease-in-out;
-		cursor: default;
-		-webkit-user-select: none;
-		-moz-user-select: none;
-		user-select: none;
 	}
 </style>

@@ -22,13 +22,17 @@
 	import Slider from '../Common/Slider.svelte';
 	import TextBox from '../Common/TextBox.svelte';
 	import Button from '../Common/Button.svelte';
-	import { dataTypeToText, download } from '$lib/utils/data';
+	import { dataTypeToText, download } from '$lib/utils/data.svelte';
 	import { modifierKeys } from '$lib/stores/input';
 </script>
 
-<nav class="side-container {$sidebarRight ? 'right' : ''}">
-	<p class="title">Debug</p>
-	<div class="group">
+<nav
+	class="flex flex-col w-[300px] h-full p-[1.3em] overflow-y-auto border-[var(--accent-color)] {$sidebarRight
+		? 'border-l-[3px] order-3'
+		: 'border-r-[3px] order-1'}"
+>
+	<p class="text-center text-[30px] font-semibold mt-1.5 mb-3.5">Debug</p>
+	<div>
 		<CheckBox bind:checked={$isSvgShown}>Show SVG</CheckBox>
 
 		<CheckBox bind:checked={$svgStrokeSwitch}>Stroke</CheckBox>
@@ -77,40 +81,9 @@
 			}}>Delete session</Button
 		>
 
-		<p>shift: {$modifierKeys.shift}</p>
-		<p>ctrl: {$modifierKeys.ctrl}</p>
-		<p>alt: {$modifierKeys.alt}</p>
-		<p>meta: {$modifierKeys.meta}</p>
+		<p class="m-0">shift: {$modifierKeys.shift}</p>
+		<p class="m-0">ctrl: {$modifierKeys.ctrl}</p>
+		<p class="m-0">alt: {$modifierKeys.alt}</p>
+		<p class="m-0">meta: {$modifierKeys.meta}</p>
 	</div>
 </nav>
-
-<style lang="scss">
-	.side-container {
-		display: flex;
-		flex-direction: column;
-		width: 300px;
-		height: 100%;
-		padding: 1.3em;
-		border-right: 3px solid var(--accent-color);
-		order: 1;
-		overflow-y: scroll;
-
-		&.right {
-			border-right: none;
-			border-left: 3px solid var(--accent-color);
-			order: 3;
-		}
-
-		.title {
-			text-align: center;
-			font-size: 30px;
-			font-weight: 600;
-			margin-top: 6px;
-			margin-bottom: 14px;
-		}
-
-		p {
-			margin: 0;
-		}
-	}
-</style>

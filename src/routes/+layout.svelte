@@ -2,10 +2,15 @@
 	import { onMount } from 'svelte';
 	import getMe from '$lib/api/users/getMe';
 	import { goto } from '$app/navigation';
+	import type { Snippet } from 'svelte';
 
 	import { addMessages, init } from 'svelte-i18n';
 	import en from '$lib/lang/en.json';
 	// import hu from "$lib/lang/hu.json";
+
+	import '../app.css';
+
+	let { children }: { children: Snippet } = $props();
 
 	addMessages('en', en);
 	// addMessages("hu", hu);
@@ -39,14 +44,6 @@
 	});
 </script>
 
-<main class="root-container">
-	<slot />
+<main class="flex h-screen w-full">
+	{@render children()}
 </main>
-
-<style lang="scss">
-	.root-container {
-		display: flex;
-		height: 100vh;
-		width: 100%;
-	}
-</style>

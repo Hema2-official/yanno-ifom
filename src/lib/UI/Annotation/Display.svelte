@@ -28,25 +28,29 @@
 	import { P } from '$lib/utils/pattern';
 	import NewEditor from './NewEditor.svelte';
 
-	$: $displayFrames = getFramesAtChangeIndex($annotation, $currentChangeIndex);
+	$effect(() => {
+		$displayFrames = getFramesAtChangeIndex($annotation, $currentChangeIndex);
+	});
 	$currentChangeIndex = $annotation.changes.length - 1;
 
-	let contextMenuComponent: ContextMenu;
-	let editorComponent: NewEditor;
+	let contextMenuComponent: ContextMenu = $state(undefined as any);
+	let editorComponent: NewEditor = $state(undefined as any);
 	let displayContainerElement: HTMLDivElement;
-	let imageWrapperElement: HTMLDivElement;
+	let imageWrapperElement: HTMLDivElement = $state(undefined as any);
 	let svgElement: SVGSVGElement;
 
-	let editorCell: NewCellType;
+	let editorCell: NewCellType = $state(undefined as any);
 
-	const styles = {
+	let styles = $state({
 		'scale-percent': 100,
 		'translate-x': 0,
 		'translate-y': 0,
 		'image-top': 0,
 		cursor: 'grab'
-	};
-	$: $svgScalePercent = styles['scale-percent'];
+	});
+	$effect(() => {
+		$svgScalePercent = styles['scale-percent'];
+	});
 
 	const stylesUnits: { [key: string]: number | string } = {
 		'scale-percent': '%',
@@ -56,9 +60,11 @@
 		cursor: ''
 	};
 
-	$: cssVarStyles = Object.entries(styles)
-		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-		.join(';');
+	let cssVarStyles = $derived(
+		Object.entries(styles)
+			.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
+			.join(';')
+	);
 
 	const movePixels = (x: number, y: number) => {
 		const scale = styles['scale-percent'] / 100;
@@ -90,7 +96,7 @@
 		if (styles['scale-percent'] === $maxScale && e.deltaY < 0) return;
 
 		// hide context menu quickly
-		contextMenuComponent.hide(false);
+		contextMenuComponent?.hide(false);
 
 		// find mouse pos
 		const mouse = getPointerCoords(e);
@@ -203,7 +209,7 @@
 
 		const [cellId] = P('cell#-body#').match(target.id);
 
-		contextMenuComponent.$set({ cellId });
+		contextMenuComponent?.$set({ cellId });
 		const targetCell = $displayFrames
 			.find((f) => f.id == $currentFrameId)
 			?.cells.find((c) => c.id == cellId);
@@ -232,20 +238,16 @@
 <div
 	class="display-container"
 	role="presentation"
-	on:contextmenu|preventDefault
-	on:mouseleave={displayMouseLeave}
-	on:mouseenter={displayMouseEnter}
-	on:mouseup={imageMouse.mouseUp}
-	on:mousemove={imageMouse.mouseMove}
-	on:mousedown={imageMouse.mouseDown}
-	on:wheel={imageWheel}
+	oncontextmenu={(e) => e.preventDefault()}
+	onmouseleave={displayMouseLeave}
+	onmouseenter={displayMouseEnter}
+	onmouseup={imageMouse.mouseUp}
+	onmousemove={imageMouse.mouseMove}
+	onmousedown={imageMouse.mouseDown}
+	onwheel={imageWheel}
 	style={cssVarStyles}
 	bind:this={displayContainerElement}
 >
-	<!--
-		on:mousemove={imageMouse.mouseMove}
-		on:wheel={imageWheel}
-	-->
 	<div class="image-wrapper" role="presentation" bind:this={imageWrapperElement}>
 		<img src={URL.createObjectURL($blob_pngs[$currentFrameId - 1])} alt="" class="zoomable" />
 
@@ -254,7 +256,7 @@
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
 			class="zoomable annotation-svg"
-			on:contextmenu|preventDefault
+			oncontextmenu={(e) => e.preventDefault()}
 			bind:this={svgElement}
 			opacity={$isSvgShown ? $svgAlpha / 255 : 0}
 		>
@@ -265,20 +267,13 @@
 			/> -->
 
 			{#if !$isEditing}
-				<g on:contextmenu={cellContextMenu} role="region">
+				<g oncontextmenu={cellContextMenu} role="region">
 					{#each $displayFrames.find((f) => f.id == $currentFrameId)?.cells ?? [] as cell}
 						<Cell {cell} />
 					{/each}
 				</g>
 			{:else}
 				<NewEditor inputCell={editorCell} bind:this={editorComponent} />
-				<!-- <Editor
-					inputCell={editorCell}
-					bind:svgScalePercent={styles['scale-percent']}
-					bind:svgElement
-					{imageMouse}
-					bind:this={editorComponent}
-				/> -->
 			{/if}
 		</svg>
 	</div>
@@ -287,7 +282,7 @@
 		<EditorControls {editorComponent} />
 	{/if}
 
-	<ContextMenu bind:this={contextMenuComponent} on:mousemove={null} />
+	<ContextMenu bind:this={contextMenuComponent} onmousemove={null} />
 </div>
 
 <style lang="scss">

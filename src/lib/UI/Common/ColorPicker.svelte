@@ -1,81 +1,47 @@
 <script lang="ts">
-	export let value: string;
-	export let disabled = false;
-	export let title: string = '';
+	import type { Snippet } from 'svelte';
+
+	let {
+		value = $bindable(),
+		disabled = false,
+		title = '',
+		children
+	}: {
+		value: string;
+		disabled?: boolean;
+		title?: string;
+		children?: Snippet;
+	} = $props();
 </script>
 
-<div class="color-picker-wrapper">
-	<label class:disabled>
+<div class="flex flex-col items-start my-2 mx-1 overflow-visible">
+	<label
+		class="relative flex items-center justify-between whitespace-nowrap select-none cursor-pointer"
+		class:disabled
+	>
 		<input
 			type="color"
 			bind:value
-			class="color-picker-input"
+			class="w-5 h-5 my-1 mr-2 ml-1 p-0 outline-none border-none shadow-none cursor-pointer transition-all duration-100 ease-in-out hover:not-disabled:rotate-[10deg] hover:not-disabled:shadow-[3px_3px_1px_0_var(--accent-color)] focus-visible:not-disabled:rotate-[10deg] focus-visible:not-disabled:shadow-[3px_3px_1px_0_var(--accent-color)] disabled:opacity-60 disabled:cursor-default"
 			style="background-color: {value};"
 			{disabled}
 			{title}
 		/>
-		<span class="label-text"><slot /></span>
+		<span
+			class="text-base font-medium leading-5 peer-disabled:opacity-60 peer-disabled:cursor-default"
+		>
+			{@render children?.()}
+		</span>
 	</label>
 </div>
 
 <style lang="scss">
-	.color-picker-wrapper {
-		display: flex;
-		flex-direction: column;
-		align-items: start;
-		margin: 8px 4px;
-		overflow: visible;
+	input:disabled + span {
+		opacity: 0.6;
+		cursor: default;
+	}
 
-		label {
-			position: relative;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			white-space: nowrap;
-			user-select: none;
-			cursor: pointer;
-
-			.label-text {
-				font-size: 16px;
-				font-weight: 500;
-				line-height: 20px;
-			}
-
-			.color-picker-input {
-				width: 20px;
-				height: 20px;
-				margin: 4px 8px 4px 4px;
-				padding: 0;
-				outline: none;
-				border: none;
-				box-shadow: none;
-				transition:
-					transform 0.1s ease-in-out,
-					border-color 0.1s ease-in-out,
-					box-shadow 0.1s ease-in-out;
-				cursor: pointer;
-
-				&:not(:disabled):hover,
-				&:not(:disabled):focus-visible {
-					outline: none;
-					transform: rotate(10deg);
-					box-shadow: 3px 3px 1px 0 var(--accent-color);
-				}
-
-				&:disabled {
-					opacity: 0.6;
-					cursor: default;
-
-					+ .label-text {
-						opacity: 0.6;
-						cursor: default;
-					}
-				}
-			}
-
-			&.disabled {
-				cursor: default;
-			}
-		}
+	label.disabled {
+		cursor: default;
 	}
 </style>

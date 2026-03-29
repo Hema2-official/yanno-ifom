@@ -15,33 +15,42 @@
 	import TextBox from '../Common/TextBox.svelte';
 	import Dropdown from '../Common/Dropdown.svelte';
 
-	export let onCreate: () => void;
-	export let onCancel: () => void;
-
-	export let project: Project;
+	let {
+		onCreate,
+		onCancel,
+		project
+	}: { onCreate: () => void; onCancel: () => void; project: Project } = $props();
 
 	let containerElement: HTMLDivElement;
 
-	let loading = false;
-	let error_message: string | undefined;
+	let loading = $state(false);
+	let error_message: string | undefined = $state(undefined);
 
-	let selectedIdx: number | undefined;
-	$: possibleVersions = project.versions.filter((version) => version.step !== 'inheritance');
-	$: sourceVersion = selectedIdx !== undefined ? possibleVersions[selectedIdx] : undefined;
-	$: step = getNextStep(sourceVersion?.step);
+	let selectedIdx: number | undefined = $state(undefined);
+	let possibleVersions = $derived(
+		project.versions.filter((version) => version.step !== 'inheritance')
+	);
+	let sourceVersion = $derived(
+		selectedIdx !== undefined ? possibleVersions[selectedIdx] : undefined
+	);
+	let step = $derived(getNextStep(sourceVersion?.step));
 
-	$: autoName = getAutoName(step!, sourceVersion?.name);
-	let nameChanged = false;
-	let name: string = '';
-	$: if (!nameChanged) name = autoName;
+	let autoName = $derived(getAutoName(step!, sourceVersion?.name));
+	let nameChanged = $state(false);
+	let name: string = $state('');
+	$effect(() => {
+		if (!nameChanged) name = autoName;
+	});
 
-	$: parameters = {
-		segmentation: defaultSegmentationParams,
-		tracking: defaultTrackingParams,
-		inheritance: {} as InheritanceParams
-	}[step!];
+	let parameters = $derived(
+		{
+			segmentation: defaultSegmentationParams,
+			tracking: defaultTrackingParams,
+			inheritance: {} as InheritanceParams
+		}[step!]
+	);
 
-	$: allowSubmit = !!name;
+	let allowSubmit = $derived(!!name);
 
 	const onChange = () => {
 		nameChanged = name !== autoName;

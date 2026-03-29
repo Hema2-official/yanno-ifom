@@ -11,17 +11,21 @@ import type {
 import * as jsondiffpatch from 'jsondiffpatch';
 
 /**
- * Creates a deep copy of the given object.
+ * Creates a deep copy of the given object or proxy.
  *
- * @param obj - The object to be copied.
+ * @param obj - The object or proxy to be copied.
  * @returns A deep copy of the object.
  */
-export function deepCopy<T>(obj: T): T {
-	if (structuredClone) return structuredClone(obj);
+export function deepCopy<T>(obj: T) {
+	// Let Svelte do its magic unwrapping proxies before we clone anything
+	// ($state.snapshot doesn't care if it's not a proxy)
+	const snapshot = $state.snapshot(obj);
+
+	if (structuredClone) return structuredClone(snapshot);
 	console.warn(
 		'The structuredClone method is not supported in this browser. Falling back to JSON goofery.'
 	);
-	return JSON.parse(JSON.stringify(obj));
+	return JSON.parse(JSON.stringify(snapshot)) as typeof snapshot;
 }
 
 export function cellBodiesEqual<T extends CellBodyType | CellBodyType[]>(a: T, b: T): boolean {

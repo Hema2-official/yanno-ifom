@@ -14,7 +14,7 @@
 		undoChange
 	} from '$lib/stores/data';
 	import type { SubmenuItemType } from '$lib/types/navigation.type';
-	import { dataTypeToText, download } from '$lib/utils/data';
+	import { dataTypeToText, download } from '$lib/utils/data.svelte';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	// import {
 	// 	getFramesDifference,
@@ -95,7 +95,7 @@
 	const exportAsJSON = () => {
 		download(
 			JSON.stringify($annotation),
-			$currentProject.name + '_' + $currentProjectVersion + '.json',
+			$currentProject.name + '_' + $currentProjectVersion.id + '.json',
 			'application/json'
 		);
 	};
@@ -103,7 +103,7 @@
 	const exportAsTXT = () => {
 		download(
 			dataTypeToText($annotation),
-			$currentProject.name + '_' + $currentProjectVersion + '.txt',
+			$currentProject.name + '_' + $currentProjectVersion.id + '.txt',
 			'text/plain'
 		);
 	};
@@ -169,80 +169,24 @@
 	];
 </script>
 
-<nav class="navbar">
-	<img src="/logo.svg" class="logo" alt="" />
+<nav
+	class="h-[74px] w-full flex items-center px-3 gap-5 border-b-[3px] border-[var(--accent-color)]"
+>
+	<img src="/logo.svg" class="h-[84%] aspect-square" alt="" />
 
-	<div class="content">
-		<div class="info-row">
-			<p class="title">{$_('app_title')}</p>
-			<p class="project-name">{$currentProject.name}</p>
-			<p class="project-version">{$currentProjectVersion}</p>
+	<div class="flex flex-col h-full justify-evenly items-start">
+		<div class="flex flex-row gap-2">
+			<p class="text-center text-base font-semibold m-0 mr-1.5">{$_('app_title')}</p>
+			<p class="text-center text-base m-0">{$currentProject.name}</p>
+			<p class="text-center text-base m-0 opacity-70">{$currentProjectVersion.name}</p>
 			{#if $savingIndicator}
-				<p class="project-version">Saving...</p>
+				<p class="text-center text-base m-0 opacity-70">Saving...</p>
 			{/if}
 		</div>
-		<div class="control-row">
+		<div class="flex flex-row gap-1.5">
 			{#each controlButtons as button}
 				<TopBarButton submenuItems={button.items}>{button.label}</TopBarButton>
 			{/each}
 		</div>
 	</div>
 </nav>
-
-<style lang="scss">
-	.navbar {
-		height: 74px;
-		width: 100%;
-		display: flex;
-		align-items: center;
-		padding: 0 12px;
-		gap: 20px;
-		border-bottom: 3px solid var(--accent-color);
-
-		.logo {
-			height: 84%;
-			aspect-ratio: 1;
-		}
-
-		.content {
-			display: flex;
-			flex-direction: column;
-			height: 100%;
-			justify-content: space-evenly;
-			align-items: start;
-
-			.info-row {
-				display: flex;
-				flex-direction: row;
-				gap: 8px;
-
-				.title {
-					text-align: center;
-					font-size: 16px;
-					font-weight: 600;
-					margin: 0;
-					margin-right: 6px;
-				}
-
-				.project-name {
-					text-align: center;
-					font-size: 16px;
-					margin: 0;
-				}
-
-				.project-version {
-					text-align: center;
-					font-size: 16px;
-					margin: 0;
-					opacity: 0.7;
-				}
-			}
-
-			.control-row {
-				display: flex;
-				flex-direction: row;
-				gap: 6px;
-			}
-		}
-	}
-</style>

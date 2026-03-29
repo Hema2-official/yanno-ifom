@@ -3,28 +3,31 @@
 	import { svgFill, svgFillSwitch, svgStroke, svgStrokeSwitch } from '$lib/stores/svg';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import { cellBodyToPath } from '$lib/utils/display';
+	import type { Polygon } from '$lib/utils/geometry';
 
-	export let cell: NewCellType;
+	let { cell }: { cell: NewCellType } = $props();
 
-	let center: { x: number; y: number };
-	$: if (cell.bodies.length > 0)
-		center = {
-			x:
-				(Math.min(...cell.bodies.map((body) => Math.min(...body.x))) +
-					Math.max(...cell.bodies.map((body) => Math.max(...body.x)))) /
-				2,
-			y:
-				(Math.min(...cell.bodies.map((body) => Math.min(...body.y))) +
-					Math.max(...cell.bodies.map((body) => Math.max(...body.y)))) /
-				2
-		};
+	let center: { x: number; y: number } | undefined = $derived(
+		cell.bodies.length > 0
+			? {
+					x:
+						(Math.min(...cell.bodies.map((body) => Math.min(...body.x))) +
+							Math.max(...cell.bodies.map((body) => Math.max(...body.x)))) /
+						2,
+					y:
+						(Math.min(...cell.bodies.map((body) => Math.min(...body.y))) +
+							Math.max(...cell.bodies.map((body) => Math.max(...body.y)))) /
+						2
+				}
+			: undefined
+	);
 </script>
 
 <g id="cell{cell.id}">
 	{#each cell.bodies ?? [] as body, index}
 		<path
 			id="cell{cell.id}-body{index}"
-			d={cellBodyToPath(body)}
+			d={cellBodyToPath(body as unknown as Polygon)}
 			fill={$svgFillSwitch ? $svgFill : 'transparent'}
 			stroke={$svgStrokeSwitch ? $svgStroke : 'none'}
 			stroke-width="2px"
@@ -38,7 +41,7 @@
 	/> -->
 </g>
 
-{#if !$modifierKeys.shift}
+{#if center && !$modifierKeys.shift}
 	<text
 		x={center.x}
 		y={center.y}

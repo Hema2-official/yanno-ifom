@@ -1,32 +1,30 @@
 <script lang="ts">
-	import type { EventHandler } from 'svelte/elements';
+	import type { Snippet } from 'svelte';
 
-	export let onClick: EventHandler<MouseEvent>;
-	export let disabled = false;
-	export let loading = false;
+	let {
+		onClick,
+		disabled = false,
+		loading = false,
+		children
+	}: {
+		onClick: (event: MouseEvent) => void;
+		disabled?: boolean;
+		loading?: boolean;
+		children?: Snippet;
+	} = $props();
 </script>
 
-<button class="proceed-button" on:click={onClick} class:disabled class:loading>
-	<slot />
+<button
+	class="proceed-button px-5 py-1.5 mt-4 bg-transparent border border-border rounded-md text-base font-semibold cursor-pointer transition-[background-color,border-color,color] duration-200"
+	onclick={onClick}
+	class:disabled
+	class:loading
+>
+	{@render children?.()}
 </button>
 
 <style lang="scss">
 	.proceed-button {
-		padding: 6px 20px;
-		margin-top: 16px;
-		background: transparent;
-		border: none;
-		border: 1px solid var(--gray-accent);
-		border-radius: 5px;
-		font-size: 16px;
-		font-weight: 600;
-		transition:
-			background-color 0.2s,
-			border-color 0.2s,
-			color 0.2s;
-
-		cursor: pointer;
-
 		&.disabled {
 			color: var(--gray-accent);
 		}
@@ -45,14 +43,14 @@
 			background-size: 1000px 100%;
 			animation: bg 3s linear infinite;
 		}
+	}
 
-		@keyframes bg {
-			0% {
-				background-position-x: 0;
-			}
-			100% {
-				background-position-x: 1000px;
-			}
+	@keyframes bg {
+		0% {
+			background-position-x: 0;
+		}
+		100% {
+			background-position-x: 1000px;
 		}
 	}
 </style>

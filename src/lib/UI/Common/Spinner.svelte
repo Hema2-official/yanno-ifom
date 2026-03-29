@@ -1,22 +1,31 @@
 <script lang="ts">
-	export let color = 'var(--color)';
-	export let size = 42; // px
-	export let speed = 0.75; // s
-	export let thickness = 8; // px, odd numbers create a wobble effect
-	export let opacity = 1;
-	export let transitionSpeed = 0.2; // s
+	let {
+		color = 'var(--color)',
+		size = 42,
+		speed = 0.75,
+		thickness = 8,
+		opacity = 1,
+		transitionSpeed = 0.2
+	}: {
+		color?: string;
+		size?: number;
+		speed?: number;
+		thickness?: number;
+		opacity?: number;
+		transitionSpeed?: number;
+	} = $props();
 
-	$: styles = `
-        --spinner-color: ${color};
-        --spinner-size: ${size}px;
-        --spinner-speed: ${speed}s;
-        --spinner-thickness: ${thickness}px;
+	let styles = $derived(`
+		--spinner-color: ${color};
+		--spinner-size: ${size}px;
+		--spinner-speed: ${speed}s;
+		--spinner-thickness: ${thickness}px;
 		--spinner-opacity: ${opacity};
 		--spinner-transition-speed: ${transitionSpeed}s;
-    `;
+	`);
 </script>
 
-<div class="loading-spinner" style={styles} />
+<div class="loading-spinner inline-block rounded-full" style={styles}></div>
 
 <style lang="scss">
 	@keyframes rotate-forever {
@@ -38,8 +47,6 @@
 		border: var(--spinner-thickness) solid;
 		border-color: var(--spinner-color);
 		border-right-color: transparent;
-		border-radius: 50%;
-		display: inline-block;
 		opacity: var(--spinner-opacity);
 		transition:
 			opacity var(--spinner-transition-speed),

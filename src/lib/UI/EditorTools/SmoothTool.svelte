@@ -7,17 +7,15 @@
 		modifierKeys
 	} from '$lib/stores/input';
 	import { autoResample } from '$lib/stores/options';
-	import type { CellBodyType } from '$lib/types/annotation.type';
 	import type { Point } from '$lib/types/editor.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBodies } from '$lib/utils/geometry';
-	import type { Writable } from 'svelte/store';
+	import type { EditorToolProps } from './types';
 
-	export let bodies: Writable<CellBodyType[]>;
-	export let pushLocalState: () => void;
+	let { bodies, pushLocalState }: EditorToolProps = $props();
 
-	let interactiveRoot: SVGElement;
-	$: svgElement = interactiveRoot?.ownerSVGElement;
+	let interactiveRoot: SVGElement | undefined;
+	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
 
 	let mouseStartPos: Point;
 
@@ -25,17 +23,19 @@
 	let coeffs: number[][] = [];
 	let startPositons: Point[][] = [];
 
-	let isMouseDown = false;
+	let isMouseDown = $state(false);
 
-	$: if (isMouseDown) {
-		$displayMouseMoveHandler = handleMouseMove;
-		$displayMouseUpHandler = handleMouseUp;
-		$displayMouseLeaveHandler = handleMouseUp;
-	} else {
-		$displayMouseMoveHandler = null;
-		$displayMouseUpHandler = null;
-		$displayMouseLeaveHandler = null;
-	}
+	$effect(() => {
+		if (isMouseDown) {
+			$displayMouseMoveHandler = handleMouseMove;
+			$displayMouseUpHandler = handleMouseUp;
+			$displayMouseLeaveHandler = handleMouseUp;
+		} else {
+			$displayMouseMoveHandler = null;
+			$displayMouseUpHandler = null;
+			$displayMouseLeaveHandler = null;
+		}
+	});
 
 	const handleMouseDown = (e: MouseEvent) => {
 		e.preventDefault();
@@ -143,10 +143,10 @@
 <!-- Interactive elements -->
 <g
 	role="presentation"
-	on:mousedown={handleMouseDown}
-	on:mouseup={handleMouseUp}
-	on:mousemove={handleMouseMove}
-	on:wheel={handleWheel}
+	onmousedown={handleMouseDown}
+	onmouseup={handleMouseUp}
+	onmousemove={handleMouseMove}
+	onwheel={handleWheel}
 	bind:this={interactiveRoot}
 >
 	{#each $bodies as body}

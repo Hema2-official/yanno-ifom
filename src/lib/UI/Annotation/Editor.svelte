@@ -9,39 +9,46 @@
 	} from '$lib/stores/editor';
 	import { EditorMode } from '$lib/types/editor.type';
 	import type { CellType } from '$lib/types/annotation.type';
-	import { deepCopy, getFramesDifference } from '$lib/utils/data';
+	import { deepCopy, getFramesDifference } from '$lib/utils/data.svelte';
 	import { cellToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
 	import { modifierKeys } from '$lib/stores/input';
 
-	export let inputCell: CellType;
-	let cell: CellType;
-	export let svgElement: SVGSVGElement;
-	export let svgScalePercent: number;
-	export let imageMouse: {
-		prevX: number;
-		prevY: number;
-		down: boolean;
-		first: boolean;
-		setPos: (pos: { x: number; y: number }) => void;
-		mouseDown: (e: MouseEvent) => void;
-		mouseUp: (e: MouseEvent) => void;
-		mouseMove: (e: MouseEvent) => void;
-		mouseMoveLocked: (e: MouseEvent) => void;
-	};
+	let {
+		inputCell,
+		svgElement = $bindable(),
+		svgScalePercent = $bindable(),
+		imageMouse
+	}: {
+		inputCell: CellType;
+		svgElement: SVGSVGElement;
+		svgScalePercent: number;
+		imageMouse: {
+			prevX: number;
+			prevY: number;
+			down: boolean;
+			first: boolean;
+			setPos: (pos: { x: number; y: number }) => void;
+			mouseDown: (e: MouseEvent) => void;
+			mouseUp: (e: MouseEvent) => void;
+			mouseMove: (e: MouseEvent) => void;
+			mouseMoveLocked: (e: MouseEvent) => void;
+		};
+	} = $props();
 
-	let editorMode: EditorMode = EditorMode.Point;
-	$: editorMode = $selectedEditorMode;
+	let cell: CellType = $state(deepCopy(inputCell));
 
-	let testCoords = { x: 0, y: 0 };
+	let editorMode = $derived($selectedEditorMode);
+
+	let testCoords = $state({ x: 0, y: 0 });
 
 	let relations: {
 		index: number;
 		coeff: { x: number; y: number };
 		startingPos: { x: number; y: number };
-	}[] = [];
-	let centerPoint = { x: 0, y: 0 };
-	let wholeMode = { x: 0, y: 0, rotating: false, moving: false };
+	}[] = $state([]);
+	let centerPoint = $state({ x: 0, y: 0 });
+	let wholeMode = $state({ x: 0, y: 0, rotating: false, moving: false });
 
 	export const mouse = {
 		down: false,
@@ -294,10 +301,10 @@
 <!-- Interactive elements -->
 <g
 	role="presentation"
-	on:mousedown={mouse.mouseDown}
-	on:mouseup={mouse.mouseUp}
-	on:mousemove={mouse.mouseMove}
-	on:wheel={handleWheel}
+	onmousedown={mouse.mouseDown}
+	onmouseup={mouse.mouseUp}
+	onmousemove={mouse.mouseMove}
+	onwheel={handleWheel}
 >
 	{#if editorMode === EditorMode.Point}
 		{#each cell.x as x, i}

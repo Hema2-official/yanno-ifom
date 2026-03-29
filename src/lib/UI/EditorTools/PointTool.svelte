@@ -5,30 +5,30 @@
 		displayMouseUpHandler
 	} from '$lib/stores/input';
 	import { svgScalePercent } from '$lib/stores/svg';
-	import type { CellBodyType } from '$lib/types/annotation.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { P } from '$lib/utils/pattern';
-	import type { Writable } from 'svelte/store';
+	import type { EditorToolProps } from './types';
 
-	export let bodies: Writable<CellBodyType[]>;
-	export let pushLocalState: () => void;
+	let { bodies, pushLocalState }: EditorToolProps = $props();
 
-	let interactiveRoot: SVGElement;
-	$: svgElement = interactiveRoot?.ownerSVGElement;
+	let interactiveRoot: SVGElement | undefined;
+	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
 
-	let currentBodyIndex = -1;
-	let currentHandleIndex = -1;
-	let isMouseDown = false;
+	let currentBodyIndex = $state(-1);
+	let currentHandleIndex = $state(-1);
+	let isMouseDown = $state(false);
 
-	$: if (isMouseDown) {
-		$displayMouseMoveHandler = handleMouseMove;
-		$displayMouseUpHandler = handleMouseUp;
-		$displayMouseLeaveHandler = handleMouseUp;
-	} else {
-		$displayMouseMoveHandler = null;
-		$displayMouseUpHandler = null;
-		$displayMouseLeaveHandler = null;
-	}
+	$effect(() => {
+		if (isMouseDown) {
+			$displayMouseMoveHandler = handleMouseMove;
+			$displayMouseUpHandler = handleMouseUp;
+			$displayMouseLeaveHandler = handleMouseUp;
+		} else {
+			$displayMouseMoveHandler = null;
+			$displayMouseUpHandler = null;
+			$displayMouseLeaveHandler = null;
+		}
+	});
 
 	const handleMouseDown = (e: MouseEvent) => {
 		e.preventDefault();
@@ -62,8 +62,8 @@
 		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
 
 		// set handle pos
-		$bodies[currentBodyIndex].x[currentHandleIndex] = mouseViewBox.x;
-		$bodies[currentBodyIndex].y[currentHandleIndex] = mouseViewBox.y;
+		$bodies[currentBodyIndex][currentHandleIndex].x = mouseViewBox.x;
+		$bodies[currentBodyIndex][currentHandleIndex].y = mouseViewBox.y;
 	};
 </script>
 
@@ -82,19 +82,19 @@
 <!-- Interactive elements -->
 <g
 	role="presentation"
-	on:mousedown={handleMouseDown}
-	on:mouseup={handleMouseUp}
-	on:mousemove={handleMouseMove}
+	onmousedown={handleMouseDown}
+	onmouseup={handleMouseUp}
+	onmousemove={handleMouseMove}
 	bind:this={interactiveRoot}
 >
 	{#each $bodies as body, bodyIndex}
 		<g>
-			{#each body.x as x, i}
+			{#each body as point, i}
 				{@const halfSize = 200 / $svgScalePercent}
 				<rect
 					id="hdl{bodyIndex}_{i}"
-					x={x - halfSize}
-					y={body.y[i] - halfSize}
+					x={point.x - halfSize}
+					y={point.y - halfSize}
 					width={halfSize * 2}
 					height={halfSize * 2}
 					fill="pink"

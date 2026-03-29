@@ -8,7 +8,9 @@
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 
-	export let inputCell: NewCellType;
+	let { inputCell }: { inputCell: NewCellType } = $props();
+
+	// svelte-ignore state_referenced_locally
 	const cell = deepCopy(inputCell);
 	const bodies = writable($autoResample ? resampleCellBodies(cell.bodies) : cell.bodies);
 
@@ -111,4 +113,7 @@
 </script>
 
 <!-- Editor tool component -->
-<svelte:component this={$editorTool} {bodies} {pushLocalState} />
+{#if $editorTool}
+	{@const EditorTool = $editorTool}
+	<EditorTool {bodies} {pushLocalState} />
+{/if}

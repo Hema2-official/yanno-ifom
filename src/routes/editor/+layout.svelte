@@ -3,6 +3,9 @@
 	import { _updateModifierKeys } from '$lib/stores/input';
 	import { isSvgShown } from '$lib/stores/svg';
 	import { redoChange, saveToServer, undoChange } from '$lib/stores/data';
+	import type { Snippet } from 'svelte';
+
+	let { children }: { children: Snippet } = $props();
 
 	onMount(() => {
 		// Update modifier keys
@@ -72,17 +75,6 @@
 	});
 </script>
 
-<div class="editor-container">
-	<slot />
+<div class="flex flex-col items-center justify-start h-screen w-full">
+	{@render children()}
 </div>
-
-<style lang="scss">
-	.editor-container {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: start;
-		height: 100vh;
-		width: 100%;
-	}
-</style>

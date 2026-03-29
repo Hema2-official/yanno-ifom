@@ -22,22 +22,7 @@
 	});
 </script>
 
-<div class="logout-container">
-	<p>Logging you out...</p>
+<div class="flex flex-col items-center justify-center w-full gap-1.5">
+	<p class="text-[28px]">Logging you out...</p>
 	<Spinner />
 </div>
-
-<style lang="scss">
-	.logout-container {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		width: 100%;
-		gap: 6px;
-
-		p {
-			font-size: 28px;
-		}
-	}
-</style>

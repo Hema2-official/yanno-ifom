@@ -6,32 +6,32 @@
 	} from '$lib/stores/input';
 	import { autoResample } from '$lib/stores/options';
 	import { svgScalePercent } from '$lib/stores/svg';
-	import type { CellBodyType } from '$lib/types/annotation.type';
 	import type { Point } from '$lib/types/editor.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBodies } from '$lib/utils/geometry';
 	import { P } from '$lib/utils/pattern';
-	import type { Writable } from 'svelte/store';
+	import type { EditorToolProps } from './types';
 
-	export let bodies: Writable<CellBodyType[]>;
-	export let pushLocalState: () => void;
+	let { bodies, pushLocalState }: EditorToolProps = $props();
 
-	let interactiveRoot: SVGElement;
-	$: svgElement = interactiveRoot?.ownerSVGElement;
+	let interactiveRoot: SVGElement | undefined;
+	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
 
-	let isMouseDown = false;
-	let isRotating = false;
-	let isMoving = false;
+	let isMouseDown = $state(false);
+	let isRotating = $state(false);
+	let isMoving = $state(false);
 
-	$: if (isMouseDown) {
-		$displayMouseMoveHandler = handleMouseMove;
-		$displayMouseUpHandler = handleMouseUp;
-		$displayMouseLeaveHandler = handleMouseUp;
-	} else {
-		$displayMouseMoveHandler = null;
-		$displayMouseUpHandler = null;
-		$displayMouseLeaveHandler = null;
-	}
+	$effect(() => {
+		if (isMouseDown) {
+			$displayMouseMoveHandler = handleMouseMove;
+			$displayMouseUpHandler = handleMouseUp;
+			$displayMouseLeaveHandler = handleMouseUp;
+		} else {
+			$displayMouseMoveHandler = null;
+			$displayMouseUpHandler = null;
+			$displayMouseLeaveHandler = null;
+		}
+	});
 
 	let mouseStartPos: Point;
 
@@ -49,13 +49,13 @@
 	const color1 = 'white';
 	const color2 = 'gray';
 
-	$: minX = Math.min(...$bodies.map((body) => Math.min(...body.x)));
-	$: minY = Math.min(...$bodies.map((body) => Math.min(...body.y)));
-	$: maxX = Math.max(...$bodies.map((body) => Math.max(...body.x)));
-	$: maxY = Math.max(...$bodies.map((body) => Math.max(...body.y)));
-	$: midX = (minX + maxX) / 2;
-	$: midY = (minY + maxY) / 2;
-	$: size = 400 / $svgScalePercent;
+	let minX = $derived(Math.min(...$bodies.map((body) => Math.min(...body.x))));
+	let minY = $derived(Math.min(...$bodies.map((body) => Math.min(...body.y))));
+	let maxX = $derived(Math.max(...$bodies.map((body) => Math.max(...body.x))));
+	let maxY = $derived(Math.max(...$bodies.map((body) => Math.max(...body.y))));
+	let midX = $derived((minX + maxX) / 2);
+	let midY = $derived((minY + maxY) / 2);
+	let size = $derived(400 / $svgScalePercent);
 
 	const handleMouseDown = (e: MouseEvent) => {
 		e.preventDefault();
@@ -213,9 +213,9 @@
 <!-- Interactive elements -->
 <g
 	role="presentation"
-	on:mousedown={handleMouseDown}
-	on:mouseup={handleMouseUp}
-	on:mousemove={handleMouseMove}
+	onmousedown={handleMouseDown}
+	onmouseup={handleMouseUp}
+	onmousemove={handleMouseMove}
 	bind:this={interactiveRoot}
 >
 	<rect

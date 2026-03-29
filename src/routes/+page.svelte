@@ -17,16 +17,6 @@
 	};
 </script>
 
-<div class="project-selector">
+<div class="flex justify-center w-4/5 mx-auto mt-[100px]">
 	<ProjectList onSelect={handleSelect} />
 </div>
-
-<style lang="scss">
-	// center the project list and make it 500px wide
-	.project-selector {
-		display: flex;
-		justify-content: center;
-		width: 80%;
-		margin: 100px auto;
-	}
-</style>

@@ -6,14 +6,15 @@
 	import { isAxiosError, type AxiosError } from 'axios';
 	import type { APIError, CredentialsError } from '$lib/types/api.type';
 
-	let proceedButtonComponent: ProceedButton;
+	let email = $state('');
+	let password = $state('');
 
-	let email = '';
-	let password = '';
+	let email_field_message: string | undefined = $state(undefined);
+	let password_field_message: string | undefined = $state(undefined);
+	let other_error_message = $state('');
 
-	let email_field_message: string | undefined;
-	let password_field_message: string | undefined;
-	let other_error_message: string;
+	let proceedDisabled = $state(false);
+	let proceedLoading = $state(false);
 
 	const redirect = new URLSearchParams(window.location.search).get('redirect');
 
@@ -22,7 +23,8 @@
 		email_field_message = '';
 		password_field_message = '';
 
-		proceedButtonComponent.$set({ disabled: true, loading: true });
+		proceedDisabled = true;
+		proceedLoading = true;
 		login(email, password)
 			.then((response) => {
 				console.log('Logged in as', response.account_id);
@@ -45,41 +47,31 @@
 				} else {
 					alert('Login failed (out-of-axios): ' + error);
 				}
-				proceedButtonComponent.$set({ disabled: false, loading: false });
+				proceedDisabled = false;
+				proceedLoading = false;
 			});
 	};
 </script>
 
-<form class="login-form" on:submit|preventDefault={handleSubmit}>
+<form
+	class="flex flex-col items-center justify-center w-[200px] px-3 py-4"
+	onsubmit={(e) => {
+		e.preventDefault();
+		handleSubmit();
+	}}
+>
 	{#if other_error_message}
-		<p class="error-message">{other_error_message}</p>
+		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{other_error_message}</p>
 	{/if}
 	<TextBox bind:value={email} type="email">Email</TextBox>
 	{#if email_field_message}
-		<p class="error-message">{email_field_message}</p>
+		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{email_field_message}</p>
 	{/if}
 	<TextBox bind:value={password} type="password">Password</TextBox>
 	{#if password_field_message}
-		<p class="error-message">{password_field_message}</p>
+		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{password_field_message}</p>
 	{/if}
-	<ProceedButton bind:this={proceedButtonComponent} onClick={() => null}>Log in</ProceedButton>
+	<ProceedButton disabled={proceedDisabled} loading={proceedLoading} onClick={() => null}>
+		Log in
+	</ProceedButton>
 </form>
-
-<style lang="scss">
-	.login-form {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		width: 200px;
-		padding: 16px 12px;
-
-		.error-message {
-			margin: 0;
-			font-size: 12px;
-			color: red;
-			padding: 0 4px 4px 4px;
-			width: 100%;
-		}
-	}
-</style>

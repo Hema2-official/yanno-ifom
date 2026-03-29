@@ -1,88 +1,53 @@
 <script lang="ts">
-	import type { EventHandler } from 'svelte/elements';
+	import type { Snippet } from 'svelte';
 
-	export let value: number;
-	export let min = 0;
-	export let max: number;
-	export let disabled = false;
-	export let title: string = '';
-
-	export let mDown: EventHandler<Event> = () => null;
-	export let mUp: EventHandler<Event> = () => null;
+	let {
+		value = $bindable(),
+		min = 0,
+		max,
+		disabled = false,
+		title = '',
+		mDown = () => {},
+		mUp = () => {},
+		children
+	}: {
+		value: number;
+		min?: number;
+		max: number;
+		disabled?: boolean;
+		title?: string;
+		mDown?: (event: Event) => void;
+		mUp?: (event: Event) => void;
+		children?: Snippet;
+	} = $props();
 </script>
 
-<div class="slider-wrapper" title={title ? title : value.toString()}>
-	<label class:disabled>
-		<span class="label-text"><slot /></span>
+<div
+	class="flex flex-col items-start my-2 mx-1 overflow-visible"
+	title={title ? title : value.toString()}
+>
+	<label
+		class="relative flex flex-col items-center justify-between w-full gap-0.5 whitespace-nowrap select-none"
+		class:disabled
+	>
+		<span class="text-base font-medium leading-5" class:opacity-60={disabled}>
+			{@render children?.()}
+		</span>
 		<input
 			type="range"
 			{min}
 			{max}
 			bind:value
-			on:mousedown={mDown}
-			on:mouseup={mUp}
-			class="slider-input"
+			onmousedown={mDown}
+			onmouseup={mUp}
+			class="appearance-none bg-border rounded-[10px] mx-1 my-0.5 w-[calc(100%-8px)] h-2.5 transition-colors duration-100 ease-in-out hover:not-disabled:bg-accent focus-visible:not-disabled:bg-accent disabled:opacity-60 disabled:cursor-default"
 			{disabled}
 		/>
 	</label>
 </div>
 
 <style lang="scss">
-	.slider-wrapper {
-		display: flex;
-		flex-direction: column;
-		align-items: start;
-		margin: 8px 4px;
-		overflow: visible;
-
-		label {
-			position: relative;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: space-between;
-			width: 100%;
-			gap: 2px;
-			white-space: nowrap;
-			user-select: none;
-			cursor: unset;
-
-			.label-text {
-				font-size: 16px;
-				font-weight: 500;
-				line-height: 20px;
-			}
-
-			.slider-input {
-				appearance: none;
-				background-color: var(--gray-accent);
-				color: pink;
-				transition: background-color 0.1s ease-in-out;
-				border-radius: 10px;
-				margin: 2px 4px;
-				width: calc(100% - 8px);
-				height: 10px;
-
-				&:not(:disabled):hover,
-				&:not(:disabled):focus-visible {
-					outline: none;
-					background-color: var(--accent-color);
-				}
-
-				&:disabled {
-					opacity: 0.6;
-					cursor: default;
-				}
-			}
-
-			&.disabled {
-				cursor: default;
-
-				.label-text {
-					opacity: 0.6;
-					cursor: default;
-				}
-			}
-		}
+	label.disabled {
+		cursor: default;
 	}
 </style>

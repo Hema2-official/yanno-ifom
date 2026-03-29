@@ -1,15 +1,27 @@
 <script lang="ts">
 	import { clickOutside } from '$lib/utils/scripts/clickOutside';
 
-	export let options: string[];
-	export let selected: number | undefined;
-	export let onSelect: (index: number | undefined) => void = () => {};
-	export let disabled = false;
-	export let title: string = '';
-	export let emptyText: string = 'Select';
-	export let emptySelectable: boolean = false;
+	type Props = {
+		options: readonly string[];
+		selected: number | undefined;
+		onSelect?: (index: number | undefined) => void;
+		disabled?: boolean;
+		title?: string;
+		emptyText?: string;
+		emptySelectable?: boolean;
+	};
 
-	let isExpanded = false;
+	let {
+		options,
+		selected = $bindable(),
+		onSelect = () => {},
+		disabled = false,
+		title = '',
+		emptyText = 'Select',
+		emptySelectable = false
+	}: Props = $props();
+
+	let isExpanded = $state(false);
 
 	function handleSelect(index: number | undefined) {
 		selected = index;
@@ -18,21 +30,34 @@
 	}
 </script>
 
-<div class="dropdown-wrapper" use:clickOutside on:click_outside={() => (isExpanded = false)}>
-	<button class="expand-button" {disabled} {title} on:click={() => (isExpanded = !isExpanded)}>
+<div
+	class="relative flex flex-col my-3 mx-1"
+	use:clickOutside={{ callback: () => (isExpanded = false) }}
+>
+	<button
+		class="inline-block max-w-full overflow-hidden text-ellipsis px-2 py-1 border border-border rounded-md bg-transparent text-base font-semibold text-left cursor-pointer transition-all duration-100 hover:not-disabled:border-focus hover:not-disabled:opacity-80 hover:not-disabled:shadow-[0_1px_0_1px_var(--color-focus)] active:not-disabled:bg-focus focus-visible:not-disabled:border-focus focus-visible:not-disabled:outline-none disabled:opacity-60 disabled:cursor-default"
+		{disabled}
+		{title}
+		onclick={() => (isExpanded = !isExpanded)}
+	>
 		{selected !== undefined ? options[selected] : emptyText}
 	</button>
 	{#if isExpanded}
-		<div class="dropdown-items">
+		<div
+			class="absolute top-full left-0 flex flex-col gap-1 bg-background border border-border rounded-md p-1 z-10"
+		>
 			{#if emptySelectable}
-				<button on:click={() => handleSelect(undefined)} class="item empty">
+				<button
+					onclick={() => handleSelect(undefined)}
+					class="px-2 py-1 border-none rounded-md bg-transparent text-left brightness-80 hover:bg-focus"
+				>
 					{emptyText}
 				</button>
 			{/if}
 			{#each options as option, index}
 				<button
-					on:click={() => handleSelect(index)}
-					class="item"
+					onclick={() => handleSelect(index)}
+					class="px-2 py-1 border-none rounded-md bg-transparent text-left hover:bg-focus"
 					class:selected={selected === index}
 				>
 					{option}
@@ -41,84 +66,3 @@
 		</div>
 	{/if}
 </div>
-
-<style lang="scss">
-	.dropdown-wrapper {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		margin: 12px 4px;
-	}
-
-	.expand-button {
-		display: inline-block;
-		max-width: 100%;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		padding: 4px 8px;
-		border: none;
-		border: 1px solid var(--gray-accent);
-		border-radius: 5px;
-		background: transparent;
-		transition:
-			border-color 0.1s,
-			background-color 0.1s,
-			opacity 0.1s,
-			box-shadow 0.1s;
-
-		appearance: none;
-		font-size: 16px;
-		font-weight: 600;
-		text-align: left;
-		cursor: pointer;
-
-		&:disabled {
-			opacity: 0.6;
-			cursor: default;
-		}
-
-		&:not(:disabled):hover,
-		&:not(:disabled):focus-visible {
-			outline: none;
-			border-color: var(--focus-color);
-			opacity: 0.8;
-			box-shadow: 0 1px 0 1px var(--focus-color);
-		}
-
-		&:not(:disabled):active:hover,
-		&:not(:disabled):active:focus-visible {
-			outline: none;
-			background-color: var(--focus-color);
-		}
-	}
-
-	.dropdown-items {
-		position: absolute;
-		top: 100%;
-		left: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		background-color: var(--background-color);
-		border: 1px solid var(--gray-accent);
-		border-radius: 5px;
-		padding: 4px;
-		z-index: 1;
-
-		.item {
-			padding: 4px 8px;
-			border: none;
-			border-radius: 5px;
-			background: transparent;
-			text-align: left;
-
-			&.empty {
-				filter: brightness(0.8);
-			}
-
-			&:hover {
-				background-color: var(--focus-color);
-			}
-		}
-	}
-</style>

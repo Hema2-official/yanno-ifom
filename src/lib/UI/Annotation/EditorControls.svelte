@@ -10,14 +10,16 @@
 
 	let editorControlsWrapperElement: HTMLElement;
 
-	export let editorComponent: NewEditor;
+	let { editorComponent }: { editorComponent: NewEditor } = $props();
 
-	$: styles = {};
+	const styles: Record<string, unknown> = {};
 	const stylesUnits: { [key: string]: string } = {};
 
-	$: cssVarStyles = Object.entries(styles)
-		.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-		.join(';');
+	let cssVarStyles = $derived(
+		Object.entries(styles)
+			.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
+			.join(';')
+	);
 
 	// function radioSelect(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
 	//     e.currentTarget.classList.add('selected');
@@ -32,7 +34,7 @@
 	class="editor-controls-wrapper"
 	style={cssVarStyles}
 	role="presentation"
-	on:mouseup={$displayMouseUpHandler}
+	onmouseup={$displayMouseUpHandler}
 	bind:this={editorControlsWrapperElement}
 >
 	<div>
@@ -40,30 +42,30 @@
 			<button
 				title={$_('point_tool')}
 				class:selected={$editorTool === PointTool}
-				on:click={() => ($editorTool = PointTool)}>P</button
+				onclick={() => ($editorTool = PointTool)}>P</button
 			>
 			<button
 				title={$_('whole_tool')}
 				class:selected={$editorTool === WholeTool}
-				on:click={() => ($editorTool = WholeTool)}>W</button
+				onclick={() => ($editorTool = WholeTool)}>W</button
 			>
 			<button
 				title={$_('smooth_tool')}
 				class:selected={$editorTool === SmoothTool}
-				on:click={() => ($editorTool = SmoothTool)}>S</button
+				onclick={() => ($editorTool = SmoothTool)}>S</button
 			>
 		</div>
 		<button
 			title={$_('auto_resample')}
 			class:selected={$autoResample}
-			on:click={() => ($autoResample = !$autoResample)}>R</button
+			onclick={() => ($autoResample = !$autoResample)}>R</button
 		>
 	</div>
 	<div class="right">
-		<button on:click={() => editorComponent.quit(true)} title={$_('confirm_and_quit')}
+		<button onclick={() => editorComponent.quit(true)} title={$_('confirm_and_quit')}
 			>Save</button
 		>
-		<button on:click={() => editorComponent.quit(false)} title={$_('quit_without_saving')}
+		<button onclick={() => editorComponent.quit(false)} title={$_('quit_without_saving')}
 			>Nope</button
 		>
 	</div>
@@ -119,10 +121,7 @@
 					background-color 0.1s;
 				cursor: default;
 
-				&:hover {
-					outline: none;
-					border-color: var(--accent-color);
-				}
+				&:hover,
 				&:focus-visible {
 					outline: none;
 					border-color: var(--accent-color);
@@ -165,11 +164,13 @@
 						border: 3px solid transparent;
 						border-bottom: none;
 					}
+
 					&:not(:first-child) {
 						border: 3px solid transparent;
 						border-top: 3px solid var(--gray-accent);
 						border-bottom: none;
 					}
+
 					&:last-child {
 						border-bottom-left-radius: $border-radius;
 						border-bottom-right-radius: $border-radius;
@@ -181,7 +182,7 @@
 						outline: none;
 						border-color: var(--accent-color);
 
-						+ button {
+						& + button {
 							border-top-color: var(--accent-color);
 						}
 					}
@@ -190,7 +191,7 @@
 						border-color: var(--accent-color);
 						background-color: var(--accent-color);
 
-						+ button {
+						& + button {
 							border-top-color: var(--accent-color);
 						}
 					}

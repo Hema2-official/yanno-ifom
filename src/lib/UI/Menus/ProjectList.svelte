@@ -17,19 +17,19 @@
 	import { onMount } from 'svelte';
 	import CreateVersion from './CreateVersion.svelte';
 
-	export let onSelect: (version: ProjectVersion) => void;
+	let { onSelect }: { onSelect: (version: ProjectVersion) => void } = $props();
 
-	let loading = true;
+	let loading = $state(true);
 
-	let createProjectShown = false;
+	let createProjectShown = $state(false);
 
-	let editProjectShown = false;
-	let editProject: Project;
+	let editProjectShown = $state(false);
+	let editProject: Project = $state(undefined as any);
 
-	let createVersionShown = false;
-	let createVersionProject: Project;
+	let createVersionShown = $state(false);
+	let createVersionProject: Project = $state(undefined as any);
 
-	let projects: Project[] = [];
+	let projects: Project[] = $state([]);
 
 	const refresh = () => {
 		loading = true;
@@ -97,20 +97,29 @@
 					<div class="controls">
 						<button
 							class="control-button"
-							on:click|stopPropagation={() => onDelete(project)}
+							onclick={(e) => {
+								e.stopPropagation();
+								onDelete(project);
+							}}
 						>
 							<TrashSVG size={20} />
 						</button>
 						<button
 							class="control-button"
-							on:click|stopPropagation={() => onEdit(project)}
+							onclick={(e) => {
+								e.stopPropagation();
+								onEdit(project);
+							}}
 						>
 							<PencilSVG size={20} />
 						</button>
 						{#if project.status === ProjectStatus.pending}
 							<button
 								class="control-button"
-								on:click|stopPropagation={() => onUpload(project)}
+								onclick={(e) => {
+									e.stopPropagation();
+									onUpload(project);
+								}}
 							>
 								<UploadSVG size={20} />
 							</button>
@@ -141,7 +150,7 @@
 							<div class="step-column">
 								<h3 class="step-header">{step}</h3>
 								{#each project.versions.filter((version) => version.step === step) as version}
-									<button class="version-card" on:click={() => onSelect(version)}>
+									<button class="version-card" onclick={() => onSelect(version)}>
 										<p class="version-name">{version.name}</p>
 										<p class="version-detail">
 											{version.ready ? 'Ready' : 'Not ready'}
@@ -151,7 +160,7 @@
 								{#if index === 0 && project.status === ProjectStatus.ready}
 									<button
 										class="new-version"
-										on:click={() => onCreateVersion(project)}
+										onclick={() => onCreateVersion(project)}
 									>
 										<PlusSVG size="var(--plus-svg-size)" />
 										New {step}
@@ -163,7 +172,7 @@
 				</div>
 			</div>
 		{/each}
-		<button class="new-project" on:click={() => (createProjectShown = true)}>
+		<button class="new-project" onclick={() => (createProjectShown = true)}>
 			<PlusSVG size="var(--plus-svg-size)" />
 			New project
 		</button>
