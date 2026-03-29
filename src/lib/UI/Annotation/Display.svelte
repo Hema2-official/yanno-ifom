@@ -12,11 +12,16 @@
 	import { pointerLockEnabled } from '$lib/stores/options';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
-	import { getPointerCoords, getPointerViewBoxCoords } from '$lib/utils/display';
+	import {
+		getPointerCoords,
+		getPointerViewBoxCoords,
+		toMeasurable,
+		type Measurable
+	} from '$lib/utils/display';
 	import { getFramesAtChangeIndex } from '$lib/utils/data';
 
 	import Cell from './Cell.svelte';
-	import ContextMenu from './ContextMenu.svelte';
+	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import EditorControls from './EditorControls.svelte';
 	import {
 		modifierKeys,
@@ -25,7 +30,6 @@
 		displayMouseUpHandler,
 		displayMouseLeaveHandler
 	} from '$lib/stores/input';
-	import { P } from '$lib/utils/pattern';
 	import NewEditor from './NewEditor.svelte';
 
 	$effect(() => {
@@ -33,7 +37,10 @@
 	});
 	$currentChangeIndex = $annotation.changes.length - 1;
 
-	let contextMenuComponent: ContextMenu = $state(undefined as any);
+	let contextMenuOpen = $state(false);
+	let contextMenuAnchor: Measurable | null = $state(null);
+	let contextMenuCellId = $state('');
+
 	let editorComponent: NewEditor = $state(undefined as any);
 	let displayContainerElement: HTMLDivElement;
 	let imageWrapperElement: HTMLDivElement = $state(undefined as any);
@@ -48,6 +55,7 @@
 		'image-top': 0,
 		cursor: 'grab'
 	});
+
 	$effect(() => {
 		$svgScalePercent = styles['scale-percent'];
 	});
@@ -67,6 +75,7 @@
 	);
 
 	const movePixels = (x: number, y: number) => {
+		if (!imageWrapperElement) return;
 		const scale = styles['scale-percent'] / 100;
 		const scaledWidth = imageWrapperElement.clientWidth * scale;
 		const scaledHeight = imageWrapperElement.clientHeight * scale;
@@ -95,8 +104,8 @@
 		if (styles['scale-percent'] === $minScale && e.deltaY > 0) return;
 		if (styles['scale-percent'] === $maxScale && e.deltaY < 0) return;
 
-		// hide context menu quickly
-		contextMenuComponent?.hide(false);
+		// hide context menu
+		contextMenuOpen = false;
 
 		// find mouse pos
 		const mouse = getPointerCoords(e);
@@ -130,7 +139,7 @@
 			imageMouse.prevY = pos.y;
 		},
 		mouseDown: (e: MouseEvent) => {
-			if (!isDown(Mouse.Primary, e.buttons)) return;
+			if (!imageWrapperElement || !isDown(Mouse.Primary, e.buttons)) return;
 			if ($pointerLockEnabled) {
 				imageWrapperElement.requestPointerLock();
 				imageMouse.first = true;
@@ -202,14 +211,10 @@
 		$hoverElementsShown = true;
 	};
 
-	const cellContextMenu = (e: MouseEvent) => {
+	const cellContextMenu = (e: MouseEvent, cellId: string) => {
 		e.preventDefault();
 
-		const target = e.target as HTMLElement;
-
-		const [cellId] = P('cell#-body#').match(target.id);
-
-		contextMenuComponent?.$set({ cellId });
+		contextMenuCellId = cellId;
 		const targetCell = $displayFrames
 			.find((f) => f.id == $currentFrameId)
 			?.cells.find((c) => c.id == cellId);
@@ -220,17 +225,14 @@
 		}
 
 		editorCell = targetCell;
-		const pos = getPointerCoords(e);
-		const displayBounds = displayContainerElement.getBoundingClientRect();
-		pos.x -= displayBounds.left;
-		pos.y -= displayBounds.top;
-		contextMenuComponent.show(pos);
+		contextMenuAnchor = toMeasurable(e);
+		contextMenuOpen = true;
 	};
 
 	// let svg = frameToSvg(1);
 
 	// const edit = () => {
-	// 	contextMenuComponent.hide(false);
+	// 	contextMenuOpen = false;
 	// 	$isEditing = true;
 	// };
 </script>
@@ -267,9 +269,13 @@
 			/> -->
 
 			{#if !$isEditing}
-				<g oncontextmenu={cellContextMenu} role="region">
+				<g role="region">
 					{#each $displayFrames.find((f) => f.id == $currentFrameId)?.cells ?? [] as cell}
-						<Cell {cell} />
+						<Cell
+							cellPolygons={[]}
+							cellId={String(cell.id)}
+							onContextMenu={(e) => cellContextMenu(e, String(cell.id))}
+						/>
 					{/each}
 				</g>
 			{:else}
@@ -278,11 +284,21 @@
 		</svg>
 	</div>
 
+	<ContextMenu.Root bind:open={contextMenuOpen}>
+		<ContextMenu.Content class="w-52" customAnchor={contextMenuAnchor} preventScroll={false}>
+			<ContextMenu.Label class="font-bold text-center">
+				Cell #{contextMenuCellId}
+			</ContextMenu.Label>
+			<ContextMenu.Separator />
+			<ContextMenu.Item inset>Edit</ContextMenu.Item>
+			<ContextMenu.Item inset disabled>Delete</ContextMenu.Item>
+			<ContextMenu.Item inset disabled>Rename</ContextMenu.Item>
+		</ContextMenu.Content>
+	</ContextMenu.Root>
+
 	{#if $isEditing}
 		<EditorControls {editorComponent} />
 	{/if}
-
-	<ContextMenu bind:this={contextMenuComponent} onmousemove={null} />
 </div>
 
 <style lang="scss">
@@ -299,7 +315,7 @@
 		overflow: hidden;
 	}
 
-	.image-wrapper {
+	:global(.image-wrapper) {
 		position: absolute;
 		display: flex;
 		flex-direction: column;
@@ -315,7 +331,7 @@
 		position: absolute;
 		top: var(--image-top);
 		height: var(--scale-percent);
-		width: var(--scale-percent);
+		min-width: var(--scale-percent);
 		transform: translate(var(--translate-x), var(--translate-y));
 		transform-origin: center;
 		object-fit: contain;
