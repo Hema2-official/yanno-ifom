@@ -1,4 +1,4 @@
-export type LoginResponse = {
+export type AuthResponse = {
 	account_id: number;
 };
 
@@ -32,12 +32,11 @@ export function getAutoName(step: VersionStep, source_name: string | undefined) 
 export type ProjectVersion = {
 	id: string; // UUID
 	project_id: string; // UUID
-	source_version_id?: string; // UUID
 	name: string;
-	step?: VersionStep;
+	step: VersionStep;
 	ready: boolean;
-	created_at: string;
-	updated_at: string;
+	created_at: Date;
+	updated_at: Date;
 };
 
 export enum ProjectStatus {
@@ -57,12 +56,17 @@ export type Project = {
 	status: ProjectStatus;
 	source_data: string;
 	editor_data: string;
+	frame_count: number;
 	color: VideoColor;
 	channel_period: number;
 	start_period: number;
 	versions: ProjectVersion[];
-	created_at: string;
-	updated_at: string;
+	created_at: Date;
+	updated_at: Date;
+};
+
+export type CreateProjectVersionBody = {
+	name: string;
 };
 
 export type APIError = {
@@ -113,4 +117,20 @@ export const defaultTrackingParams: TrackingParams = {
 	segmentation_confidence: 0.2,
 	min_required_similarity: 0.2,
 	max_time_kernel_shift: undefined
+};
+
+export type ServerTask = {
+	uuid: string; // UUID
+	step: VersionStep;
+	parameters: SegmentationParams | TrackingParams | InheritanceParams;
+	created_at: string; // datetime
+	status_message: string;
+	completed: boolean;
+	cancelled: boolean;
+	error?: string;
+};
+
+export type EnqueueTaskBody = {
+	step: VersionStep;
+	parameters: SegmentationParams | TrackingParams | InheritanceParams;
 };
