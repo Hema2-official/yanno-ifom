@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-	import TopBarButton from './TopBarButton.svelte';
 	import {
 		annotation,
 		currentFrameId,
@@ -13,9 +12,11 @@
 		savingIndicator,
 		undoChange
 	} from '$lib/stores/data';
-	import type { SubmenuItemType } from '$lib/types/navigation.type';
 	import { dataTypeToText, download } from '$lib/utils/data.svelte';
 	import type { NewCellType } from '$lib/types/annotation.type';
+	import * as Menubar from '$lib/components/ui/menubar';
+	import { autoResample, sidebarRight } from '$lib/stores/options';
+
 	// import {
 	// 	getFramesDifference,
 	// 	getFramesAtChangeIndex,
@@ -132,41 +133,6 @@
 			frames: [{ id: $currentFrameId, cells: [newCell] }]
 		});
 	};
-
-	const controlButtons: { label: string; items: SubmenuItemType[] }[] = [
-		{
-			label: 'File',
-			items: [
-				{ label: 'Open', onClick: () => console.log('Open clicked') },
-				{ label: 'Save', onClick: saveToServer },
-				{ label: 'Export as JSON', onClick: exportAsJSON },
-				{ label: 'Export as TXT', onClick: exportAsTXT }
-			]
-		},
-		{
-			label: 'Edit',
-			items: [
-				{ label: 'Undo', onClick: undoChange },
-				{ label: 'Redo', onClick: redoChange },
-				{ label: 'New Cell...', onClick: createNewCell }
-			]
-		},
-		{
-			label: 'View',
-			items: [
-				{ label: 'Zoom In', onClick: () => console.log('Zoom In clicked') },
-				{ label: 'Zoom Out', onClick: () => console.log('Zoom Out clicked') },
-				{ label: 'Reset Zoom', onClick: () => console.log('Reset Zoom clicked') }
-			]
-		},
-		{
-			label: 'Help',
-			items: [
-				{ label: 'Documentation', onClick: () => console.log('Documentation clicked') },
-				{ label: 'About', onClick: () => console.log('About clicked') }
-			]
-		}
-	];
 </script>
 
 <nav
@@ -183,10 +149,76 @@
 				<p class="text-center text-base m-0 opacity-70">Saving...</p>
 			{/if}
 		</div>
-		<div class="flex flex-row gap-1.5">
-			{#each controlButtons as button}
-				<TopBarButton submenuItems={button.items}>{button.label}</TopBarButton>
-			{/each}
-		</div>
+
+		<Menubar.Root class="border-none p-0 h-auto">
+			<Menubar.Menu>
+				<Menubar.Trigger>File</Menubar.Trigger>
+				<Menubar.Content>
+					<Menubar.Item>
+						New Tab <Menubar.Shortcut>⌘T</Menubar.Shortcut>
+					</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.Item>Open project...</Menubar.Item>
+					<Menubar.Item>Open offline...</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.Item onSelect={saveToServer}>Save</Menubar.Item>
+					<Menubar.Item>Save as...</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.Item onSelect={exportAsJSON}>Export as JSON</Menubar.Item>
+					<Menubar.Item onSelect={exportAsTXT}>Export as TXT</Menubar.Item>
+				</Menubar.Content>
+			</Menubar.Menu>
+			<Menubar.Menu>
+				<Menubar.Trigger>Edit</Menubar.Trigger>
+				<Menubar.Content>
+					<Menubar.Item onSelect={undoChange}>
+						Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
+					</Menubar.Item>
+					<Menubar.Item onSelect={redoChange}>
+						Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
+					</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.Item onSelect={createNewCell}>New Cell...</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.Sub>
+						<Menubar.SubTrigger>Find</Menubar.SubTrigger>
+						<Menubar.SubContent>
+							<Menubar.Item>Search the web</Menubar.Item>
+							<Menubar.Separator />
+							<Menubar.Item>Find...</Menubar.Item>
+							<Menubar.Item>Find Next</Menubar.Item>
+							<Menubar.Item>Find Previous</Menubar.Item>
+						</Menubar.SubContent>
+					</Menubar.Sub>
+					<Menubar.Separator />
+					<Menubar.Item>Cut</Menubar.Item>
+					<Menubar.Item>Copy</Menubar.Item>
+					<Menubar.Item>Paste</Menubar.Item>
+				</Menubar.Content>
+			</Menubar.Menu>
+			<Menubar.Menu>
+				<Menubar.Trigger>View</Menubar.Trigger>
+				<Menubar.Content>
+					<Menubar.Item inset>Zoom In</Menubar.Item>
+					<Menubar.Item inset>Zoom Out</Menubar.Item>
+					<Menubar.Item inset>Reset Zoom</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.CheckboxItem bind:checked={$sidebarRight}>
+						Sidebar on the right
+					</Menubar.CheckboxItem>
+					<Menubar.Separator />
+					<Menubar.CheckboxItem bind:checked={$autoResample}>
+						Auto Resample
+					</Menubar.CheckboxItem>
+				</Menubar.Content>
+			</Menubar.Menu>
+			<Menubar.Menu>
+				<Menubar.Trigger>Help</Menubar.Trigger>
+				<Menubar.Content>
+					<Menubar.Item>Documentation</Menubar.Item>
+					<Menubar.Item>About</Menubar.Item>
+				</Menubar.Content>
+			</Menubar.Menu>
+		</Menubar.Root>
 	</div>
 </nav>
