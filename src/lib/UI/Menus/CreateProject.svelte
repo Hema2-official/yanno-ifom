@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TextBox from '../Common/TextBox.svelte';
 	import Spinner from '../Common/Spinner.svelte';
-	import Button from '../Common/Button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import createProject from '$lib/api/projects/createProject';
 	import { onMount } from 'svelte';
 
@@ -59,8 +59,8 @@
 			<Spinner />
 		{:else}
 			<div class="w-full flex items-center justify-end gap-2">
-				<Button type="button" click={handleCancel}>Cancel</Button>
-				<Button type="submit" click={handleCreate} disabled={!allowSubmit}>Create</Button>
+				<Button variant="secondary" type="button" onclick={handleCancel}>Cancel</Button>
+				<Button type="submit" onclick={handleCreate} disabled={!allowSubmit}>Create</Button>
 			</div>
 		{/if}
 	</form>

@@ -21,7 +21,7 @@
 	import ColorPicker from '../Common/ColorPicker.svelte';
 	import Slider from '../Common/Slider.svelte';
 	import TextBox from '../Common/TextBox.svelte';
-	import Button from '../Common/Button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { dataTypeToText, download } from '$lib/utils/data.svelte';
 	import { modifierKeys } from '$lib/stores/input';
 </script>
@@ -75,7 +75,8 @@
 		>
 
 		<Button
-			click={() => {
+			variant="destructive"
+			onclick={() => {
 				sessionStorage.clear();
 				location.reload();
 			}}>Delete session</Button

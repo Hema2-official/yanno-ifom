@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TextBox from '$lib/UI/Common/TextBox.svelte';
-	import ProceedButton from '$lib/UI/Common/ProceedButton.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import login from '$lib/api/auth/login';
 	import { goto } from '$app/navigation';
 	import { isAxiosError, type AxiosError } from 'axios';
@@ -13,18 +13,18 @@
 	let password_field_message: string | undefined = $state(undefined);
 	let other_error_message = $state('');
 
-	let proceedDisabled = $state(false);
-	let proceedLoading = $state(false);
+	let isLoading = $state(false);
 
 	const redirect = new URLSearchParams(window.location.search).get('redirect');
 
 	const handleSubmit = () => {
+		if (isLoading) return;
+
 		// Reset error messages
 		email_field_message = '';
 		password_field_message = '';
 
-		proceedDisabled = true;
-		proceedLoading = true;
+		isLoading = true;
 		login(email, password)
 			.then((response) => {
 				console.log('Logged in as', response.account_id);
@@ -47,8 +47,9 @@
 				} else {
 					alert('Login failed (out-of-axios): ' + error);
 				}
-				proceedDisabled = false;
-				proceedLoading = false;
+			})
+			.finally(() => {
+				isLoading = false;
 			});
 	};
 </script>
@@ -71,7 +72,5 @@
 	{#if password_field_message}
 		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{password_field_message}</p>
 	{/if}
-	<ProceedButton disabled={proceedDisabled} loading={proceedLoading} onClick={() => null}>
-		Log in
-	</ProceedButton>
+	<Button variant="outline" class="mt-4" type="submit" disabled={isLoading}>Log in</Button>
 </form>

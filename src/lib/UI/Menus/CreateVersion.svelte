@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Spinner from '../Common/Spinner.svelte';
-	import Button from '../Common/Button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { createProjectVersion } from '$lib/api/projects';
 	import { onMount } from 'svelte';
 	import {
@@ -107,8 +107,8 @@
 			<Spinner />
 		{:else}
 			<div class="buttons">
-				<Button type="button" click={handleCancel}>Cancel</Button>
-				<Button type="submit" click={handleCreate} disabled={!allowSubmit}>Create</Button>
+				<Button variant="secondary" type="button" onclick={handleCancel}>Cancel</Button>
+				<Button type="submit" onclick={handleCreate} disabled={!allowSubmit}>Create</Button>
 			</div>
 		{/if}
 	</form>

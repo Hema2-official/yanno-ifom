@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from '$lib/UI/Common/Button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import CheckBox from '$lib/UI/Common/CheckBox.svelte';
 	import Spinner from '$lib/UI/Common/Spinner.svelte';
 	import TextBox from '$lib/UI/Common/TextBox.svelte';
@@ -82,8 +82,8 @@
 			<Spinner />
 		{:else}
 			<div class="buttons">
-				<Button type="button" click={handleCancel}>Cancel</Button>
-				<Button type="submit" click={handleEdit}>Save</Button>
+				<Button variant="secondary" type="button" onclick={handleCancel}>Cancel</Button>
+				<Button type="submit" onclick={handleEdit}>Save</Button>
 			</div>
 		{/if}
 	</form>
