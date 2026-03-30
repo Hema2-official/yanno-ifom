@@ -17,7 +17,8 @@
 		currentChangeIndex,
 		annotation
 	} from '$lib/stores/data';
-	import CheckBox from '../Common/CheckBox.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '../Common/ColorPicker.svelte';
 	import Slider from '../Common/Slider.svelte';
 	import TextBox from '../Common/TextBox.svelte';
@@ -32,14 +33,23 @@
 		: 'border-r-[3px] order-1'}"
 >
 	<p class="text-center text-[30px] font-semibold mt-1.5 mb-3.5">Debug</p>
-	<div>
-		<CheckBox bind:checked={$isSvgShown}>Show SVG</CheckBox>
+	<div class="flex flex-col gap-4">
+		<div class="flex items-center gap-2">
+			<Checkbox id="isSvgShown" bind:checked={$isSvgShown} />
+			<Label for="isSvgShown">Show SVG</Label>
+		</div>
 
-		<CheckBox bind:checked={$svgStrokeSwitch}>Stroke</CheckBox>
+		<div class="flex items-center gap-2">
+			<Checkbox id="svgStrokeSwitch" bind:checked={$svgStrokeSwitch} />
+			<Label for="svgStrokeSwitch">Stroke</Label>
+		</div>
 
 		<ColorPicker bind:value={$svgStroke}>SVG stroke color...</ColorPicker>
 
-		<CheckBox bind:checked={$svgFillSwitch}>Fill</CheckBox>
+		<div class="flex items-center gap-2">
+			<Checkbox id="svgFillSwitch" bind:checked={$svgFillSwitch} />
+			<Label for="svgFillSwitch">Fill</Label>
+		</div>
 
 		<ColorPicker bind:value={$svgFill}>SVG fill color...</ColorPicker>
 
@@ -47,9 +57,15 @@
 
 		<Slider bind:value={$contextMenuOpacity} max={100}>Context menu opacity</Slider>
 
-		<CheckBox bind:checked={$isEditing} disabled={!$isEditing}>Edit mode</CheckBox>
+		<div class="flex items-center gap-2">
+			<Checkbox id="isEditing" bind:checked={$isEditing} disabled={!$isEditing} />
+			<Label for="isEditing">Edit mode</Label>
+		</div>
 
-		<CheckBox bind:checked={$pointerLockEnabled}>Enable pointer lock</CheckBox>
+		<div class="flex items-center gap-2">
+			<Checkbox id="pointerLockEnabled" bind:checked={$pointerLockEnabled} />
+			<Label for="pointerLockEnabled">Enable pointer lock</Label>
+		</div>
 
 		<Slider bind:value={$scrollMultiplier} min={0.1} max={10}>Zoom multiplier</Slider>
 
@@ -66,7 +82,10 @@
 
 		<TextBox bind:value={$globalColormap}>Color map</TextBox>
 
-		<CheckBox bind:checked={$sidebarRight}>Sidebar on the right</CheckBox>
+		<div class="flex items-center gap-2">
+			<Checkbox id="sidebarRight" bind:checked={$sidebarRight} />
+			<Label for="sidebarRight">Sidebar on the right</Label>
+		</div>
 
 		<Button
 			click={() => {

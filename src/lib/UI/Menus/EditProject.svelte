@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import CheckBox from '$lib/UI/Common/CheckBox.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
 	import Spinner from '$lib/UI/Common/Spinner.svelte';
 	import TextBox from '$lib/UI/Common/TextBox.svelte';
 	import { onMount } from 'svelte';
@@ -73,9 +74,10 @@
 	<form class="edit-project" class:loading>
 		<h3 class="title">Edit Project</h3>
 		<TextBox bind:value={project.name} disabled={loading}>Name</TextBox>
-		<TextBox bind:value={channel_period} disabled={loading}>Channel period</TextBox>
-		<TextBox bind:value={start_period} disabled={loading}>Start period</TextBox>
-		<CheckBox bind:checked={isGrayscale} disabled={loading}>Grayscale</CheckBox>
+		<div class="flex items-center gap-2 mt-4 mb-2">
+			<Checkbox id="grayscale" bind:checked={formState.isGrayscale} disabled={loading} />
+			<Label for="grayscale">Grayscale</Label>
+		</div>
 
 		{#if error_message}<p class="error-message">{error_message}</p>{/if}
 		{#if loading}
