@@ -13,7 +13,7 @@
 		getNextStep
 	} from '$lib/types/api.type';
 	import TextBox from '../Common/TextBox.svelte';
-	import Dropdown from '../Common/Dropdown.svelte';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 
 	let {
 		onCreate,
@@ -93,12 +93,27 @@
 
 		<div class="run-on-wrapper">
 			Run {getNextStep(sourceVersion?.step)} on
-			<Dropdown
-				bind:selected={selectedIdx}
-				options={project.versions.map((version) => version.name)}
-				emptyText="Original data"
-				emptySelectable
-			/>
+			<Select
+				type="single"
+				value={selectedIdx !== undefined ? String(selectedIdx) : ''}
+				onValueChange={(v) => (selectedIdx = v ? parseInt(v) : undefined)}
+			>
+				<SelectTrigger>
+					{#snippet children({ value }: { value: string })}
+						<span
+							>{value !== ''
+								? project.versions[parseInt(value)]?.name
+								: 'Original data'}</span
+						>
+					{/snippet}
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="-1" label="Original data" />
+					{#each project.versions as version, i}
+						<SelectItem value={String(i)} label={version.name} />
+					{/each}
+				</SelectContent>
+			</Select>
 		</div>
 		<TextBox bind:value={name} disabled={loading} {onChange}>Name</TextBox>
 
