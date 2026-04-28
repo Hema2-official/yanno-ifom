@@ -4,7 +4,7 @@
 	import XIcon from "@lucide/svelte/icons/x";
 	import type { Snippet } from "svelte";
 	import * as Dialog from "./index.js";
-	import { cn, type WithoutChildrenOrChild } from "$lib/utils/cn.js";
+	import { cn, type WithoutChildrenOrChild } from "$lib/utils/shadcn.js";
 	import type { ComponentProps } from "svelte";
 
 	let {

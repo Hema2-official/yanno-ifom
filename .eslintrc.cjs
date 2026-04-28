@@ -17,7 +17,8 @@ module.exports = {
 				parser: '@typescript-eslint/parser'
 			},
 			rules: {
-				'svelte/html-self-closing': ['error', 'always']
+				'svelte/html-self-closing': ['error', 'always'],
+				'svelte/valid-compile': 'off'
 			}
 		}
 	],

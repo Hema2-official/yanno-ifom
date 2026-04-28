@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ContextMenu as ContextMenuPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils/cn.js";
+	import { cn } from "$lib/utils/shadcn.js";
 
 	let {
 		ref = $bindable(null),
