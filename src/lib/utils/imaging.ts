@@ -1,6 +1,5 @@
 import type TiffIfd from 'tiff/lib/tiffIfd';
 import { encode } from 'fast-png';
-import 'colormap';
 import { get, type Writable } from 'svelte/store';
 import { _ } from 'svelte-i18n';
 import createColormap from 'colormap';
@@ -17,17 +16,17 @@ import createColormap from 'colormap';
 export async function tiffToPngBlobs(
 	tiff_ifds: TiffIfd[],
 	destination: Writable<Blob[]>,
-	colormap = 'viridis'
+	colormap: ColorMapType = 'viridis'
 ) {
 	for (let i = 0; i < tiff_ifds.length; i++) {
 		const ifd = tiff_ifds[i];
-		if (ifd.alpha || ![8, 16].includes(ifd.bitsPerSample))
+		if (ifd.alpha || ![8, 16].includes(ifd.bitsPerSample)) {
 			throw new Error(
-				get(_)(
-					'unsupported_tiff' +
-						`\nalpha: ${ifd.alpha}, bitsPerSample: ${ifd.bitsPerSample}`
-				)
+				get(_)('unsupported_tiff') +
+					`\nalpha: ${ifd.alpha}, bitsPerSample: ${ifd.bitsPerSample}`
 			);
+		}
+
 		const mapped = toColormap(
 			ifd.data as Uint8Array | Uint16Array,
 			ifd.alpha,
@@ -62,7 +61,7 @@ function toColormap(
 	data: Uint8Array | Uint16Array,
 	hasAlpha: boolean,
 	bitsPerSample: number,
-	colormap = 'viridis'
+	colormap: ColorMapType = 'viridis'
 ) {
 	const colors = createColormap({
 		colormap: colormap,
@@ -87,3 +86,52 @@ function toColormap(
 	}
 	return mapped;
 }
+
+export type ColorMapType = (typeof AVAILABLE_COLORMAPS)[number];
+
+export const AVAILABLE_COLORMAPS = [
+	'jet',
+	'hsv',
+	'hot',
+	'spring',
+	'summer',
+	'autumn',
+	'winter',
+	'bone',
+	'copper',
+	'greys',
+	'yignbu',
+	'greens',
+	'yiorrd',
+	'bluered',
+	'rdbu',
+	'picnic',
+	'rainbow',
+	'portland',
+	'blackbody',
+	'earth',
+	'electric',
+	'alpha',
+	'viridis',
+	'inferno',
+	'magma',
+	'plasma',
+	'warm',
+	'cool',
+	'rainbow-soft',
+	'bathymetry',
+	'cdom',
+	'chlorophyll',
+	'density',
+	'freesurface-blue',
+	'freesurface-red',
+	'oxygen',
+	'par',
+	'phase',
+	'salinity',
+	'temperature',
+	'turbidity',
+	'velocity-blue',
+	'velocity-green',
+	'cubehelix'
+] as const;

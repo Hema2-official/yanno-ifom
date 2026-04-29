@@ -25,14 +25,33 @@
 	import { Button } from '$lib/components/ui/button';
 	import { dataTypeToText, download } from '$lib/utils/data.svelte';
 	import { modifierKeys } from '$lib/stores/input';
+	import * as Select from '$lib/components/ui/select';
+	import { AVAILABLE_COLORMAPS } from '$lib/utils/imaging';
 </script>
 
 <nav
-	class="flex flex-col w-[300px] h-full p-[1.3em] overflow-y-auto border-[var(--accent-color)] {$sidebarRight
-		? 'border-l-[3px] order-3'
-		: 'border-r-[3px] order-1'}"
+	class="flex flex-col w-80 h-full px-6 py-4 overflow-y-auto border-accent {$sidebarRight
+		? 'border-l-1 order-3'
+		: 'border-r-1 order-1'}"
 >
-	<p class="text-center text-[30px] font-semibold mt-1.5 mb-3.5">Debug</p>
+	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Graphics</h2>
+	<div class="flex flex-col gap-4 pb-6">
+		<div class="flex flex-col gap-2">
+			<Label>Color map</Label>
+			<Select.Root type="single" bind:value={$globalColormap}>
+				<Select.Trigger>
+					{$globalColormap}
+				</Select.Trigger>
+				<Select.Content>
+					{#each AVAILABLE_COLORMAPS as colormap}
+						<Select.Item value={colormap}>{colormap}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+		</div>
+	</div>
+
+	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Debug</h2>
 	<div class="flex flex-col gap-4">
 		<div class="flex items-center gap-2">
 			<Checkbox id="isSvgShown" bind:checked={$isSvgShown} />
@@ -80,7 +99,6 @@
 			>Change index</Slider
 		>
 
-		<TextBox bind:value={$globalColormap}>Color map</TextBox>
 
 		<div class="flex items-center gap-2">
 			<Checkbox id="sidebarRight" bind:checked={$sidebarRight} />
