@@ -4,7 +4,7 @@
 		displayMouseLeaveHandler,
 		displayMouseMoveHandler,
 		displayMouseUpHandler,
-		modifierKeys
+		pressedKeys
 	} from '$lib/stores/input';
 	import { autoResample } from '$lib/stores/options';
 	import type { Point } from '$lib/types/editor.type';
@@ -110,7 +110,7 @@
 
 	const handleWheel = (e: WheelEvent) => {
 		// Check if the user is zooming
-		if ($modifierKeys.ctrl) return;
+		if (pressedKeys.has('Control')) return;
 
 		e.preventDefault();
 		e.stopPropagation();

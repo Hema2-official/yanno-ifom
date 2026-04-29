@@ -12,7 +12,7 @@
 	import { deepCopy, getFramesDifference } from '$lib/utils/data.svelte';
 	import { cellToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
-	import { modifierKeys } from '$lib/stores/input';
+	import { pressedKeys } from '$lib/stores/input';
 
 	let {
 		inputCell,
@@ -225,7 +225,7 @@
 
 	const handleWheel = (e: WheelEvent) => {
 		if (editorMode !== EditorMode.Smooth) return;
-		if ($modifierKeys.ctrl) return;
+		if (pressedKeys.has('Control')) return;
 		e.preventDefault();
 		e.stopPropagation();
 		const delta = e.deltaY > 0 ? 1 : -1;

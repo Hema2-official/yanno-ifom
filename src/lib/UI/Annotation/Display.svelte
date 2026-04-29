@@ -24,11 +24,10 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import EditorControls from './EditorControls.svelte';
 	import {
-		modifierKeys,
-		_updateModifierKeys,
 		displayMouseMoveHandler,
 		displayMouseUpHandler,
-		displayMouseLeaveHandler
+		displayMouseLeaveHandler,
+		pressedKeys
 	} from '$lib/stores/input';
 	import NewEditor from './NewEditor.svelte';
 
@@ -97,8 +96,7 @@
 		e.preventDefault();
 
 		// require ctrl key
-		_updateModifierKeys(e);
-		if (!$modifierKeys.ctrl) return;
+		if (!pressedKeys.has('Control')) return;
 
 		// check if zooming makes sense
 		if (styles['scale-percent'] === $minScale && e.deltaY > 0) return;

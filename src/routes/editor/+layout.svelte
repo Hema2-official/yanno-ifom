@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { _updateModifierKeys } from '$lib/stores/input';
 	import { isSvgShown } from '$lib/stores/svg';
 	import { redoChange, saveToServer, undoChange } from '$lib/stores/data';
 	import type { Snippet } from 'svelte';
@@ -8,12 +7,8 @@
 	let { children }: { children: Snippet } = $props();
 
 	onMount(() => {
-		// Update modifier keys
-		document.body.addEventListener('keydown', _updateModifierKeys);
-		document.body.addEventListener('keyup', _updateModifierKeys);
-		document.body.addEventListener('mouseenter', _updateModifierKeys);
-
 		// Global shortcuts
+		// TODO: centralize this and provide configuration
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === 's' && e.ctrlKey) {
 				e.preventDefault();
@@ -66,9 +61,6 @@
 		document.body.addEventListener('keyup', handleKeyUp);
 
 		return () => {
-			document.body.removeEventListener('keydown', _updateModifierKeys);
-			document.body.removeEventListener('keyup', _updateModifierKeys);
-			document.body.removeEventListener('mouseenter', _updateModifierKeys);
 			document.body.removeEventListener('keydown', handleKeyDown);
 			document.body.removeEventListener('keyup', handleKeyUp);
 		};

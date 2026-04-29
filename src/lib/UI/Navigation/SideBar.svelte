@@ -23,7 +23,7 @@
 	import { Slider } from '$lib/components/ui/slider';
 	import { Button } from '$lib/components/ui/button';
 	import { getMax, getMin } from '$lib/utils/data.svelte';
-	import { modifierKeys } from '$lib/stores/input';
+	import { pressedKeys } from '$lib/stores/input';
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Select from '$lib/components/ui/select';
 	import { AVAILABLE_COLORMAPS } from '$lib/utils/imaging';
@@ -118,9 +118,9 @@
 			}}>Delete session</Button
 		>
 
-		<p class="m-0">shift: {$modifierKeys.shift}</p>
-		<p class="m-0">ctrl: {$modifierKeys.ctrl}</p>
-		<p class="m-0">alt: {$modifierKeys.alt}</p>
-		<p class="m-0">meta: {$modifierKeys.meta}</p>
+		<p class="m-0">shift: {pressedKeys.has('Shift')}</p>
+		<p class="m-0">ctrl: {pressedKeys.has('Control')}</p>
+		<p class="m-0">alt: {pressedKeys.has('Alt')}</p>
+		<p class="m-0">meta: {pressedKeys.has('Meta')}</p>
 	</div>
 </nav>

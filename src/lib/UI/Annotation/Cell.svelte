@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { modifierKeys } from '$lib/stores/input';
+	import { pressedKeys } from '$lib/stores/input';
 	import { svgFill, svgFillSwitch, svgStroke, svgStrokeSwitch } from '$lib/stores/svg';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import { cellBodyToPath } from '$lib/utils/display';
@@ -41,7 +41,7 @@
 	/> -->
 </g>
 
-{#if center && !$modifierKeys.shift}
+{#if center && !pressedKeys.has('Shift')}
 	<text
 		x={center.x}
 		y={center.y}
