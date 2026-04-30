@@ -22,6 +22,7 @@
 		CircleUserIcon,
 		CloudIcon,
 		CloudSyncIcon,
+		LogInIcon,
 		LogOutIcon,
 		SettingsIcon,
 		UserPenIcon
