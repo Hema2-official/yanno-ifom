@@ -41,7 +41,7 @@
 		"colormap": "^2.3.2",
 		"fast-png": "^6.2.0",
 		"jsondiffpatch": "^0.6.0",
-		"lucide-svelte": "^0.469.0",
+		"lucide-svelte": "^1.0.1",
 		"runed": "^0.37.1",
 		"svelte-i18n": "^4.0.1",
 		"svelte-portal": "^2.2.1",
