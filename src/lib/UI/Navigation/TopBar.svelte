@@ -16,6 +16,20 @@
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import * as Menubar from '$lib/components/ui/menubar';
 	import { autoResample, sidebarRight } from '$lib/stores/options';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import {
+		ChevronsUpDownIcon,
+		CircleUserIcon,
+		CloudIcon,
+		CloudSyncIcon,
+		LogOutIcon,
+		SettingsIcon,
+		UserPenIcon
+	} from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { goto } from '$app/navigation';
+	import { accountState } from '$lib/states/AccountState.svelte';
+	import Spinner from '../Common/Spinner.svelte';
 
 	// import {
 	// 	getFramesDifference,
@@ -133,6 +147,11 @@
 			frames: [{ id: $currentFrameId, cells: [newCell] }]
 		});
 	};
+
+	async function handleLogout() {
+		// TODO: ask if user wants to save, if applicable
+		goto('/logout');
+	}
 </script>
 
 <nav
@@ -220,5 +239,43 @@
 				</Menubar.Content>
 			</Menubar.Menu>
 		</Menubar.Root>
+	</div>
+
+	<div class="flex-1 flex justify-end">
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger disabled={accountState.currentAccount === undefined}>
+				{#snippet child({ props })}
+					<Button {...props} class="flex items-center gap-2" variant="secondary">
+						{#if accountState.currentAccount === undefined}
+							<Spinner size={14} thickness={3} />
+						{:else}
+							<CircleUserIcon />
+							{accountState.currentAccount?.email ?? 'Not logged in'}
+						{/if}
+						<ChevronsUpDownIcon />
+					</Button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+
+			<DropdownMenu.Content side="top" class="w-(--bits-dropdown-menu-anchor-width)">
+				{#if accountState.currentAccount}
+					<!-- TODO: implement -->
+					<DropdownMenu.Item>
+						<UserPenIcon /> Profile
+					</DropdownMenu.Item>
+					<DropdownMenu.Item>
+						<SettingsIcon /> Settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Separator />
+					<DropdownMenu.Item onSelect={handleLogout}>
+						<LogOutIcon /> Log out
+					</DropdownMenu.Item>
+				{:else}
+					<DropdownMenu.Item>
+						<LogInIcon /> Log in
+					</DropdownMenu.Item>
+				{/if}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 	</div>
 </nav>

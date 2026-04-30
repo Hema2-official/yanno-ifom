@@ -3,6 +3,7 @@
 	import getMe from '$lib/api/users/getMe';
 	import { goto } from '$app/navigation';
 	import type { Snippet } from 'svelte';
+	import { accountState } from '$lib/states/AccountState.svelte';
 
 	import { addMessages, init } from 'svelte-i18n';
 	import en from '$lib/lang/en.json';
@@ -20,27 +21,32 @@
 		initialLocale: 'en'
 	});
 
-	console.log(window.location);
-	let isLoggedIn = false;
-	const isAuthenticating =
-		window.location.pathname === '/login' || window.location.pathname === '/register';
-
 	onMount(() => {
 		getMe()
-			.then((me) => {
-				if (me.id) isLoggedIn = true;
-			})
-			.catch(() => {})
-			.finally(() => {
-				if (!isLoggedIn && !isAuthenticating) {
-					if (window.location.pathname === '/logout') goto('/login');
-					else goto('/login?redirect=' + window.location.pathname);
-				} else if (isLoggedIn && isAuthenticating) {
-					const redirect = new URLSearchParams(window.location.search).get('redirect');
-					if (redirect) goto(redirect);
-					else goto('/');
-				}
-			});
+			.then((me) => (accountState.currentAccount = me))
+			.catch(() => (accountState.currentAccount = null));
+	});
+
+	$effect(() => {
+		if (accountState.currentAccount === undefined) return;
+
+		const path = window.location.pathname;
+		const isAuthenticating = path === '/login' || path === '/register';
+
+		if (accountState.currentAccount === null) {
+			if (isAuthenticating) return;
+			if (path === '/logout') {
+				goto('/login');
+			} else {
+				const ref = path + window.location.search + window.location.hash;
+				goto(`/login?redirect=${encodeURIComponent(ref)}`);
+			}
+		} else {
+			if (!isAuthenticating) return;
+			const searchParams = new URLSearchParams(window.location.search);
+			const redirect = decodeURIComponent(searchParams.get('redirect') || '');
+			goto(redirect || '/');
+		}
 	});
 </script>
 
