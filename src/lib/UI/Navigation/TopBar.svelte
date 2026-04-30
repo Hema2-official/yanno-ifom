@@ -16,6 +16,7 @@
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import * as Menubar from '$lib/components/ui/menubar';
 	import { autoResample, sidebarRight } from '$lib/stores/options';
+	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import {
 		ChevronsUpDownIcon,
@@ -27,6 +28,7 @@
 		SettingsIcon,
 		UserPenIcon
 	} from 'lucide-svelte';
+	import LogoSVG from '$lib/UI/Common/LogoSVG.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { accountState } from '$lib/states/AccountState.svelte';
@@ -155,20 +157,49 @@
 	}
 </script>
 
-<nav
-	class="h-[74px] w-full flex items-center px-3 gap-5 border-b-[3px] border-[var(--accent-color)]"
->
-	<img src="/logo.svg" class="h-[84%] aspect-square" alt="" />
+<div class="w-full flex items-center px-3 py-2 gap-2 border-b-1 border-accent">
+	<LogoSVG class="size-14" />
 
-	<div class="flex flex-col h-full justify-evenly items-start">
-		<div class="flex flex-row gap-2">
-			<p class="text-center text-base font-semibold m-0 mr-1.5">{$_('app_title')}</p>
-			<p class="text-center text-base m-0">{$currentProject.name}</p>
-			<p class="text-center text-base m-0 opacity-70">{$currentProjectVersion.name}</p>
-			{#if $savingIndicator}
-				<p class="text-center text-base m-0 opacity-70">Saving...</p>
-			{/if}
-		</div>
+	<div class="flex flex-col h-full justify-between items-start">
+		<Breadcrumb.Root>
+			<Breadcrumb.List class="text-lg">
+				<Breadcrumb.Item>
+					<Breadcrumb.Link href="/" class="text-foreground font-semibold">
+						{$_('app_title')}
+					</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger class="flex items-center gap-1">
+							<Breadcrumb.Link>{$currentProject?.name}</Breadcrumb.Link>
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="start">
+							{#each $currentProject?.versions ?? [] as projectVersion}
+								<DropdownMenu.Item
+									disabled={projectVersion.id == $currentProjectVersion?.id}
+									onSelect={() => {}}
+									>{projectVersion.name}
+								</DropdownMenu.Item>
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>{$currentProjectVersion?.name}</Breadcrumb.Page>
+				</Breadcrumb.Item>
+				<Breadcrumb.Item>
+					<!-- TODO: indicate offline editing, etc. -->
+					{#if $savingIndicator}
+						<CloudSyncIcon size={18} />
+						Saving...
+					{:else}
+						<CloudIcon size={18} />
+					{/if}
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
 
 		<Menubar.Root class="border-none p-0 h-auto">
 			<Menubar.Menu>
@@ -279,4 +310,4 @@
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	</div>
-</nav>
+</div>
