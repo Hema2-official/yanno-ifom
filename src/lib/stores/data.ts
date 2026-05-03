@@ -72,11 +72,8 @@ export const saveToServer = async () => {
 	// TODO: Save the current version without the changes after the current change index
 
 	// Save the current version
-	const _annotation = get(annotation);
-	const _currentProject = get(currentProject);
-	const _currentProjectVersion = get(currentProjectVersion);
 	try {
-		await saveVersion(_currentProject.id, _currentProjectVersion, JSON.stringify(_annotation));
+		await updateVersionData(get(currentProjectVersion), JSON.stringify(get(annotation)));
 	} catch (error) {
 		console.error(error);
 		alert('Failed to save the current version');

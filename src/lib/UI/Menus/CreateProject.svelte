@@ -2,7 +2,7 @@
 	import TextBox from '../Common/TextBox.svelte';
 	import Spinner from '../Common/Spinner.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import createProject from '$lib/api/projects/createProject';
+	import { createProject } from '$lib/api/projects';
 	import { onMount } from 'svelte';
 
 	let { onCreate, onCancel }: { onCreate: () => void; onCancel: () => void } = $props();

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import getMe from '$lib/api/users/getMe';
+	import { getMe } from '$lib/api/users';
 	import { goto } from '$app/navigation';
 	import type { Snippet } from 'svelte';
 	import { accountState } from '$lib/states/AccountState.svelte';

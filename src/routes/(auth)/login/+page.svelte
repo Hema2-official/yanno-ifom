@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TextBox from '$lib/UI/Common/TextBox.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import login from '$lib/api/auth/login';
+	import { login } from '$lib/api/auth';
 	import { goto } from '$app/navigation';
 	import { isAxiosError, type AxiosError } from 'axios';
 	import type { APIError, CredentialsError } from '$lib/types/api.type';

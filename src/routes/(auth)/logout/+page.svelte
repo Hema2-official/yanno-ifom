@@ -2,7 +2,7 @@
 	import Spinner from '$lib/UI/Common/Spinner.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import logout from '$lib/api/auth/logout';
+	import { logout } from '$lib/api/auth';
 
 	onMount(() => {
 		setTimeout(() => {

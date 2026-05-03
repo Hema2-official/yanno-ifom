@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Spinner from '../Common/Spinner.svelte';
 	import CreateProject from './CreateProject.svelte';
-	import getProjects from '$lib/api/projects/getProjects';
+	import { getProjects } from '$lib/api/projects';
 	import TrashSVG from '$lib/UI/SVG/TrashSVG.svelte';
 	import PencilSVG from '$lib/UI/SVG/PencilSVG.svelte';
 	import PlusSVG from '$lib/UI/SVG/PlusSVG.svelte';
