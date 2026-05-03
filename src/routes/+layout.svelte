@@ -23,8 +23,12 @@
 
 	onMount(() => {
 		getMe()
-			.then((me) => (accountState.currentAccount = me))
-			.catch(() => (accountState.currentAccount = null));
+			.then((me) => {
+				accountState.currentAccount = me;
+			})
+			.catch(() => {
+				accountState.currentAccount = null;
+			});
 	});
 
 	$effect(() => {
