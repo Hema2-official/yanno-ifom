@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { login } from '$lib/api/auth';
 	import { goto } from '$app/navigation';
-	import { isAxiosError, type AxiosError } from 'axios';
+	import { HTTPError } from 'ky';
 	import type { APIError, CredentialsError } from '$lib/types/api.type';
 
 	let email = $state('');
@@ -34,18 +34,20 @@
 					goto('/');
 				}
 			})
-			.catch((error) => {
-				if (isAxiosError(error)) {
-					const axiosError = error as AxiosError<APIError | CredentialsError>;
-					const detail = axiosError.response?.data.detail;
-					if (typeof detail === 'string') {
-						other_error_message = detail;
-					} else if (detail) {
-						email_field_message = detail.email_field_message;
-						password_field_message = detail.password_field_message;
+			.catch(async (error) => {
+				if (error instanceof HTTPError) {
+					const data = (await error.response.json()) as APIError | CredentialsError;
+					if ('detail' in data) {
+						const detail = data.detail;
+						if (typeof detail === 'string') {
+							other_error_message = detail;
+						} else if (detail && typeof detail === 'object') {
+							email_field_message = detail.email_field_message;
+							password_field_message = detail.password_field_message;
+						}
 					}
 				} else {
-					alert('Login failed (out-of-axios): ' + error);
+					alert('Login failed: ' + error);
 				}
 			})
 			.finally(() => {

@@ -1,12 +1,11 @@
-import axios from './axiosConfig';
+import { http } from './kyConfig';
 import type { MeResponse } from '$lib/types/api.type';
 import { handleError } from './errors';
 
 export async function getMe() {
 	try {
-		const response = await axios.get<MeResponse>(`users/me`);
-		return response.data;
+		return await http.get<MeResponse>(`users/me`);
 	} catch (error) {
-		handleError(error);
+		await handleError(error);
 	}
 }

@@ -1,22 +1,18 @@
 import type { APIError, CredentialsError } from '$lib/types/api.type';
-import { AxiosError, isAxiosError } from 'axios';
+import { HTTPError } from 'ky';
 
-export function handleError(error: unknown): never {
-	if (isAxiosError(error)) {
-		const axiosError = error as AxiosError<APIError>;
-		if (axiosError.response) {
-			throw axiosError.response.data.detail;
-		}
+export async function handleError(error: unknown): Promise<never> {
+	if (error instanceof HTTPError) {
+		const data = await error.response.json<{ detail: string }>();
+		throw data.detail;
 	}
 	throw new Error('An unknown error occurred.');
 }
 
-export function handleCredentialsError(error: unknown): never {
-	if (isAxiosError(error)) {
-		const axiosError = error as AxiosError<APIError | CredentialsError>;
-		if (axiosError.response) {
-			throw error;
-		}
+export async function handleCredentialsError(error: unknown): Promise<never> {
+	if (error instanceof HTTPError) {
+		const data = await error.response.json();
+		throw data as APIError | CredentialsError;
 	}
 	throw new Error('An unknown error occurred.');
 }

@@ -24,3 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 /.svelte-kit
+
+# Environment variables
+**/.env
