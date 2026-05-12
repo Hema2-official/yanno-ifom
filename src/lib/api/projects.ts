@@ -24,7 +24,7 @@ export async function getProjects(options?: Options) {
 		const data = await http.get<Project[]>(`api/v0/projects`, options);
 		return data.map(fixDates);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -33,7 +33,7 @@ export async function createProject(name: string, options?: Options) {
 		const data = await http.post<Project>(`api/v0/projects`, { ...options, json: { name } });
 		return fixDates(data);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -42,7 +42,7 @@ export async function getProject(project_id: string, options?: Options) {
 		const data = await http.get<Project>(`api/v0/projects/${project_id}`, options);
 		return fixDates(data);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -58,7 +58,7 @@ export async function updateProject(
 		});
 		return fixDates(data);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -66,7 +66,7 @@ export async function deleteProject(project_id: string, options?: Options) {
 	try {
 		await http.delete(`api/v0/projects/${project_id}`, options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -79,7 +79,7 @@ export async function uploadSourceData(project_id: string, file: File, options?:
 			body: formData
 		});
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -87,7 +87,7 @@ export async function downloadSourceData(project_id: string, options?: Options) 
 	try {
 		return await http.blob(`api/v0/projects/${project_id}/source_data`, options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -95,7 +95,7 @@ export async function downloadEditorData(project_id: string, options?: Options) 
 	try {
 		return await http.blob(`api/v0/projects/${project_id}/editor_data`, options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -110,7 +110,7 @@ export async function downloadWebFrame(project: Project, frame_index: number, op
 	try {
 		return await http.blob(getWebFrameUrl(project, frame_index), options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -126,7 +126,7 @@ export async function createProjectVersion(
 		});
 		return fixDates(data);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -142,7 +142,7 @@ export async function copyProjectVersion(
 		);
 		return data;
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -163,7 +163,7 @@ export async function getVersionData(
 		);
 		return data;
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -181,7 +181,7 @@ export async function updateVersionData(
 			body: formData
 		});
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -189,7 +189,7 @@ export async function deleteVersion(version: ProjectVersion, options?: Options) 
 	try {
 		await http.delete(`api/v0/projects/${version.project_id}/versions/${version.id}`, options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -204,7 +204,7 @@ export async function enqueueTask(
 			{ ...options, json: body }
 		);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
@@ -215,6 +215,6 @@ export async function cancelTask(version: ProjectVersion, options?: Options) {
 			options
 		);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }

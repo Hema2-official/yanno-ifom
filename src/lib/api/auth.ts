@@ -5,9 +5,12 @@ import { handleCredentialsError, handleError } from './errors';
 
 export async function login(email: string, password: string, options?: Options) {
 	try {
-		return await http.post<AuthResponse>(`api/v0/auth/login`, { ...options, json: { email, password } });
+		return await http.post<AuthResponse>(`api/v0/auth/login`, {
+			...options,
+			json: { email, password }
+		});
 	} catch (error) {
-		return await handleCredentialsError(error);
+		throw await handleCredentialsError(error);
 	}
 }
 
@@ -15,14 +18,17 @@ export async function logout(options?: Options) {
 	try {
 		await http.text(`api/v0/auth/logout`, options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }
 
 export async function register(email: string, password: string, options?: Options) {
 	try {
-		return await http.post<AuthResponse>(`api/v0/auth/register`, { ...options, json: { email, password } });
+		return await http.post<AuthResponse>(`api/v0/auth/register`, {
+			...options,
+			json: { email, password }
+		});
 	} catch (error) {
-		return await handleCredentialsError(error);
+		throw await handleCredentialsError(error);
 	}
 }

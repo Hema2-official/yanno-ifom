@@ -7,6 +7,6 @@ export async function getMe(options?: Options) {
 	try {
 		return await http.get<MeResponse>(`api/v0/users/me`, options);
 	} catch (error) {
-		await handleError(error);
+		throw await handleError(error);
 	}
 }

@@ -3,7 +3,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import { login } from '$lib/api/auth';
 	import { goto } from '$app/navigation';
-	import { HTTPError } from 'ky';
 	import type { APIError, CredentialsError } from '$lib/types/api.type';
 
 	let email = $state('');
@@ -34,17 +33,13 @@
 					goto('/');
 				}
 			})
-			.catch(async (error) => {
-				if (error instanceof HTTPError) {
-					const data = (await error.response.json()) as APIError | CredentialsError;
-					if ('detail' in data) {
-						const detail = data.detail;
-						if (typeof detail === 'string') {
-							other_error_message = detail;
-						} else if (detail && typeof detail === 'object') {
-							email_field_message = detail.email_field_message;
-							password_field_message = detail.password_field_message;
-						}
+			.catch((error: Error | APIError | CredentialsError) => {
+				if (typeof error === 'object' && 'detail' in error) {
+					if (typeof error.detail === 'string') {
+						other_error_message = error.detail;
+					} else if (error.detail && typeof error.detail === 'object') {
+						email_field_message = error.detail.email_field_message;
+						password_field_message = error.detail.password_field_message;
 					}
 				} else {
 					alert('Login failed: ' + error);
