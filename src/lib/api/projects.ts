@@ -20,7 +20,7 @@ function fixDates<T extends { created_at?: string | Date; updated_at?: string | 
 
 export async function getProjects() {
 	try {
-		const data = await http.get<Project[]>(`projects`);
+		const data = await http.get<Project[]>(`api/v0/projects`);
 		return data.map(fixDates);
 	} catch (error) {
 		await handleError(error);
@@ -29,7 +29,7 @@ export async function getProjects() {
 
 export async function createProject(name: string) {
 	try {
-		const data = await http.post<Project>(`projects`, { json: { name } });
+		const data = await http.post<Project>(`api/v0/projects`, { json: { name } });
 		return fixDates(data);
 	} catch (error) {
 		await handleError(error);
@@ -38,7 +38,7 @@ export async function createProject(name: string) {
 
 export async function getProject(project_id: string) {
 	try {
-		const data = await http.get<Project>(`projects/${project_id}`);
+		const data = await http.get<Project>(`api/v0/projects/${project_id}`);
 		return fixDates(data);
 	} catch (error) {
 		await handleError(error);
@@ -50,7 +50,7 @@ export async function updateProject(
 	body: { name?: string; color?: VideoColor; channel_period?: number; start_period?: number }
 ) {
 	try {
-		const data = await http.patch<Project>(`projects/${project_id}`, { json: body });
+		const data = await http.patch<Project>(`api/v0/projects/${project_id}`, { json: body });
 		return fixDates(data);
 	} catch (error) {
 		await handleError(error);
@@ -59,7 +59,7 @@ export async function updateProject(
 
 export async function deleteProject(project_id: string) {
 	try {
-		await http.delete(`projects/${project_id}`);
+		await http.delete(`api/v0/projects/${project_id}`);
 	} catch (error) {
 		await handleError(error);
 	}
@@ -69,7 +69,7 @@ export async function uploadSourceData(project_id: string, file: File) {
 	try {
 		const formData = new FormData();
 		formData.append('file', file);
-		await http.post(`projects/${project_id}/source_data`, { body: formData });
+		await http.post(`api/v0/projects/${project_id}/source_data`, { body: formData });
 	} catch (error) {
 		await handleError(error);
 	}
@@ -77,7 +77,7 @@ export async function uploadSourceData(project_id: string, file: File) {
 
 export async function downloadSourceData(project_id: string) {
 	try {
-		return await http.blob(`projects/${project_id}/source_data`);
+		return await http.blob(`api/v0/projects/${project_id}/source_data`);
 	} catch (error) {
 		await handleError(error);
 	}
@@ -85,7 +85,7 @@ export async function downloadSourceData(project_id: string) {
 
 export async function downloadEditorData(project_id: string) {
 	try {
-		return await http.blob(`projects/${project_id}/editor_data`);
+		return await http.blob(`api/v0/projects/${project_id}/editor_data`);
 	} catch (error) {
 		await handleError(error);
 	}
@@ -95,7 +95,7 @@ export function getWebFrameUrl(project: Project, frame_index: number) {
 	if (!Number.isInteger(frame_index)) throw new Error('Frame index must be an integer');
 	if (frame_index < 0) throw new Error('Frame index must be positive');
 	if (frame_index >= project.frame_count) throw new Error('Frame index is out of range');
-	return `${BASE_URL}projects/${project.id}/web_frames/${frame_index}`;
+	return `${BASE_URL}api/v0/projects/${project.id}/web_frames/${frame_index}`;
 }
 
 export async function downloadWebFrame(project: Project, frame_index: number) {
@@ -108,7 +108,7 @@ export async function downloadWebFrame(project: Project, frame_index: number) {
 
 export async function createProjectVersion(project_id: string, body: CreateProjectVersionBody) {
 	try {
-		const data = await http.post<ProjectVersion>(`projects/${project_id}/versions`, {
+		const data = await http.post<ProjectVersion>(`api/v0/projects/${project_id}/versions`, {
 			json: body
 		});
 		return fixDates(data);
@@ -120,7 +120,7 @@ export async function createProjectVersion(project_id: string, body: CreateProje
 export async function copyProjectVersion(version: ProjectVersion, body: CreateProjectVersionBody) {
 	try {
 		const data = await http.post<ProjectVersion>(
-			`projects/${version.project_id}/versions/${version.id}/copy`,
+			`api/v0/projects/${version.project_id}/versions/${version.id}/copy`,
 			{ json: body }
 		);
 		return data;
@@ -131,7 +131,10 @@ export async function copyProjectVersion(version: ProjectVersion, body: CreatePr
 
 export async function getVersionData(version: ProjectVersion, as_attachment: boolean = false) {
 	try {
-		const url = new URL(`projects/${version.project_id}/versions/${version.id}/data`, BASE_URL);
+		const url = new URL(
+			`api/v0/projects/${version.project_id}/versions/${version.id}/data`,
+			BASE_URL
+		);
 		if (as_attachment) url.searchParams.append('as_attachment', 'true');
 		const data = await http.get<VersionManaged<TrackType[]>>(url.pathname + url.search);
 		return data;
@@ -145,7 +148,7 @@ export async function updateVersionData(version: ProjectVersion, data: BlobPart)
 		const blob = new Blob([data], { type: 'application/json' });
 		const formData = new FormData();
 		formData.append('data', blob, 'data.json');
-		return await http.patch(`projects/${version.project_id}/versions/${version.id}`, {
+		return await http.patch(`api/v0/projects/${version.project_id}/versions/${version.id}`, {
 			body: formData
 		});
 	} catch (error) {
@@ -155,7 +158,7 @@ export async function updateVersionData(version: ProjectVersion, data: BlobPart)
 
 export async function deleteVersion(version: ProjectVersion) {
 	try {
-		await http.delete(`projects/${version.project_id}/versions/${version.id}`);
+		await http.delete(`api/v0/projects/${version.project_id}/versions/${version.id}`);
 	} catch (error) {
 		await handleError(error);
 	}
@@ -164,7 +167,7 @@ export async function deleteVersion(version: ProjectVersion) {
 export async function enqueueTask(version: ProjectVersion, body: EnqueueTaskBody) {
 	try {
 		return await http.post<ServerTask>(
-			`projects/${version.project_id}/versions/${version.id}/enqueue`,
+			`api/v0/projects/${version.project_id}/versions/${version.id}/enqueue`,
 			{
 				json: body
 			}
@@ -177,7 +180,7 @@ export async function enqueueTask(version: ProjectVersion, body: EnqueueTaskBody
 export async function cancelTask(version: ProjectVersion) {
 	try {
 		return await http.post<ServerTask>(
-			`projects/${version.project_id}/versions/${version.id}/cancel`
+			`api/v0/projects/${version.project_id}/versions/${version.id}/cancel`
 		);
 	} catch (error) {
 		await handleError(error);

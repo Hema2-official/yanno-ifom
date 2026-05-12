@@ -4,7 +4,7 @@ import { handleError } from './errors';
 
 export async function getMe() {
 	try {
-		return await http.get<MeResponse>(`users/me`);
+		return await http.get<MeResponse>(`api/v0/users/me`);
 	} catch (error) {
 		await handleError(error);
 	}

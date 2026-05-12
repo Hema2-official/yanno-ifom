@@ -1,6 +1,6 @@
 import ky, { type Options } from 'ky';
 
-const BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:9000/api/v0/';
+export const BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:9000/';
 
 let internalClient = ky.create({
 	prefix: BASE_URL,
@@ -20,5 +20,3 @@ export const http = {
 	blob: (url: string, options?: Options) => getClient().get(url, options).blob(),
 	text: (url: string, options?: Options) => getClient().get(url, options).text()
 };
-
-export { BASE_URL };

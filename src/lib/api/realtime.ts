@@ -4,7 +4,7 @@ import { handleError } from './errors';
 
 export function streamTask(version: ProjectVersion, callback: (task: ServerTask) => void) {
 	// TODO: https://github.com/sindresorhus/parse-sse#with-ky
-	const uri = `${BASE_URL}realtime/projects/${version.project_id}/versions/${version.id}/stream_task`;
+	const uri = `${BASE_URL}api/v0/realtime/projects/${version.project_id}/versions/${version.id}/stream_task`;
 	const eventSource = new EventSource(uri, { withCredentials: true });
 
 	eventSource.onmessage = (event) => {
