@@ -1,4 +1,5 @@
 import { http, BASE_URL } from './kyConfig';
+import type { Options } from 'ky';
 import type {
 	CreateProjectVersionBody,
 	EnqueueTaskBody,
@@ -18,27 +19,27 @@ function fixDates<T extends { created_at?: string | Date; updated_at?: string | 
 	};
 }
 
-export async function getProjects() {
+export async function getProjects(options?: Options) {
 	try {
-		const data = await http.get<Project[]>(`api/v0/projects`);
+		const data = await http.get<Project[]>(`api/v0/projects`, options);
 		return data.map(fixDates);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function createProject(name: string) {
+export async function createProject(name: string, options?: Options) {
 	try {
-		const data = await http.post<Project>(`api/v0/projects`, { json: { name } });
+		const data = await http.post<Project>(`api/v0/projects`, { ...options, json: { name } });
 		return fixDates(data);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function getProject(project_id: string) {
+export async function getProject(project_id: string, options?: Options) {
 	try {
-		const data = await http.get<Project>(`api/v0/projects/${project_id}`);
+		const data = await http.get<Project>(`api/v0/projects/${project_id}`, options);
 		return fixDates(data);
 	} catch (error) {
 		await handleError(error);
@@ -47,45 +48,52 @@ export async function getProject(project_id: string) {
 
 export async function updateProject(
 	project_id: string,
-	body: { name?: string; color?: VideoColor; channel_period?: number; start_period?: number }
+	body: { name?: string; color?: VideoColor; channel_period?: number; start_period?: number },
+	options?: Options
 ) {
 	try {
-		const data = await http.patch<Project>(`api/v0/projects/${project_id}`, { json: body });
+		const data = await http.patch<Project>(`api/v0/projects/${project_id}`, {
+			...options,
+			json: body
+		});
 		return fixDates(data);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function deleteProject(project_id: string) {
+export async function deleteProject(project_id: string, options?: Options) {
 	try {
-		await http.delete(`api/v0/projects/${project_id}`);
+		await http.delete(`api/v0/projects/${project_id}`, options);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function uploadSourceData(project_id: string, file: File) {
+export async function uploadSourceData(project_id: string, file: File, options?: Options) {
 	try {
 		const formData = new FormData();
 		formData.append('file', file);
-		await http.post(`api/v0/projects/${project_id}/source_data`, { body: formData });
+		await http.post(`api/v0/projects/${project_id}/source_data`, {
+			...options,
+			body: formData
+		});
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function downloadSourceData(project_id: string) {
+export async function downloadSourceData(project_id: string, options?: Options) {
 	try {
-		return await http.blob(`api/v0/projects/${project_id}/source_data`);
+		return await http.blob(`api/v0/projects/${project_id}/source_data`, options);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function downloadEditorData(project_id: string) {
+export async function downloadEditorData(project_id: string, options?: Options) {
 	try {
-		return await http.blob(`api/v0/projects/${project_id}/editor_data`);
+		return await http.blob(`api/v0/projects/${project_id}/editor_data`, options);
 	} catch (error) {
 		await handleError(error);
 	}
@@ -98,17 +106,22 @@ export function getWebFrameUrl(project: Project, frame_index: number) {
 	return `${BASE_URL}api/v0/projects/${project.id}/web_frames/${frame_index}`;
 }
 
-export async function downloadWebFrame(project: Project, frame_index: number) {
+export async function downloadWebFrame(project: Project, frame_index: number, options?: Options) {
 	try {
-		return await http.blob(getWebFrameUrl(project, frame_index));
+		return await http.blob(getWebFrameUrl(project, frame_index), options);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function createProjectVersion(project_id: string, body: CreateProjectVersionBody) {
+export async function createProjectVersion(
+	project_id: string,
+	body: CreateProjectVersionBody,
+	options?: Options
+) {
 	try {
 		const data = await http.post<ProjectVersion>(`api/v0/projects/${project_id}/versions`, {
+			...options,
 			json: body
 		});
 		return fixDates(data);
@@ -117,11 +130,15 @@ export async function createProjectVersion(project_id: string, body: CreateProje
 	}
 }
 
-export async function copyProjectVersion(version: ProjectVersion, body: CreateProjectVersionBody) {
+export async function copyProjectVersion(
+	version: ProjectVersion,
+	body: CreateProjectVersionBody,
+	options?: Options
+) {
 	try {
 		const data = await http.post<ProjectVersion>(
 			`api/v0/projects/${version.project_id}/versions/${version.id}/copy`,
-			{ json: body }
+			{ ...options, json: body }
 		);
 		return data;
 	} catch (error) {
@@ -129,26 +146,38 @@ export async function copyProjectVersion(version: ProjectVersion, body: CreatePr
 	}
 }
 
-export async function getVersionData(version: ProjectVersion, as_attachment: boolean = false) {
+export async function getVersionData(
+	version: ProjectVersion,
+	as_attachment: boolean = false,
+	options?: Options
+) {
 	try {
 		const url = new URL(
 			`api/v0/projects/${version.project_id}/versions/${version.id}/data`,
 			BASE_URL
 		);
 		if (as_attachment) url.searchParams.append('as_attachment', 'true');
-		const data = await http.get<VersionManaged<TrackType[]>>(url.pathname + url.search);
+		const data = await http.get<VersionManaged<TrackType[]>>(
+			url.pathname + url.search,
+			options
+		);
 		return data;
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function updateVersionData(version: ProjectVersion, data: BlobPart) {
+export async function updateVersionData(
+	version: ProjectVersion,
+	data: BlobPart,
+	options?: Options
+) {
 	try {
 		const blob = new Blob([data], { type: 'application/json' });
 		const formData = new FormData();
 		formData.append('data', blob, 'data.json');
 		return await http.patch(`api/v0/projects/${version.project_id}/versions/${version.id}`, {
+			...options,
 			body: formData
 		});
 	} catch (error) {
@@ -156,31 +185,34 @@ export async function updateVersionData(version: ProjectVersion, data: BlobPart)
 	}
 }
 
-export async function deleteVersion(version: ProjectVersion) {
+export async function deleteVersion(version: ProjectVersion, options?: Options) {
 	try {
-		await http.delete(`api/v0/projects/${version.project_id}/versions/${version.id}`);
+		await http.delete(`api/v0/projects/${version.project_id}/versions/${version.id}`, options);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function enqueueTask(version: ProjectVersion, body: EnqueueTaskBody) {
+export async function enqueueTask(
+	version: ProjectVersion,
+	body: EnqueueTaskBody,
+	options?: Options
+) {
 	try {
 		return await http.post<ServerTask>(
 			`api/v0/projects/${version.project_id}/versions/${version.id}/enqueue`,
-			{
-				json: body
-			}
+			{ ...options, json: body }
 		);
 	} catch (error) {
 		await handleError(error);
 	}
 }
 
-export async function cancelTask(version: ProjectVersion) {
+export async function cancelTask(version: ProjectVersion, options?: Options) {
 	try {
 		return await http.post<ServerTask>(
-			`api/v0/projects/${version.project_id}/versions/${version.id}/cancel`
+			`api/v0/projects/${version.project_id}/versions/${version.id}/cancel`,
+			options
 		);
 	} catch (error) {
 		await handleError(error);
