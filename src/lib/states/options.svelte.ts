@@ -1,5 +1,5 @@
 // TODO: organize states
-export class OptionsState {
+class OptionsState {
 	pointerLockEnabled = $state(false);
 	sidebarRight = $state(true);
 

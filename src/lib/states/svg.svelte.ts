@@ -5,7 +5,7 @@ export type SvgViewBoxType = {
 	height: number;
 };
 
-export class SvgState {
+class SvgState {
 	isSvgShown = $state(true);
 
 	svgFill = $state('#ffffff');
