@@ -8,6 +8,7 @@ import type {
 	TrackType,
 	RLEType
 } from '$lib/types/annotation.type';
+import { maskToRle, rleToPolygons } from '$lib/utils/rle';
 import * as jsondiffpatch from 'jsondiffpatch';
 
 /**
@@ -141,19 +142,19 @@ export async function textToDataType(input: string): Promise<NewDataType> {
 		const line = substr.split('\t');
 
 		// Check for POS consistency
-		if (data.pos === null) data.pos = parseInt(line[labels['pos']]);
-		else if (data.pos != parseInt(line[labels['pos']])) {
+		if (data.pos === null) data.pos = Number.parseInt(line[labels['pos']]);
+		else if (data.pos != Number.parseInt(line[labels['pos']])) {
 			console.warn('POS value changes over time. Look into this one.');
-			data.pos = parseInt(line[labels['pos']]);
+			data.pos = Number.parseInt(line[labels['pos']]);
 		}
 
 		// Check if frame exists
-		const frameId = parseInt(line[labels['f']]);
+		const frameId = Number.parseInt(line[labels['f']]);
 		let frameIndex = data.originalFrames.findIndex((frame) => frame.id === frameId);
 		if (frameIndex == -1) frameIndex = data.originalFrames.push({ id: frameId, cells: [] }) - 1;
 
 		// Check if cell exists
-		const cellID = parseInt(line[labels['cellnum']]);
+		const cellID = Number.parseInt(line[labels['cellnum']]);
 		let cellIndex = data.originalFrames[frameIndex].cells.findIndex(
 			(cell) => cell.id === cellID
 		);
@@ -178,23 +179,124 @@ export async function textToDataType(input: string): Promise<NewDataType> {
 }
 
 /**
+ * Fill a polygon into a binary mask using the scanline algorithm (even-odd rule).
+ *
+ * @param mask The binary mask to fill (mutated in place).
+ * @param size The mask dimensions as [height, width].
+ * @param polygon Array of {x, y} points defining the polygon outline.
+ */
+function fillPolygon(
+	mask: Uint8Array,
+	size: [number, number],
+	polygon: { x: number; y: number }[]
+) {
+	const height = size[0];
+	const width = size[1];
+	const n = polygon.length;
+	if (n < 2) return;
+
+	for (let i = 0; i < n; i++) {
+		const p1 = polygon[i];
+		const p2 = polygon[(i + 1) % n];
+
+		const x0 = Math.round(p1.x);
+		const y0 = Math.round(p1.y);
+		const x1 = Math.round(p2.x);
+		const y1 = Math.round(p2.y);
+
+		if (y0 === y1) continue; // skip horizontal edges
+
+		const minY = Math.min(y0, y1);
+		const maxY = Math.max(y0, y1);
+
+		for (let y = minY; y <= maxY; y++) {
+			if (y < 0 || y >= height) continue;
+			const xIntersect = Math.round(x0 + ((x1 - x0) * (y - y0)) / (y1 - y0));
+			for (let x = Math.max(0, xIntersect); x < width; x++) {
+				mask[y * width + x] = mask[y * width + x] ? 0 : 1;
+			}
+		}
+	}
+}
+
+/**
+ * Convert polygon points to an RLE-encoded mask.
+ *
+ * @param points Array of {x, y} points defining the polygon outline.
+ * @param size The mask dimensions as [height, width].
+ * @returns An RLEType object representing the filled polygon.
+ */
+function polygonToRle(points: { x: number; y: number }[], size: [number, number]): RLEType {
+	const mask = new Uint8Array(size[0] * size[1]);
+	fillPolygon(mask, size, points);
+	return maskToRle(mask, size);
+}
+
+/**
+ * Compute the centroid and bounding box from polygon points.
+ *
+ * @param points Array of {x, y} points.
+ * @returns Object containing centroid [x, y] and bounding box [minX, minY, maxX, maxY].
+ */
+function getPolygonInfo(points: { x: number; y: number }[]): {
+	centroid: [number, number];
+	bbox: [number, number, number, number];
+} {
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	let sumX = 0;
+	let sumY = 0;
+
+	for (const p of points) {
+		sumX += p.x;
+		sumY += p.y;
+		if (p.x < minX) minX = p.x;
+		if (p.y < minY) minY = p.y;
+		if (p.x > maxX) maxX = p.x;
+		if (p.y > maxY) maxY = p.y;
+	}
+
+	return {
+		centroid: [
+			Math.round((sumX / points.length) * 10) / 10,
+			Math.round((sumY / points.length) * 10) / 10
+		],
+		bbox: [Math.round(minX), Math.round(minY), Math.round(maxX), Math.round(maxY)]
+	};
+}
+
+/**
  * Converts a text input into a TrackType list.
  *
- * @param input - The input text to be converted.
+ * @param input - The input text to be converted. Expects a TSV with columns: POS, F, CELLNUM, X, Y.
  * @returns A Promise resolving to a TrackType list.
  */
-export async function textToTracks(input: string): Promise<TrackType[]> {
+export function textToTracks(input: string): TrackType[] {
 	// Check if expected labels are present, and find their indices
-	const firstLine = input.substring(0, input.indexOf('\n')).trim();
+	const firstLine = input.substring(0, input.indexOf('\n'));
 	const expectedLabels = ['pos', 'f', 'cellnum', 'x', 'y'];
 	const labels: { [key: string]: number } = {};
-	firstLine.split('\t').forEach((item, index) => (labels[item.toLowerCase()] = index));
-
-	if (expectedLabels.some((item) => !Object.keys(labels).includes(item)))
+	firstLine
+		.trim()
+		.split('\t')
+		.forEach((item, index) => {
+			labels[item.toLowerCase()] = index;
+		});
+	if (!expectedLabels.every((item) => Object.keys(labels).includes(item))) {
 		throw new Error(get(_)('unexpected_file_format') + expectedLabels.join('\t'));
+	}
 
-	let previousPos: number | null = null;
-	const tracks: TrackType[] = [];
+	// Parse each line into raw entries
+	interface RawEntry {
+		pos: number;
+		frame: number;
+		cellId: number;
+		x: number;
+		y: number;
+	}
+	const entries: RawEntry[] = [];
 
 	let lineStartIndex = firstLine.length + 1;
 	for (
@@ -202,47 +304,113 @@ export async function textToTracks(input: string): Promise<TrackType[]> {
 		newlineIndex != -1;
 		newlineIndex = input.indexOf('\n', lineStartIndex)
 	) {
-		// Get line
 		const substr = input.substring(lineStartIndex, newlineIndex);
 		lineStartIndex = newlineIndex + 1;
 		const line = substr.split('\t');
 
-		// Check for POS consistency
-		const currentPos = parseInt(line[labels['pos']]);
-		if (previousPos === null) previousPos = currentPos;
-		if (previousPos !== currentPos) {
-			// TODO make a notice to the user
-			console.warn('POS value changes over time. Look into this one.');
-			previousPos = currentPos;
-		}
+		if (line.length <= labels['y']) continue;
 
-		// Check if frame exists
-		const frameId = parseInt(line[labels['f']]);
-		let frameIndex = data.originalFrames.findIndex((frame) => frame.id === frameId);
-		if (frameIndex == -1) frameIndex = data.originalFrames.push({ id: frameId, cells: [] }) - 1;
-
-		// Check if cell exists
-		const cellID = parseInt(line[labels['cellnum']]);
-		let cellIndex = data.originalFrames[frameIndex].cells.findIndex(
-			(cell) => cell.id === cellID
-		);
-
-		// If doesn't exist yet, create a cell with a single empty body
-		if (cellIndex == -1)
-			cellIndex =
-				data.originalFrames[frameIndex].cells.push({
-					id: cellID,
-					bodies: [{ x: [], y: [] }]
-				}) - 1;
-
-		// Add coordinates
-		data.originalFrames[frameIndex].cells[cellIndex].bodies[0].x.push(
-			parseFloat(line[labels['x']])
-		);
-		data.originalFrames[frameIndex].cells[cellIndex].bodies[0].y.push(
-			parseFloat(line[labels['y']])
-		);
+		entries.push({
+			pos: Number.parseInt(line[labels['pos']]),
+			frame: Number.parseInt(line[labels['f']]),
+			cellId: Number.parseInt(line[labels['cellnum']]),
+			x: Number.parseFloat(line[labels['x']]),
+			y: Number.parseFloat(line[labels['y']])
+		});
 	}
+
+	// Group entries by (frame, cellId)
+	const groups: {
+		[frameCell: string]: { frame: number; cellId: number; xs: number[]; ys: number[] };
+	} = {};
+
+	for (const entry of entries) {
+		const key = `${entry.frame}_${entry.cellId}`;
+		if (!groups[key]) {
+			groups[key] = { frame: entry.frame, cellId: entry.cellId, xs: [], ys: [] };
+		}
+		groups[key].xs.push(entry.x);
+		groups[key].ys.push(entry.y);
+	}
+
+	// Convert each group to a TrackType
+	const tracks: TrackType[] = [];
+	let trackId = 1;
+
+	const defaultSize: [number, number] = [512, 512];
+
+	for (const key of Object.keys(groups)) {
+		const group = groups[key];
+
+		// Build polygon points from the coordinate arrays
+		const points = group.xs.map((x, i) => ({ x, y: group.ys[i] }));
+
+		// Convert polygon outline to RLE-encoded segmentation mask
+		const rle = polygonToRle(points, defaultSize);
+
+		// Compute centroid and bounding box
+		const { centroid, bbox } = getPolygonInfo(points);
+
+		tracks.push({
+			Frame: group.frame,
+			ObjectID: String(group.cellId).padStart(8, '0'),
+			SegmentationRLE: rle,
+			LocalTrackRLE: [],
+			Centroid: centroid,
+			SegBbox: bbox,
+			TrackBbox: [...bbox] as [number, number, number, number],
+			PrevID: null,
+			NextID: null,
+			TrackID: trackId++,
+			Interpolated: false
+		});
+	}
+
+	return tracks;
+}
+
+/**
+ * Converts a TrackType list into a formatted text representation.
+ *
+ * @param tracks - The TrackType list to convert.
+ * @param pos - The position value (default: 0).
+ * @returns The formatted text representation.
+ */
+export function tracksToText(tracks: TrackType[], pos: number = 0): string {
+	// Sort tracks by Frame ascending, then by ObjectID ascending
+	const sortedTracks = [...tracks].sort((a, b) => {
+		if (a.Frame !== b.Frame) {
+			return a.Frame - b.Frame;
+		}
+		const idA = Number.parseInt(a.ObjectID, 10);
+		const idB = Number.parseInt(b.ObjectID, 10);
+		if (Number.isNaN(idA) || Number.isNaN(idB)) {
+			return a.ObjectID.localeCompare(b.ObjectID);
+		}
+		return idA - idB;
+	});
+
+	let text = 'POS\tF\tCELLNUM\tX\tY\n';
+
+	for (const track of sortedTracks) {
+		const polygons = rleToPolygons(track.SegmentationRLE);
+		if (polygons.length === 0) continue;
+
+		// Use the first polygon representing the cell outline
+		const polygon = polygons[0];
+		const parsedId = Number.parseInt(track.ObjectID, 10);
+		const cellId = Number.isNaN(parsedId) ? track.ObjectID : parsedId;
+
+		for (const point of polygon) {
+			// limit x and y values to 1 decimal place
+			const limX = Math.round(point.x * 10) / 10;
+			const limY = Math.round(point.y * 10) / 10;
+
+			text += `${pos}\t${track.Frame}\t${cellId}\t${limX}\t${limY}\n`;
+		}
+	}
+
+	return text;
 }
 
 /**
