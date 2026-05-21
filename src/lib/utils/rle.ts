@@ -1,4 +1,6 @@
 import type { RLEType } from '$lib/types/annotation.type';
+import { getMax, getMin } from './data.svelte';
+import type { Polygon } from '$lib/types/geometry.type';
 
 function countsToString(counts: number[]) {
 	// Similar to LEB128 but using 6 bits/char and ASCII chars 48-111.
@@ -73,14 +75,22 @@ export function rleToMask(rle: RLEType) {
 	let index = 0;
 	let value = 0;
 
-	for (let j = 0; j < counts.length; j++) {
-		for (let k = 0; k < counts[j]; k++) {
+	for (const count of counts) {
+		for (let k = 0; k < count; k++) {
 			mask[index++] = value;
 		}
 		value = 1 - value; // Toggle value
 	}
 
-	return mask;
+	// Swap x and y (flip the image along its diagonal)
+	const swappedMask = new Uint8Array(mask.length);
+	for (let y = 0; y < rle.size[0]; y++) {
+		for (let x = 0; x < rle.size[1]; x++) {
+			swappedMask[y * rle.size[1] + x] = mask[x * rle.size[0] + y];
+		}
+	}
+
+	return swappedMask;
 }
 
 /**
@@ -113,62 +123,56 @@ export function maskToRle(mask: Uint8Array, size: [number, number]) {
 	};
 }
 
-type Point = { x: number; y: number };
-type Polygon = Point[];
-
 export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygon[] {
-	const visited = new Array(mask.length).fill(false);
+	const height = size[0];
+	const width = size[1];
+	const visited = new Uint8Array(mask.length);
 	const polygons: Polygon[] = [];
 
 	// Directions for 8-connectivity in clockwise order
-	const directions = [
-		{ dx: 1, dy: 0 }, // Right
-		{ dx: 1, dy: 1 }, // Down-Right
-		{ dx: 0, dy: 1 }, // Down
-		{ dx: -1, dy: 1 }, // Down-Left
-		{ dx: -1, dy: 0 }, // Left
-		{ dx: -1, dy: -1 }, // Up-Left
-		{ dx: 0, dy: -1 }, // Up
-		{ dx: 1, dy: -1 } // Up-Right
-	];
-
-	const getIndex = (x: number, y: number) => y * size[1] + x;
-
-	const isInside = (x: number, y: number) =>
-		x >= 0 && x < size[1] && y >= 0 && y < size[0] && mask[getIndex(x, y)] === 1;
+	const dx = [1, 1, 0, -1, -1, -1, 0, 1];
+	const dy = [0, 1, 1, 1, 0, -1, -1, -1];
 
 	function followBoundary(startX: number, startY: number): Polygon {
 		const polygon: Polygon = [];
 		let x = startX;
 		let y = startY;
 		let directionIndex = 0;
-		console.debug('startX', startX, 'startY', startY);
 
 		let foundNext = false;
 		do {
 			polygon.push({ x, y });
-			visited[getIndex(x, y)] = true;
+			visited[y * width + x] = 1;
 
 			foundNext = false;
 			for (let i = 0; i < 8; i++) {
-				const dir = directions[(directionIndex + i) % 8];
-				const nx = x + dir.dx;
-				const ny = y + dir.dy;
+				let nextDirectionIndex = directionIndex + i;
+				if (nextDirectionIndex >= 8) nextDirectionIndex -= 8;
+				const nx = x + dx[nextDirectionIndex];
+				const ny = y + dy[nextDirectionIndex];
 
-				if (isInside(nx, ny) && !visited[getIndex(nx, ny)]) {
+				if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+				const nextIndex = ny * width + nx;
+				if (mask[nextIndex] === 1 && visited[nextIndex] === 0) {
 					x = nx;
 					y = ny;
-					directionIndex = (directionIndex + i) % 8; // Update direction index
+					directionIndex = nextDirectionIndex;
 					foundNext = true;
 					break;
 				}
 			}
 
 			// Check if we've returned to the start or its neighborhood
-			if (polygon.length > 2 && Math.abs(x - startX) <= 1 && Math.abs(y - startY) <= 1) {
+			if (
+				polygon.length > 2 &&
+				x - startX <= 1 &&
+				x - startX >= -1 &&
+				y - startY <= 1 &&
+				y - startY >= -1
+			) {
 				if (x !== startX || y !== startY) {
 					polygon.push({ x, y });
-					visited[getIndex(x, y)] = true;
+					visited[y * width + x] = 1;
 				}
 				break;
 			}
@@ -179,21 +183,27 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 			const p1 = polygon[i];
 			const p2 = polygon[(i + 1) % polygon.length];
 
-			const yMin = Math.min(p1.y, p2.y);
-			const yMax = Math.max(p1.y, p2.y);
+			let yMin = p1.y;
+			let yMax = p2.y;
+			if (yMin > yMax) {
+				const temp = yMin;
+				yMin = yMax;
+				yMax = temp;
+			}
 
 			for (let y = yMin; y <= yMax; y++) {
-				visited[getIndex(p1.x, y)] = true;
+				visited[y * width + p1.x] = 1;
 			}
 		}
 
 		return polygon;
 	}
 
-	for (let y = 0; y < size[0]; y++) {
-		for (let x = 0; x < size[1]; x++) {
-			const index = getIndex(x, y);
-			if (mask[index] === 1 && !visited[index]) {
+	for (let y = 0; y < height; y++) {
+		const rowStart = y * width;
+		for (let x = 0; x < width; x++) {
+			const index = rowStart + x;
+			if (mask[index] === 1 && visited[index] === 0) {
 				const polygon = followBoundary(x, y);
 				if (polygon.length > 0) polygons.push(polygon);
 			}
@@ -201,6 +211,17 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 	}
 
 	return polygons;
+}
+
+export function getPolygonSize(polygon: Polygon) {
+	return (
+		(getMax(polygon.map((p) => p.x)) - getMin(polygon.map((p) => p.x))) *
+		(getMax(polygon.map((p) => p.y)) - getMin(polygon.map((p) => p.y)))
+	);
+}
+
+export function rleToPolygons(rle: RLEType) {
+	return maskToPolygons(rleToMask(rle), rle.size);
 }
 
 const mask = [
@@ -212,5 +233,5 @@ const mask = [
 const height = 4;
 const width = 4;
 
-const polygons = maskToPolygons(new Uint8Array(mask.flatMap((x) => x)), [height, width]);
+const polygons = maskToPolygons(new Uint8Array(mask.flat()), [height, width]);
 console.debug('polygons', polygons);
