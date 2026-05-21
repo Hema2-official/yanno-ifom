@@ -81,7 +81,6 @@
 		</p>
 	</div>
 {:else}
-	<TopBar />
 	<div class="flex flex-row items-start justify-start flex-1 w-full">
 		<SideBar />
 		<div class="flex flex-col items-center h-full flex-1 order-2">
@@ -89,13 +88,3 @@
 		</div>
 	</div>
 {/if}
-
-<!-- {#if $data && $blob_pngs.length > 0}
-	<TopBar />
-	<div class="flex flex-row items-start justify-start flex-1 w-full">
-		<SideBar />
-		<div class="flex flex-col items-center h-full flex-1 order-2">
-			<Display />
-		</div>
-	</div>
-{/if} -->
