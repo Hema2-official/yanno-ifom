@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { isSvgShown, svgAlpha, svgScalePercent, svgViewBox } from '$lib/stores/svg';
-	import { minScale, maxScale, scrollMultiplier } from '$lib/stores/zoom';
+	import { svgState } from '$lib/states/svg.svelte';
+	import { zoomState } from '$lib/states/zoom.svelte';
 	import { blob_pngs } from '$lib/stores/images';
 	import {
 		annotation,
@@ -9,7 +9,7 @@
 		displayFrames
 	} from '$lib/stores/data';
 	import { hoverElementsShown, isEditing } from '$lib/stores/editor';
-	import { pointerLockEnabled } from '$lib/stores/options';
+	import { optionsState } from '$lib/states/options.svelte';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
 	import {
@@ -56,7 +56,7 @@
 	});
 
 	$effect(() => {
-		$svgScalePercent = styles['scale-percent'];
+		svgState.svgScalePercent = styles['scale-percent'];
 	});
 
 	const stylesUnits: { [key: string]: number | string } = {
@@ -99,8 +99,8 @@
 		if (!pressedKeys.has('Control')) return;
 
 		// check if zooming makes sense
-		if (styles['scale-percent'] === $minScale && e.deltaY > 0) return;
-		if (styles['scale-percent'] === $maxScale && e.deltaY < 0) return;
+		if (styles['scale-percent'] === zoomState.minScale && e.deltaY > 0) return;
+		if (styles['scale-percent'] === zoomState.maxScale && e.deltaY < 0) return;
 
 		// hide context menu
 		contextMenuOpen = false;
@@ -111,10 +111,10 @@
 		// adjust zoom (the bigger the scale, the faster the zoom)
 		const oldScalePercent = styles['scale-percent'];
 		styles['scale-percent'] = Math.max(
-			$minScale,
+			zoomState.minScale,
 			Math.min(
-				$maxScale,
-				$scrollMultiplier * e.deltaY * -0.001 * styles['scale-percent'] +
+				zoomState.maxScale,
+				zoomState.scrollMultiplier * e.deltaY * -0.001 * styles['scale-percent'] +
 					styles['scale-percent']
 			)
 		);
@@ -138,7 +138,7 @@
 		},
 		mouseDown: (e: MouseEvent) => {
 			if (!imageWrapperElement || !isDown(Mouse.Primary, e.buttons)) return;
-			if ($pointerLockEnabled) {
+			if (optionsState.pointerLockEnabled) {
 				imageWrapperElement.requestPointerLock();
 				imageMouse.first = true;
 			} else imageMouse.setPos(getPointerCoords(e));
@@ -150,7 +150,7 @@
 			// if (editorComponent?.mouse.down) return editorComponent.mouse.mouseUp(e);
 
 			if (!isUp(Mouse.Primary, e.buttons)) return;
-			if ($pointerLockEnabled) document.exitPointerLock();
+			if (optionsState.pointerLockEnabled) document.exitPointerLock();
 			imageMouse.down = false;
 			styles['cursor'] = 'grab';
 		},
@@ -166,8 +166,8 @@
 			// if (editorComponent?.mouse.down) return editorComponent.mouse.mouseMove(e);
 
 			if (!imageMouse.down) return;
-			if (styles['scale-percent'] === $minScale) return;
-			if ($pointerLockEnabled) return imageMouse.mouseMoveLocked(e);
+			if (styles['scale-percent'] === zoomState.minScale) return;
+			if (optionsState.pointerLockEnabled) return imageMouse.mouseMoveLocked(e);
 
 			// find mouse pos
 			const mouse = getPointerCoords(e);
@@ -252,13 +252,14 @@
 		<img src={URL.createObjectURL($blob_pngs[$currentFrameId - 1])} alt="" class="zoomable" />
 
 		<svg
-			viewBox="{$svgViewBox.minX} {$svgViewBox.minY} {$svgViewBox.width} {$svgViewBox.height}"
+			viewBox="{svgState.svgViewBox.minX} {svgState.svgViewBox.minY} {svgState.svgViewBox
+				.width} {svgState.svgViewBox.height}"
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
 			class="zoomable annotation-svg"
 			oncontextmenu={(e) => e.preventDefault()}
 			bind:this={svgElement}
-			opacity={$isSvgShown ? $svgAlpha / 255 : 0}
+			opacity={svgState.isSvgShown ? svgState.svgAlpha / 255 : 0}
 		>
 			<!-- <image
 				xlink:href={URL.createObjectURL($blob_pngs[$currentFrameId - 1])}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { isSvgShown } from '$lib/stores/svg';
-	import { redoChange, saveToServer, undoChange } from '$lib/stores/data';
+	import { svgState } from '$lib/states/svg.svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -43,7 +42,7 @@
 				e.stopPropagation();
 
 				// Hide annotation
-				$isSvgShown = false;
+				svgState.isSvgShown = false;
 			}
 		};
 
@@ -53,7 +52,7 @@
 				e.stopPropagation();
 
 				// Show annotation
-				$isSvgShown = true;
+				svgState.isSvgShown = true;
 			}
 		};
 

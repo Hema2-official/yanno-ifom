@@ -6,7 +6,7 @@
 	import WholeTool from '../EditorTools/WholeTool.svelte';
 	import SmoothTool from '../EditorTools/SmoothTool.svelte';
 	import { displayMouseUpHandler } from '$lib/stores/input';
-	import { autoResample } from '$lib/stores/options';
+	import { optionsState } from '$lib/states/options.svelte';
 
 	let editorControlsWrapperElement: HTMLElement;
 
@@ -57,8 +57,8 @@
 		</div>
 		<button
 			title={$_('auto_resample')}
-			class:selected={$autoResample}
-			onclick={() => ($autoResample = !$autoResample)}>R</button
+			class:selected={optionsState.autoResample}
+			onclick={() => (optionsState.autoResample = !optionsState.autoResample)}>R</button
 		>
 	</div>
 	<div class="right">

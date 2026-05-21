@@ -4,7 +4,7 @@
 		displayMouseMoveHandler,
 		displayMouseUpHandler
 	} from '$lib/stores/input';
-	import { svgScalePercent } from '$lib/stores/svg';
+	import { svgState } from '$lib/states/svg.svelte';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { P } from '$lib/utils/pattern';
 	import type { EditorToolProps } from './types';
@@ -90,7 +90,7 @@
 	{#each $bodies as body, bodyIndex}
 		<g>
 			{#each body as point, i}
-				{@const halfSize = 200 / $svgScalePercent}
+				{@const halfSize = 200 / svgState.svgScalePercent}
 				<rect
 					id="hdl{bodyIndex}_{i}"
 					x={point.x - halfSize}

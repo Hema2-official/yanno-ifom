@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { pressedKeys } from '$lib/stores/input';
-	import { svgFill, svgFillSwitch, svgStroke, svgStrokeSwitch } from '$lib/stores/svg';
+	import { svgState } from '$lib/states/svg.svelte';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import { cellBodyToPath } from '$lib/utils/display';
 	import type { Polygon } from '$lib/utils/geometry';
@@ -28,8 +28,8 @@
 		<path
 			id="cell{cell.id}-body{index}"
 			d={cellBodyToPath(body as unknown as Polygon)}
-			fill={$svgFillSwitch ? $svgFill : 'transparent'}
-			stroke={$svgStrokeSwitch ? $svgStroke : 'none'}
+			fill={svgState.svgFillSwitch ? svgState.svgFill : 'transparent'}
+			stroke={svgState.svgStrokeSwitch ? svgState.svgStroke : 'none'}
 			stroke-width="2px"
 		/>
 	{/each}
