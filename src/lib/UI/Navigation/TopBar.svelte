@@ -10,7 +10,7 @@
 		LogOutIcon,
 		SettingsIcon,
 		UserPenIcon
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import LogoSVG from '$lib/UI/Common/LogoSVG.svelte';
 	import type { Snippet } from 'svelte';
 	import { Button } from '$lib/components/ui/button';

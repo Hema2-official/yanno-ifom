@@ -19,7 +19,7 @@
 	import { optionsState } from '$lib/states/options.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { CloudIcon, CloudSyncIcon } from 'lucide-svelte';
+	import { CloudIcon, CloudSyncIcon } from '@lucide/svelte';
 	import type { NewCellType } from '$lib/types/annotation.type';
 	import { dataTypeToText, download } from '$lib/utils/data.svelte';
 
