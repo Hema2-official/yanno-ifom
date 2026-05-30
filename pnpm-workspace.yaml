@@ -1,0 +1,4 @@
+minimumReleaseAgeExclude:
+  - esbuild@0.24.3
+  - cookie@0.7.0
+  - jsondiffpatch@0.7.2
