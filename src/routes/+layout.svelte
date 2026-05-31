@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import type { Snippet } from 'svelte';
 	import { accountState } from '$lib/states/AccountState.svelte';
+	import { registerFrameServiceWorker } from '$lib/workers/frameServiceWorker';
 
 	import { addMessages, init } from 'svelte-i18n';
 	import en from '$lib/lang/en.json';
@@ -22,6 +23,8 @@
 	});
 
 	onMount(() => {
+		registerFrameServiceWorker();
+
 		getMe()
 			.then((me) => {
 				accountState.currentAccount = me;
