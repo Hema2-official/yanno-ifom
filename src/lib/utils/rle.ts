@@ -1,5 +1,4 @@
 import type { RLEType } from '$lib/types/annotation.type';
-import { getMax, getMin } from './data.svelte';
 import type { Polygon } from '$lib/types/geometry.type';
 
 function countsToString(counts: number[]) {
@@ -25,42 +24,42 @@ function countsToString(counts: number[]) {
 }
 
 function stringToCounts(source: string) {
-	let m = 0; // Temporary count for number of characters in `s`
-	let p = 0; // Current position in the string `s`
-	const counts: number[] = []; // Array to hold decoded values
+	const m = source.length;
+	let p = 0; // Current position in the string
 
-	// Calculate the length of the string
-	m = source.length;
+	const counts = new Int32Array(m);
+	let countsLen = 0;
 
 	// Decode the run-length encoding
 	while (p < m) {
 		let x = 0; // Current decoded value
-		let k = 0; // Position of the 5-bit block
+		let shift = 0; // Bit offset for the current 5-bit block
 		let more = true;
 
 		while (more) {
 			const c = source.charCodeAt(p) - 48; // Convert ASCII to integer
-			x |= (c & 0x1f) << (5 * k); // Append the 5-bit block
+			x |= (c & 0x1f) << shift; // Append the 5-bit block
 			more = (c & 0x20) !== 0; // Check if the continuation bit is set
 			p++;
-			k++;
+			shift += 5;
 
 			if (!more && c & 0x10) {
 				// If the sign bit is set, extend the sign
-				x |= -1 << (5 * k);
+				x |= -1 << shift;
 			}
 		}
 
 		// Adjust value based on previous counts
-		if (counts.length > 2) {
-			x += counts[counts.length - 2];
+		if (countsLen > 2) {
+			x += counts[countsLen - 2];
 		}
 
 		// Store the decoded value
-		counts.push(x);
+		counts[countsLen++] = x;
 	}
 
-	return counts;
+	// Return a view over the filled portion (no copy)
+	return counts.subarray(0, countsLen);
 }
 
 /**
@@ -70,27 +69,41 @@ function stringToCounts(source: string) {
 export function rleToMask(rle: RLEType) {
 	const counts = stringToCounts(rle.counts);
 
-	const mask = new Uint8Array(rle.size[0] * rle.size[1]);
+	const rows = rle.size[0];
+	const cols = rle.size[1];
+	const result = new Uint8Array(rows * cols);
 
-	let index = 0;
-	let value = 0;
+	let pos = 0; // linear position in column-major order
+	let value = 0; // current RLE value (alternates 0/1, starts at 0)
 
 	for (const count of counts) {
-		for (let k = 0; k < count; k++) {
-			mask[index++] = value;
+		if (value === 1) {
+			// Only write 1s — 0s are already the default in the Uint8Array
+			const end = pos + count;
+			let col = Math.trunc(pos / rows);
+			let row = pos - col * rows; // pos % rows without modulo
+			// Track output index incrementally to avoid a multiply per pixel
+			let outIdx = row * cols + col;
+
+			for (let j = pos; j < end; j++) {
+				result[outIdx] = 1;
+				row++;
+				outIdx += cols; // next row in row-major = +cols
+				if (row >= rows) {
+					row = 0;
+					col++;
+					outIdx = col; // row=0, so outIdx = 0*cols + col = col
+				}
+			}
+			pos = end;
+		} else {
+			pos += count;
 		}
+
 		value = 1 - value; // Toggle value
 	}
 
-	// Swap x and y (flip the image along its diagonal)
-	const swappedMask = new Uint8Array(mask.length);
-	for (let y = 0; y < rle.size[0]; y++) {
-		for (let x = 0; x < rle.size[1]; x++) {
-			swappedMask[y * rle.size[1] + x] = mask[x * rle.size[0] + y];
-		}
-	}
-
-	return swappedMask;
+	return result;
 }
 
 /**
@@ -214,10 +227,17 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 }
 
 export function getPolygonSize(polygon: Polygon) {
-	return (
-		(getMax(polygon.map((p) => p.x)) - getMin(polygon.map((p) => p.x))) *
-		(getMax(polygon.map((p) => p.y)) - getMin(polygon.map((p) => p.y)))
-	);
+	let minX = Infinity;
+	let maxX = -Infinity;
+	let minY = Infinity;
+	let maxY = -Infinity;
+	for (const p of polygon) {
+		if (p.x < minX) minX = p.x;
+		if (p.x > maxX) maxX = p.x;
+		if (p.y < minY) minY = p.y;
+		if (p.y > maxY) maxY = p.y;
+	}
+	return (maxX - minX) * (maxY - minY);
 }
 
 export function rleToPolygons(rle: RLEType) {
