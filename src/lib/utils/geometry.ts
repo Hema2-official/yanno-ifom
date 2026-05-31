@@ -1,84 +1,90 @@
-import { resampleSegmentLength } from '$lib/stores/options';
-import type { CellBodyType } from '$lib/types/annotation.type';
-import { get } from 'svelte/store';
-
-// export const interpolateCellBody = (body: CellBodyType, points: number): CellBodyType => {
-// 	// const spline = new Spline(body.x, body.y);
-// 	const splineX = new Spline(body.x, body.x);
-// 	const splineY = new Spline(body.x, body.y);
-
-// 	const interpolatedX: number[] = [];
-// 	const interpolatedY: number[] = [];
-
-// 	for (let i = 0; i < points; i++) {
-// 		const t = (i / (points - 1)) * (body.x.length - 1);
-// 		interpolatedX.push(splineX.at(t));
-// 		interpolatedY.push(splineY.at(t));
-// 	}
-
-// 	return { x: interpolatedX, y: interpolatedY };
-
-// 	// const newX = Array.from({ length: points }, (_, i) => i);
-// 	// const newY = newX.map((x) => spline.at(x));
-// 	// return { x: newX, y: newY };
-// };
+import type { Point, Polygon } from '$lib/types/geometry.type';
 
 function distance(x1: number, y1: number, x2: number, y2: number): number {
 	return Math.hypot(x2 - x1, y2 - y1);
 }
 
-export function resampleCellBody(body: CellBodyType, segmentLength: number): CellBodyType {
-	const pointsLength = body.x.length;
-	// let totalLength = 0;
+export function resampleCellBody(body: Polygon, segmentLength: number): Polygon {
+	const pointsLength = body.length;
 
-	// for (let i = 1; i < pointsLength; i++) {
-	// 	totalLength += distance(body.x[i - 1], body.y[i - 1], body.x[i], body.y[i]);
-	// }
-	// totalLength += distance(
-	// 	body.x[pointsLength - 1],
-	// 	body.y[pointsLength - 1],
-	// 	body.x[0],
-	// 	body.y[0]
-	// ); // Add distance between last and first point
-
-	const resampledX: number[] = [body.x[0]];
-	const resampledY: number[] = [body.y[0]];
+	const resampled: Polygon = [body[0]];
 
 	let currentDistance = 0;
 	for (let i = 1; i < pointsLength; i++) {
-		const x1 = body.x[i - 1];
-		const y1 = body.y[i - 1];
-		const x2 = body.x[i];
-		const y2 = body.y[i];
+		const x1 = body[i - 1].x;
+		const y1 = body[i - 1].y;
+		const x2 = body[i].x;
+		const y2 = body[i].y;
 		const segmentDist = distance(x1, y1, x2, y2);
 
 		while (currentDistance + segmentDist >= segmentLength) {
 			const t = (segmentLength - currentDistance) / segmentDist;
-			resampledX.push(x1 + t * (x2 - x1));
-			resampledY.push(y1 + t * (y2 - y1));
+			resampled.push({ x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) });
 			currentDistance -= segmentLength;
 		}
 		currentDistance += segmentDist;
 	}
 
 	// Resample between last and first point
-	const x1 = body.x[pointsLength - 1];
-	const y1 = body.y[pointsLength - 1];
-	const x2 = body.x[0];
-	const y2 = body.y[0];
+	const x1 = body[pointsLength - 1].x;
+	const y1 = body[pointsLength - 1].y;
+	const x2 = body[0].x;
+	const y2 = body[0].y;
 	const segmentDist = distance(x1, y1, x2, y2);
 
 	while (currentDistance + segmentDist >= segmentLength) {
 		const t = (segmentLength - currentDistance) / segmentDist;
-		resampledX.push(x1 + t * (x2 - x1));
-		resampledY.push(y1 + t * (y2 - y1));
+		resampled.push({ x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) });
 		currentDistance -= segmentLength;
 	}
-	currentDistance += segmentDist;
 
-	return { x: resampledX, y: resampledY };
+	return resampled;
 }
 
-export function resampleCellBodies(bodies: CellBodyType[]): CellBodyType[] {
-	return bodies.map((body) => resampleCellBody(body, get(resampleSegmentLength)));
+export function resampleCellBodies(bodies: Polygon[], segmentLength: number): Polygon[] {
+	return bodies.map((body) => resampleCellBody(body, segmentLength));
+}
+
+export function getCenterOfPolygon(polygon: Polygon): Point {
+	let minX = Infinity;
+	let maxX = -Infinity;
+	let minY = Infinity;
+	let maxY = -Infinity;
+
+	for (const point of polygon) {
+		if (point.x < minX) minX = point.x;
+		if (point.x > maxX) maxX = point.x;
+		if (point.y < minY) minY = point.y;
+		if (point.y > maxY) maxY = point.y;
+	}
+
+	if (!Number.isFinite(minX) || !Number.isFinite(minY)) return { x: 0, y: 0 };
+
+	return {
+		x: (minX + maxX) / 2,
+		y: (minY + maxY) / 2
+	};
+}
+
+export function getCenterOfPolygons(polygons: Polygon[]): Point {
+	let minX = Infinity;
+	let maxX = -Infinity;
+	let minY = Infinity;
+	let maxY = -Infinity;
+
+	for (const polygon of polygons) {
+		for (const point of polygon) {
+			if (point.x < minX) minX = point.x;
+			if (point.x > maxX) maxX = point.x;
+			if (point.y < minY) minY = point.y;
+			if (point.y > maxY) maxY = point.y;
+		}
+	}
+
+	if (!Number.isFinite(minX) || !Number.isFinite(minY)) return { x: 0, y: 0 };
+
+	return {
+		x: (minX + maxX) / 2,
+		y: (minY + maxY) / 2
+	};
 }

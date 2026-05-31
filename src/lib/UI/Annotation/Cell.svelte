@@ -1,33 +1,28 @@
 <script lang="ts">
 	import { pressedKeys } from '$lib/stores/input';
 	import { svgState } from '$lib/states/svg.svelte';
-	import type { NewCellType } from '$lib/types/annotation.type';
 	import { cellBodyToPath } from '$lib/utils/display';
-	import type { Polygon } from '$lib/utils/geometry';
+	import { getCenterOfPolygons } from '$lib/utils/geometry';
+	import type { MouseEventHandler } from 'svelte/elements';
+	import type { Point, Polygon } from '$lib/types/geometry.type';
 
-	let { cell }: { cell: NewCellType } = $props();
+	type Props = {
+		cellPolygons: Polygon[];
+		cellId: string;
+		onContextMenu: MouseEventHandler<SVGElement>;
+	};
 
-	let center: { x: number; y: number } | undefined = $derived(
-		cell.bodies.length > 0
-			? {
-					x:
-						(Math.min(...cell.bodies.map((body) => Math.min(...body.x))) +
-							Math.max(...cell.bodies.map((body) => Math.max(...body.x)))) /
-						2,
-					y:
-						(Math.min(...cell.bodies.map((body) => Math.min(...body.y))) +
-							Math.max(...cell.bodies.map((body) => Math.max(...body.y)))) /
-						2
-				}
-			: undefined
-	);
+	let { cellPolygons, cellId, onContextMenu }: Props = $props();
+
+	let center: Point = $derived(getCenterOfPolygons(cellPolygons));
 </script>
 
-<g id="cell{cell.id}">
-	{#each cell.bodies ?? [] as body, index}
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<g id="cell{cellId}" oncontextmenu={onContextMenu}>
+	{#each cellPolygons ?? [] as body, index}
 		<path
-			id="cell{cell.id}-body{index}"
-			d={cellBodyToPath(body as unknown as Polygon)}
+			id="cell{cellId}-body{index}"
+			d={cellBodyToPath(body)}
 			fill={svgState.svgFillSwitch ? svgState.svgFill : 'transparent'}
 			stroke={svgState.svgStrokeSwitch ? svgState.svgStroke : 'none'}
 			stroke-width="2px"
@@ -41,7 +36,7 @@
 	/> -->
 </g>
 
-{#if center && !pressedKeys.has('Shift')}
+{#if !pressedKeys.has('Shift')}
 	<text
 		x={center.x}
 		y={center.y}
@@ -49,7 +44,7 @@
 		dominant-baseline="middle"
 		fill="black"
 		font-size="12px"
-		font-weight="bold">{cell.id}</text
+		font-weight="bold">{cellId}</text
 	>
 {/if}
 
