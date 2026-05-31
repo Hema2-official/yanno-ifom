@@ -169,14 +169,14 @@ export async function getVersionData(
 
 export async function updateVersionData(
 	version: ProjectVersion,
-	data: BlobPart,
+	data: VersionManaged<TrackType[]>,
 	options?: Options
 ) {
 	try {
-		const blob = new Blob([data], { type: 'application/json' });
+		const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
 		const formData = new FormData();
-		formData.append('data', blob, 'data.json');
-		return await http.patch(`api/v0/projects/${version.project_id}/versions/${version.id}`, {
+		formData.append('data', blob);
+		await http.patch(`api/v0/projects/${version.project_id}/versions/${version.id}`, {
 			...options,
 			body: formData
 		});
