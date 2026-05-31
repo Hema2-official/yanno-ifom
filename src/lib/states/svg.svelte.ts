@@ -1,3 +1,5 @@
+import type { ColorMapType } from '$lib/utils/imaging';
+
 export type SvgViewBoxType = {
 	minX: number;
 	minY: number;
@@ -22,6 +24,9 @@ class SvgState {
 		width: 512,
 		height: 512
 	});
+
+	videoColormap: ColorMapType = $state('viridis');
+	videoColormapShades = $state(64);
 }
 
 export const svgState = new SvgState();
