@@ -4,13 +4,14 @@
 		displayMouseMoveHandler,
 		displayMouseUpHandler
 	} from '$lib/stores/input';
-	import { autoResample } from '$lib/stores/options';
-	import { svgScalePercent } from '$lib/stores/svg';
+	import { optionsState } from '$lib/states/options.svelte';
+	import { svgState } from '$lib/states/svg.svelte';
 	import type { Point } from '$lib/types/editor.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBodies } from '$lib/utils/geometry';
 	import { P } from '$lib/utils/pattern';
 	import type { EditorToolProps } from './types';
+	import { getMax, getMin } from '$lib/utils/data.svelte';
 
 	let { bodies, pushLocalState }: EditorToolProps = $props();
 
@@ -49,13 +50,13 @@
 	const color1 = 'white';
 	const color2 = 'gray';
 
-	let minX = $derived(Math.min(...$bodies.map((body) => Math.min(...body.x))));
-	let minY = $derived(Math.min(...$bodies.map((body) => Math.min(...body.y))));
-	let maxX = $derived(Math.max(...$bodies.map((body) => Math.max(...body.x))));
-	let maxY = $derived(Math.max(...$bodies.map((body) => Math.max(...body.y))));
+	let minX = $derived(getMin($bodies.map((body) => getMin(body.map((point) => point.x)))));
+	let minY = $derived(getMin($bodies.map((body) => getMin(body.map((point) => point.y)))));
+	let maxX = $derived(getMax($bodies.map((body) => getMax(body.map((point) => point.x)))));
+	let maxY = $derived(getMax($bodies.map((body) => getMax(body.map((point) => point.y)))));
 	let midX = $derived((minX + maxX) / 2);
 	let midY = $derived((minY + maxY) / 2);
-	let size = $derived(400 / $svgScalePercent);
+	let size = $derived(400 / svgState.svgScalePercent);
 
 	const handleMouseDown = (e: MouseEvent) => {
 		e.preventDefault();
@@ -71,9 +72,9 @@
 			mouseStartPos = getPointerViewBoxCoords(e, svgElement);
 
 			rotateCoeffs = $bodies.map((body) =>
-				body.x.map((x, i) => {
-					const dx = x - midX;
-					const dy = body.y[i] - midY;
+				body.map((point) => {
+					const dx = point.x - midX;
+					const dy = point.y - midY;
 					return {
 						dist: Math.sqrt(dx * dx + dy * dy),
 						angle: Math.atan2(dy, dx)
@@ -90,7 +91,9 @@
 		if (target.id === 'hdl_m') {
 			mouseStartPos = getPointerViewBoxCoords(e, svgElement);
 
-			moveStartPositons = $bodies.map((body) => body.x.map((x, i) => ({ x, y: body.y[i] })));
+			moveStartPositons = $bodies.map((body) =>
+				body.map((point) => ({ x: point.x, y: point.y }))
+			);
 
 			isMoving = true;
 			isMouseDown = true;
@@ -109,19 +112,22 @@
 		};
 
 		resizeCoeffs = $bodies.map((body) =>
-			body.x.map((x, i) => ({
+			body.map((point) => ({
 				x:
 					resizeDirection.x !== 0
-						? ((x - mouseStartPos.x) / width) * resizeDirection.x + 1
+						? ((point.x - mouseStartPos.x) / width) * resizeDirection.x + 1
 						: 0,
 				y:
 					resizeDirection.y !== 0
-						? ((body.y[i] - mouseStartPos.y) / height) * resizeDirection.y + 1
+						? ((point.y - mouseStartPos.y) / height) * resizeDirection.y + 1
 						: 0
 			}))
 		);
 
-		resizeStartPositons = $bodies.map((body) => body.x.map((x, i) => ({ x, y: body.y[i] })));
+		// TODO: just copy
+		resizeStartPositons = $bodies.map((body) =>
+			body.map((point) => ({ x: point.x, y: point.y }))
+		);
 
 		isMouseDown = true;
 	};
@@ -134,7 +140,10 @@
 		isMoving = false;
 		isMouseDown = false;
 
-		if ($autoResample) bodies.update((_bodies) => resampleCellBodies(_bodies));
+		if (optionsState.autoResample)
+			bodies.update((_bodies) =>
+				resampleCellBodies(_bodies, optionsState.resampleSegmentLength)
+			);
 		pushLocalState();
 	};
 
@@ -154,11 +163,11 @@
 
 			bodies.update((_bodies) => {
 				_bodies.forEach((body, bodyIndex) => {
-					body.x.forEach((x, i) => {
-						const coeff = rotateCoeffs[bodyIndex][i];
+					body.forEach((point, pointIndex) => {
+						const coeff = rotateCoeffs[bodyIndex][pointIndex];
 						const angle = coeff.angle + mouseAngle;
-						body.x[i] = midX + Math.cos(angle) * coeff.dist;
-						body.y[i] = midY + Math.sin(angle) * coeff.dist;
+						point.x = midX + Math.cos(angle) * coeff.dist;
+						point.y = midY + Math.sin(angle) * coeff.dist;
 					});
 				});
 				return _bodies;
@@ -169,11 +178,15 @@
 		if (isMoving) {
 			bodies.update((_bodies) => {
 				_bodies.forEach((body, bodyIndex) => {
-					body.x.forEach((x, i) => {
-						body.x[i] =
-							moveStartPositons[bodyIndex][i].x + mouseViewBox.x - mouseStartPos.x;
-						body.y[i] =
-							moveStartPositons[bodyIndex][i].y + mouseViewBox.y - mouseStartPos.y;
+					body.forEach((point, pointIndex) => {
+						point.x =
+							moveStartPositons[bodyIndex][pointIndex].x +
+							mouseViewBox.x -
+							mouseStartPos.x;
+						point.y =
+							moveStartPositons[bodyIndex][pointIndex].y +
+							mouseViewBox.y -
+							mouseStartPos.y;
 					});
 				});
 				return _bodies;
@@ -183,13 +196,13 @@
 
 		bodies.update((_bodies) => {
 			_bodies.forEach((body, bodyIndex) => {
-				body.x.forEach((x, i) => {
-					body.x[i] =
-						resizeStartPositons[bodyIndex][i].x +
-						(mouseViewBox.x - mouseStartPos.x) * resizeCoeffs[bodyIndex][i].x;
-					body.y[i] =
-						resizeStartPositons[bodyIndex][i].y +
-						(mouseViewBox.y - mouseStartPos.y) * resizeCoeffs[bodyIndex][i].y;
+				body.forEach((point, pointIndex) => {
+					point.x =
+						resizeStartPositons[bodyIndex][pointIndex].x +
+						(mouseViewBox.x - mouseStartPos.x) * resizeCoeffs[bodyIndex][pointIndex].x;
+					point.y =
+						resizeStartPositons[bodyIndex][pointIndex].y +
+						(mouseViewBox.y - mouseStartPos.y) * resizeCoeffs[bodyIndex][pointIndex].y;
 				});
 			});
 			return _bodies;

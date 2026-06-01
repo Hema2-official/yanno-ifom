@@ -1,27 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { svgState } from '$lib/states/svg.svelte';
-	import {
-		annotation,
-		currentFrameId,
-		currentProject,
-		currentProjectVersion,
-		displayFrames,
-		pushChange,
-		redoChange,
-		saveToServer,
-		savingIndicator,
-		undoChange
-	} from '$lib/stores/data';
+	import { annotationState } from '$lib/states/AnnotationState.svelte';
+	// import { redoChange, undoChange } from '$lib/stores/data';
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/UI/Navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
 	import { optionsState } from '$lib/states/options.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { CloudIcon, CloudSyncIcon } from '@lucide/svelte';
-	import type { NewCellType } from '$lib/types/annotation.type';
-	import { dataTypeToText, download } from '$lib/utils/data.svelte';
+	import { CloudIcon, CloudOffIcon, CloudSyncIcon } from '@lucide/svelte';
+	import { download, tracksToText } from '$lib/utils/data.svelte';
+	import { projectState } from '$lib/states/ProjectState.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -29,32 +19,23 @@
 		// Global shortcuts
 		// TODO: centralize this and provide configuration
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 's' && e.ctrlKey) {
-				e.preventDefault();
-				e.stopPropagation();
+			// if (e.key === 'z' && e.ctrlKey) {
+			// 	e.preventDefault();
+			// 	e.stopPropagation();
 
-				// Save
-				console.log('Save');
-				saveToServer();
-			}
+			// 	// Undo
+			// 	console.log('Undo');
+			// 	undoChange();
+			// }
 
-			if (e.key === 'z' && e.ctrlKey) {
-				e.preventDefault();
-				e.stopPropagation();
+			// if (e.key === 'y' && e.ctrlKey) {
+			// 	e.preventDefault();
+			// 	e.stopPropagation();
 
-				// Undo
-				console.log('Undo');
-				undoChange();
-			}
-
-			if (e.key === 'y' && e.ctrlKey) {
-				e.preventDefault();
-				e.stopPropagation();
-
-				// Redo
-				console.log('Redo');
-				redoChange();
-			}
+			// 	// Redo
+			// 	console.log('Redo');
+			// 	redoChange();
+			// }
 
 			// hold space to hide annotation
 			if (e.key === ' ') {
@@ -86,42 +67,43 @@
 	});
 
 	const createNewCell = () => {
-		// Find an ID that doesn't exist amongst the $displayFrames' cells
-		const existingCellIds = $displayFrames.flatMap((f) => f.cells.map((c) => c.id));
-		let newCellId = 1;
-		while (existingCellIds.includes(newCellId)) newCellId++;
-
-		// Create a new cell (at center)
-		const newCell: NewCellType = {
-			id: newCellId,
-			bodies: [
-				{
-					x: [256, 258, 260, 258, 256, 254, 252, 254],
-					y: [252, 254, 256, 258, 260, 258, 256, 254]
-				}
-			]
-		};
-
-		// Push a change with the new cell
-		pushChange({
-			time: Date.now(),
-			message: `Add new cell ${newCellId}`,
-			frames: [{ id: $currentFrameId, cells: [newCell] }]
-		});
+		// TODO: implement
+		// // Find an ID that doesn't exist amongst the current frames' cells
+		// const existingCellIds = annotationState.currentFrame?.map((f) => f.ObjectID) ?? [];
+		// let newCellId = 1;
+		// while (existingCellIds.includes(newCellId)) newCellId++;
+		// // Create a new cell (at center)
+		// const newCell: NewCellType = {
+		// 	id: newCellId,
+		// 	bodies: [
+		// 		{
+		// 			x: [256, 258, 260, 258, 256, 254, 252, 254],
+		// 			y: [252, 254, 256, 258, 260, 258, 256, 254]
+		// 		}
+		// 	]
+		// };
+		// // Push a change with the new cell
+		// pushChange({
+		// 	time: Date.now(),
+		// 	message: `Add new cell ${newCellId}`,
+		// 	frames: [{ id: annotationState.currentFrameId, cells: [newCell] }]
+		// });
 	};
 
 	const exportAsJSON = () => {
+		if (!annotationState.data) return;
 		download(
-			JSON.stringify($annotation),
-			$currentProject.name + '_' + $currentProjectVersion.id + '.json',
+			JSON.stringify(annotationState.data),
+			projectState.name + '_' + (projectState.versionName ?? 'local project') + '.json',
 			'application/json'
 		);
 	};
 
 	const exportAsTXT = () => {
+		if (!annotationState.data) return;
 		download(
-			dataTypeToText($annotation),
-			$currentProject.name + '_' + $currentProjectVersion.id + '.txt',
+			tracksToText(annotationState.data.current),
+			projectState.name + '_' + (projectState.versionName ?? 'local project') + '.txt',
 			'text/plain'
 		);
 	};
@@ -134,30 +116,42 @@
 			<Breadcrumb.Item>
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger class="flex items-center gap-1">
-						<Breadcrumb.Link>{$currentProject?.name}</Breadcrumb.Link>
+						<Breadcrumb.Link>{projectState.name}</Breadcrumb.Link>
 					</DropdownMenu.Trigger>
 					<DropdownMenu.Content align="start">
-						{#each $currentProject?.versions ?? [] as projectVersion}
-							<DropdownMenu.Item
-								disabled={projectVersion.id == $currentProjectVersion?.id}
-								onSelect={() => {}}
-								>{projectVersion.name}
-							</DropdownMenu.Item>
-						{/each}
+						{#if projectState.cloudProject}
+							{#each projectState.cloudProject.versions as version}
+								<DropdownMenu.Item
+									disabled={version.id == projectState.cloudVersion?.id}
+									onSelect={() => {
+										// TODO: warn user about unsaved changes, load new version
+									}}
+									>{version.name}
+								</DropdownMenu.Item>
+							{/each}
+						{:else}
+							<DropdownMenu.Item disabled>This is a local project</DropdownMenu.Item>
+						{/if}
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
 			</Breadcrumb.Item>
-			<Breadcrumb.Separator />
+
+			{#if projectState.cloudVersion}
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>{projectState.versionName}</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			{/if}
+
 			<Breadcrumb.Item>
-				<Breadcrumb.Page>{$currentProjectVersion?.name}</Breadcrumb.Page>
-			</Breadcrumb.Item>
-			<Breadcrumb.Item>
-				<!-- TODO: indicate offline editing, etc. -->
-				{#if $savingIndicator}
+				{#if projectState.cloudProject && projectState.isSaving}
 					<CloudSyncIcon size={18} />
 					Saving...
-				{:else}
+				{:else if projectState.cloudProject}
 					<CloudIcon size={18} />
+				{:else}
+					<CloudOffIcon size={18} />
+					<span class="text-muted-foreground">Editing locally</span>
 				{/if}
 			</Breadcrumb.Item>
 		{/snippet}
@@ -173,22 +167,26 @@
 					<Menubar.Item>Open project...</Menubar.Item>
 					<Menubar.Item>Open offline...</Menubar.Item>
 					<Menubar.Separator />
-					<Menubar.Item onSelect={saveToServer}>Save</Menubar.Item>
+					<Menubar.Item>Save</Menubar.Item>
 					<Menubar.Item>Save as...</Menubar.Item>
 					<Menubar.Separator />
-					<Menubar.Item onSelect={exportAsJSON}>Export as JSON</Menubar.Item>
-					<Menubar.Item onSelect={exportAsTXT}>Export as TXT</Menubar.Item>
+					<Menubar.Item onSelect={exportAsJSON} disabled={!annotationState.data}>
+						Export as JSON
+					</Menubar.Item>
+					<Menubar.Item onSelect={exportAsTXT} disabled={!annotationState.data}>
+						Export as TXT
+					</Menubar.Item>
 				</Menubar.Content>
 			</Menubar.Menu>
 			<Menubar.Menu>
 				<Menubar.Trigger>Edit</Menubar.Trigger>
 				<Menubar.Content>
-					<Menubar.Item onSelect={undoChange}>
+					<!-- <Menubar.Item onSelect={undoChange}>
 						Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
 					</Menubar.Item>
 					<Menubar.Item onSelect={redoChange}>
 						Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
-					</Menubar.Item>
+					</Menubar.Item> -->
 					<Menubar.Separator />
 					<Menubar.Item onSelect={createNewCell}>New Cell...</Menubar.Item>
 					<Menubar.Separator />

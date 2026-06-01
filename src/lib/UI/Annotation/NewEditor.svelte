@@ -1,18 +1,24 @@
 <script lang="ts">
-	import { alternativeRedo, alternativeUndo, currentFrameId, pushChange } from '$lib/stores/data';
+	import { alternativeRedo, alternativeUndo } from '$lib/stores/data';
 	import { editorTool, isEditing } from '$lib/stores/editor';
-	import { autoResample } from '$lib/stores/options';
-	import type { CellBodyType, NewCellType } from '$lib/types/annotation.type';
-	import { deepCopy, getFramesDifference } from '$lib/utils/data';
+	import { optionsState } from '$lib/states/options.svelte';
+	import type { TrackType } from '$lib/types/annotation.type';
+	import { deepCopy } from '$lib/utils/data.svelte';
 	import { resampleCellBodies } from '$lib/utils/geometry';
+	import { rleToPolygons } from '$lib/utils/rle';
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
+	import type { Polygon } from '$lib/types/geometry.type';
 
-	let { inputCell }: { inputCell: NewCellType } = $props();
+	let { inputCell }: { inputCell: TrackType } = $props();
 
 	// svelte-ignore state_referenced_locally
 	const cell = deepCopy(inputCell);
-	const bodies = writable($autoResample ? resampleCellBodies(cell.bodies) : cell.bodies);
+	const polygons = rleToPolygons(cell.SegmentationRLE);
+	let bodies = $state(
+		optionsState.autoResample
+			? resampleCellBodies(polygons, optionsState.resampleSegmentLength)
+			: polygons
+	);
 
 	// export let imageMouse: {
 	// 	prevX: number;
@@ -57,48 +63,34 @@
 	// 	}
 	// };
 
-	function pushChanges() {
-		console.log('Pushing changes to data');
-		cell.bodies = $bodies;
-		const diff = getFramesDifference(
-			[{ id: $currentFrameId, cells: [inputCell] }],
-			[{ id: $currentFrameId, cells: [cell] }]
-		);
-		diff.message = `Edit cell ${inputCell.id}`;
-
-		// if there are changes, push them to the annotation
-		if (diff.frames.length !== 0) {
-			pushChange(diff);
-		}
-	}
-
 	export function quit(commit: boolean) {
-		if (commit) pushChanges();
+		// if (commit) annotationState.commitData(...);
 		$isEditing = false;
 	}
 
-	const localChanges: CellBodyType[][] = [deepCopy($bodies)]; // Initial state
-	let localChangeIndex = 0;
+	// svelte-ignore state_referenced_locally
+	const localChanges: Polygon[][] = [deepCopy(bodies)]; // Initial state
+	let localChangeIndex = $state(0);
 
 	const pushLocalState = () => {
 		// Delete all local changes after the current index
 		localChanges.splice(localChangeIndex + 1);
 
 		// Push the current state to the local changes
-		localChanges.push(deepCopy($bodies));
+		localChanges.push(deepCopy(bodies));
 		localChangeIndex = localChanges.length - 1;
 	};
 
 	const localUndo = () => {
 		if (localChangeIndex === 0) return;
 		localChangeIndex--;
-		$bodies = deepCopy(localChanges[localChangeIndex]);
+		bodies = deepCopy(localChanges[localChangeIndex]);
 	};
 
 	const localRedo = () => {
 		if (localChangeIndex === localChanges.length - 1) return;
 		localChangeIndex++;
-		$bodies = deepCopy(localChanges[localChangeIndex]);
+		bodies = deepCopy(localChanges[localChangeIndex]);
 	};
 
 	onMount(() => {

@@ -1,16 +1,10 @@
 <script lang="ts">
 	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
-	import { blob_pngs } from '$lib/stores/images';
-	import {
-		annotation,
-		currentChangeIndex,
-		currentFrameId,
-		displayFrames
-	} from '$lib/stores/data';
+	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { hoverElementsShown, isEditing } from '$lib/stores/editor';
 	import { optionsState } from '$lib/states/options.svelte';
-	import type { NewCellType } from '$lib/types/annotation.type';
+	import type { TrackType } from '$lib/types/annotation.type';
 	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
 	import {
 		getPointerCoords,
@@ -18,8 +12,6 @@
 		toMeasurable,
 		type Measurable
 	} from '$lib/utils/display';
-	import { getFramesAtChangeIndex } from '$lib/utils/data';
-
 	import Cell from './Cell.svelte';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import EditorControls from './EditorControls.svelte';
@@ -30,22 +22,21 @@
 		pressedKeys
 	} from '$lib/stores/input';
 	import NewEditor from './NewEditor.svelte';
+	import { getPolygonSize, maskToPolygons, rleToMask } from '$lib/utils/rle';
+	import { projectState } from '$lib/states/ProjectState.svelte';
+	import { colormapToSvgTableValues } from '$lib/utils/imaging';
 
-	$effect(() => {
-		$displayFrames = getFramesAtChangeIndex($annotation, $currentChangeIndex);
-	});
-	$currentChangeIndex = $annotation.changes.length - 1;
+	let colormapFilter = $derived(colormapToSvgTableValues(svgState.videoColormap));
 
 	let contextMenuOpen = $state(false);
 	let contextMenuAnchor: Measurable | null = $state(null);
 	let contextMenuCellId = $state('');
 
 	let editorComponent: NewEditor = $state(undefined as any);
-	let displayContainerElement: HTMLDivElement;
-	let imageWrapperElement: HTMLDivElement = $state(undefined as any);
+	let imageWrapperElement: HTMLDivElement | null = $state(null);
 	let svgElement: SVGSVGElement;
 
-	let editorCell: NewCellType = $state(undefined as any);
+	let editorCell: TrackType = $state(undefined as any);
 
 	let styles = $state({
 		'scale-percent': 100,
@@ -213,9 +204,7 @@
 		e.preventDefault();
 
 		contextMenuCellId = cellId;
-		const targetCell = $displayFrames
-			.find((f) => f.id == $currentFrameId)
-			?.cells.find((c) => c.id == cellId);
+		const targetCell = annotationState.currentFrame?.find((f) => f.ObjectID == cellId);
 
 		if (!targetCell) {
 			console.warn('Cell not found');
@@ -230,7 +219,7 @@
 	// let svg = frameToSvg(1);
 
 	// const edit = () => {
-	// 	contextMenuOpen = false;
+	// 	contextMenuComponent.hide(false);
 	// 	$isEditing = true;
 	// };
 </script>
@@ -246,34 +235,38 @@
 	onmousedown={imageMouse.mouseDown}
 	onwheel={imageWheel}
 	style={cssVarStyles}
-	bind:this={displayContainerElement}
 >
 	<div class="image-wrapper" role="presentation" bind:this={imageWrapperElement}>
-		<img src={URL.createObjectURL($blob_pngs[$currentFrameId - 1])} alt="" class="zoomable" />
-
 		<svg
 			viewBox="{svgState.svgViewBox.minX} {svgState.svgViewBox.minY} {svgState.svgViewBox
 				.width} {svgState.svgViewBox.height}"
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
 			class="zoomable annotation-svg"
-			oncontextmenu={(e) => e.preventDefault()}
 			bind:this={svgElement}
 			opacity={svgState.isSvgShown ? svgState.svgAlpha / 255 : 0}
 		>
-			<!-- <image
-				xlink:href={URL.createObjectURL($blob_pngs[$currentFrameId - 1])}
-				width="512"
-				height="512"
-			/> -->
+			<filter id="colormap-f" color-interpolation-filters="sRGB">
+				<feComponentTransfer>
+					<feFuncR type="table" tableValues={colormapFilter.r} />
+					<feFuncG type="table" tableValues={colormapFilter.g} />
+					<feFuncB type="table" tableValues={colormapFilter.b} />
+				</feComponentTransfer>
+			</filter>
+
+			<image href={projectState.currentFrameUrl} filter="url(#colormap-f)" />
 
 			{#if !$isEditing}
 				<g role="region">
-					{#each $displayFrames.find((f) => f.id == $currentFrameId)?.cells ?? [] as cell}
+					{#each annotationState.currentFrame ?? [] as object}
+						{@const cellId = object.ObjectID}
 						<Cell
-							cellPolygons={[]}
-							cellId={String(cell.id)}
-							onContextMenu={(e) => cellContextMenu(e, String(cell.id))}
+							cellPolygons={maskToPolygons(
+								rleToMask(object.SegmentationRLE),
+								object.SegmentationRLE.size
+							)}
+							{cellId}
+							onContextMenu={(e) => cellContextMenu(e, cellId)}
 						/>
 					{/each}
 				</g>

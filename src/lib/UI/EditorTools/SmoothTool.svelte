@@ -6,7 +6,7 @@
 		displayMouseUpHandler,
 		pressedKeys
 	} from '$lib/stores/input';
-	import { autoResample } from '$lib/stores/options';
+	import { optionsState } from '$lib/states/options.svelte';
 	import type { Point } from '$lib/types/editor.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBodies } from '$lib/utils/geometry';
@@ -45,15 +45,16 @@
 		mouseStartPos = getPointerViewBoxCoords(e, svgElement);
 
 		coeffs = $bodies.map((body) =>
-			body.x.map((x, i) => {
-				const dx = x - mouseStartPos.x;
-				const dy = body.y[i] - mouseStartPos.y;
+			body.map((point) => {
+				const dx = point.x - mouseStartPos.x;
+				const dy = point.y - mouseStartPos.y;
 				const dist = Math.sqrt(dx * dx + dy * dy);
 				return 1 - Math.min(dist / $smoothRadius, 1);
 			})
 		);
 
-		startPositons = $bodies.map((body) => body.x.map((x, i) => ({ x, y: body.y[i] })));
+		// TODO: just copy
+		startPositons = $bodies.map((body) => body.map((point) => ({ x: point.x, y: point.y })));
 
 		// cell.x.forEach((x, i) => {
 		//     const dx = x - mouseStartPos.x;
@@ -76,7 +77,10 @@
 
 		isMouseDown = false;
 
-		if ($autoResample) bodies.update((_bodies) => resampleCellBodies(_bodies));
+		if (optionsState.autoResample)
+			bodies.update((_bodies) =>
+				resampleCellBodies(_bodies, optionsState.resampleSegmentLength)
+			);
 		pushLocalState();
 	};
 
@@ -95,13 +99,13 @@
 
 		bodies.update((_bodies) => {
 			_bodies.forEach((body, bodyIndex) => {
-				body.x.forEach((x, i) => {
-					body.x[i] =
-						startPositons[bodyIndex][i].x +
-						(mouseViewBox.x - mouseStartPos.x) * coeffs[bodyIndex][i];
-					body.y[i] =
-						startPositons[bodyIndex][i].y +
-						(mouseViewBox.y - mouseStartPos.y) * coeffs[bodyIndex][i];
+				body.forEach((point, pointIndex) => {
+					point.x =
+						startPositons[bodyIndex][pointIndex].x +
+						(mouseViewBox.x - mouseStartPos.x) * coeffs[bodyIndex][pointIndex];
+					point.y =
+						startPositons[bodyIndex][pointIndex].y +
+						(mouseViewBox.y - mouseStartPos.y) * coeffs[bodyIndex][pointIndex];
 				});
 			});
 			return _bodies;
@@ -177,12 +181,12 @@
 {#if $hoverElementsShown}
 	<g mask="url(#pointerMaskCircle)">
 		{#each $bodies as body}
-			{#each body.x as x, i}
+			{#each body as point, i}
 				{@const halfSize = 0.25}
 				<path
 					class="smooth-tool no-interact"
-					d={`M${x - halfSize},${body.y[i] - halfSize} L${x + halfSize},${body.y[i] + halfSize}
-                    M${x + halfSize},${body.y[i] - halfSize} L${x - halfSize},${body.y[i] + halfSize}`}
+					d={`M${point.x - halfSize},${point.y - halfSize} L${point.x + halfSize},${point.y + halfSize}
+                    M${point.x + halfSize},${point.y - halfSize} L${point.x - halfSize},${point.y + halfSize}`}
 					stroke="white"
 					stroke-width={halfSize / 1.5}
 				/>

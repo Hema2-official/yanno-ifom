@@ -1,23 +1,8 @@
 <script lang="ts">
-	import {
-		isSvgShown,
-		svgStroke,
-		svgFill,
-		svgAlpha,
-		svgStrokeSwitch,
-		svgFillSwitch
-	} from '$lib/stores/svg';
-	import { pointerLockEnabled, sidebarRight } from '$lib/stores/options';
+	import { svgState } from '$lib/states/svg.svelte';
+	import { optionsState } from '$lib/states/options.svelte';
 	import { isEditing } from '$lib/stores/editor';
-	import { scrollMultiplier } from '$lib/stores/zoom';
-	import { globalColormap } from '$lib/stores/images';
-	import {
-		currentFrameId,
-		displayFrames,
-		currentChangeIndex,
-		annotation
-	} from '$lib/stores/data';
-	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '../Common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
@@ -27,10 +12,11 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Select from '$lib/components/ui/select';
 	import { AVAILABLE_COLORMAPS } from '$lib/utils/imaging';
+	import { annotationState } from '$lib/states/AnnotationState.svelte';
 </script>
 
 <nav
-	class="flex flex-col w-80 h-full px-6 py-4 overflow-y-auto border-accent {$sidebarRight
+	class="flex flex-col w-80 h-full px-6 py-4 overflow-y-auto border-accent {optionsState.sidebarRight
 		? 'border-l-1 order-3'
 		: 'border-r-1 order-1'}"
 >
@@ -38,9 +24,9 @@
 	<div class="flex flex-col gap-4 pb-6">
 		<div class="flex flex-col gap-2">
 			<Label>Color map</Label>
-			<Select.Root type="single" bind:value={$globalColormap}>
+			<Select.Root type="single" bind:value={svgState.videoColormap}>
 				<Select.Trigger>
-					{$globalColormap}
+					{svgState.videoColormap}
 				</Select.Trigger>
 				<Select.Content>
 					{#each AVAILABLE_COLORMAPS as colormap}
@@ -54,27 +40,27 @@
 	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Debug</h2>
 	<div class="flex flex-col gap-4">
 		<div class="flex items-center">
-			<Switch id="is-svg-shown" bind:checked={$isSvgShown} />
+			<Switch id="is-svg-shown" bind:checked={svgState.isSvgShown} />
 			<Label for="is-svg-shown" class="pl-2 cursor-pointer">Show SVG</Label>
 		</div>
 
 		<div class="flex items-center">
-			<Switch id="svg-stroke-switch" bind:checked={$svgStrokeSwitch} />
+			<Switch id="svg-stroke-switch" bind:checked={svgState.svgStrokeSwitch} />
 			<Label for="svg-stroke-switch" class="pl-2 cursor-pointer">Stroke</Label>
 		</div>
 
-		<ColorPicker bind:value={$svgStroke}>SVG stroke color...</ColorPicker>
+		<ColorPicker bind:value={svgState.svgStroke}>SVG stroke color...</ColorPicker>
 
 		<div class="flex items-center">
-			<Switch id="svg-fill-switch" bind:checked={$svgFillSwitch} />
+			<Switch id="svg-fill-switch" bind:checked={svgState.svgFillSwitch} />
 			<Label for="svg-fill-switch" class="pl-2 cursor-pointer">Fill</Label>
 		</div>
 
-		<ColorPicker bind:value={$svgFill}>SVG fill color...</ColorPicker>
+		<ColorPicker bind:value={svgState.svgFill}>SVG fill color...</ColorPicker>
 
 		<div class="flex flex-col gap-2">
 			<Label for="svg-alpha" class="text-nowrap">SVG opacity</Label>
-			<Slider id="svg-alpha" type="single" bind:value={$svgAlpha} max={255} />
+			<Slider id="svg-alpha" type="single" bind:value={svgState.svgAlpha} max={255} />
 		</div>
 
 		<div class="flex items-center">
@@ -83,32 +69,36 @@
 		</div>
 
 		<div class="flex items-center">
-			<Switch id="pointer-lock-enabled" bind:checked={$pointerLockEnabled} />
+			<Switch id="pointer-lock-enabled" bind:checked={optionsState.pointerLockEnabled} />
 			<Label for="pointer-lock-enabled" class="pl-2 cursor-pointer">Enable pointer lock</Label
 			>
 		</div>
 
 		<div class="flex flex-col gap-2">
 			<Label>Zoom multiplier</Label>
-			<Slider type="single" bind:value={$scrollMultiplier} min={0.1} max={10} />
+			<Slider type="single" bind:value={zoomState.scrollMultiplier} min={0.1} max={10} />
 		</div>
 
 		<div class="flex flex-col gap-2">
 			<Label for="current-frame-id" class="text-nowrap">
-				Current frame: {$currentFrameId}
+				Current frame: {annotationState.currentFrameId}
 			</Label>
 			<Slider
 				type="single"
-				bind:value={$currentFrameId}
-				min={getMin($displayFrames.map((f) => f.id))}
-				max={getMax($displayFrames.map((f) => f.id))}
-				disabled={$isEditing}
+				bind:value={annotationState.currentFrameId}
+				min={annotationState.data
+					? getMin(annotationState.data.current.map((f) => f.Frame))
+					: 0}
+				max={annotationState.data
+					? getMax(annotationState.data.current.map((f) => f.Frame))
+					: 0}
+				disabled={$isEditing || !annotationState.data}
 			/>
 		</div>
 
-		<Slider bind:value={$currentChangeIndex} min={-1} max={$annotation.changes.length - 1}
+		<!-- <Slider bind:value={$currentChangeIndex} min={-1} max={$annotation.changes.length - 1}
 			>Change index</Slider
-		>
+		> -->
 
 		<Button
 			variant="destructive"
