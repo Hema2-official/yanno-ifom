@@ -120,7 +120,7 @@
 					</DropdownMenu.Trigger>
 					<DropdownMenu.Content align="start">
 						{#if projectState.cloudProject}
-							{#each projectState.cloudProject.versions as version}
+							{#each projectState.cloudProject.versions as version (version.id)}
 								<DropdownMenu.Item
 									disabled={version.id == projectState.cloudVersion?.id}
 									onSelect={() => {

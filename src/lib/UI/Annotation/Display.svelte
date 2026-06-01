@@ -22,7 +22,7 @@
 		pressedKeys
 	} from '$lib/stores/input';
 	import NewEditor from './NewEditor.svelte';
-	import { getPolygonSize, maskToPolygons, rleToMask } from '$lib/utils/rle';
+	import { maskToPolygons, rleToMask } from '$lib/utils/rle';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { colormapToSvgTableValues } from '$lib/utils/imaging';
 
@@ -32,11 +32,11 @@
 	let contextMenuAnchor: Measurable | null = $state(null);
 	let contextMenuCellId = $state('');
 
-	let editorComponent: NewEditor = $state(undefined as any);
+	let editorComponent: NewEditor | null = $state(null);
 	let imageWrapperElement: HTMLDivElement | null = $state(null);
 	let svgElement: SVGSVGElement;
 
-	let editorCell: TrackType = $state(undefined as any);
+	let editorCell: TrackType | null = $state(null);
 
 	let styles = $state({
 		'scale-percent': 100,
@@ -258,19 +258,18 @@
 
 			{#if !$isEditing}
 				<g role="region">
-					{#each annotationState.currentFrame ?? [] as object}
-						{@const cellId = object.ObjectID}
+					{#each annotationState.currentFrame ?? [] as object (object.ObjectID)}
 						<Cell
 							cellPolygons={maskToPolygons(
 								rleToMask(object.SegmentationRLE),
 								object.SegmentationRLE.size
 							)}
-							{cellId}
-							onContextMenu={(e) => cellContextMenu(e, cellId)}
+							cellId={object.ObjectID}
+							onContextMenu={(e) => cellContextMenu(e, object.ObjectID)}
 						/>
 					{/each}
 				</g>
-			{:else}
+			{:else if editorCell}
 				<NewEditor inputCell={editorCell} bind:this={editorComponent} />
 			{/if}
 		</svg>
@@ -288,7 +287,7 @@
 		</ContextMenu.Content>
 	</ContextMenu.Root>
 
-	{#if $isEditing}
+	{#if $isEditing && editorComponent}
 		<EditorControls {editorComponent} />
 	{/if}
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import type { ProjectVersion } from '$lib/types/api.type';
 	import ProjectList from '$lib/UI/Menus/ProjectList.svelte';
 
@@ -14,7 +15,7 @@
 		}
 
 		// Go to editor page referencing the selected project
-		goto(`/editor?project=${version.project_id}&version=${version.id}`);
+		goto(resolve(`/editor?project=${version.project_id}&version=${version.id}`));
 	};
 </script>
 

@@ -17,6 +17,7 @@
 	import { goto } from '$app/navigation';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import Spinner from '../Common/Spinner.svelte';
+	import { resolve } from '$app/paths';
 
 	type Props = {
 		extraCrumbs?: Snippet;
@@ -102,7 +103,7 @@
 
 	async function handleLogout() {
 		// TODO: ask if user wants to save, if applicable
-		goto('/logout');
+		goto(resolve('/logout'));
 	}
 </script>
 

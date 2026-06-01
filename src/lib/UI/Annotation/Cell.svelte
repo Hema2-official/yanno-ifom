@@ -19,7 +19,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <g id="cell{cellId}" oncontextmenu={onContextMenu}>
-	{#each cellPolygons ?? [] as body, index}
+	{#each cellPolygons ?? [] as body, index (index)}
 		<path
 			id="cell{cellId}-body{index}"
 			d={cellBodyToPath(body)}

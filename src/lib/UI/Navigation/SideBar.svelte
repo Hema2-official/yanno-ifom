@@ -29,7 +29,7 @@
 					{svgState.videoColormap}
 				</Select.Trigger>
 				<Select.Content>
-					{#each AVAILABLE_COLORMAPS as colormap}
+					{#each AVAILABLE_COLORMAPS as colormap (colormap)}
 						<Select.Item value={colormap}>{colormap}</Select.Item>
 					{/each}
 				</Select.Content>
