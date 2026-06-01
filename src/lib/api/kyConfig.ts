@@ -10,13 +10,29 @@ let internalClient = ky.create({
 
 export const getClient = () => internalClient;
 
+type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+function jsonMethod(method: HttpMethod) {
+	async function fn<T>(url: string, options?: Options): Promise<T>;
+	async function fn(url: string, options?: Options): Promise<void>;
+	async function fn<T = void>(url: string, options?: Options): Promise<T | void> {
+		const r = await getClient()[method](url, options);
+
+		// Return undefined if no content was received
+		if (r.status === 204 || r.headers.get('content-length') === '0') return undefined;
+
+		// Parse the response as JSON and return the result
+		return r.json() as Promise<T>;
+	}
+	return fn;
+}
+
 export const http = {
-	get: <T>(url: string, options?: Options) => getClient().get(url, options).json<T>(),
-	post: <T>(url: string, options?: Options) => getClient().post(url, options).json<T>(),
-	put: <T>(url: string, options?: Options) => getClient().put(url, options).json<T>(),
-	patch: <T>(url: string, options?: Options) => getClient().patch(url, options).json<T>(),
-	delete: <T>(url: string, options?: Options) => getClient().delete(url, options).json<T>(),
-	deleteRaw: (url: string, options?: Options) => getClient().delete(url, options),
+	get: jsonMethod('get'),
+	post: jsonMethod('post'),
+	put: jsonMethod('put'),
+	patch: jsonMethod('patch'),
+	delete: jsonMethod('delete'),
 	blob: (url: string, options?: Options) => getClient().get(url, options).blob(),
 	text: (url: string, options?: Options) => getClient().get(url, options).text()
 };
