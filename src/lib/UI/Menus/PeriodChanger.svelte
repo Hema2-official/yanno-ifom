@@ -8,23 +8,18 @@
 	let { project = $bindable() }: { project: Project } = $props();
 
 	let previewFrames = $state(10);
-
 	let loadedFrames: Record<string, boolean> = $state({});
 
 	let selectedStartIndex: number | null = $state(null);
-	let selectedEndIndex: number | null = $state(null);
-
-	let selecting = $derived(selectedStartIndex !== null);
+	let isSelecting = $derived(selectedStartIndex !== null);
 
 	function handleClick(index: number) {
 		if (selectedStartIndex === null) {
 			selectedStartIndex = index;
 		} else {
-			selectedEndIndex = index;
 			project.start_period = selectedStartIndex;
-			project.channel_period = selectedEndIndex + 1;
+			project.channel_period = index + 1;
 			selectedStartIndex = null;
-			selectedEndIndex = null;
 		}
 	}
 </script>
@@ -37,9 +32,9 @@
 	>
 		<div
 			class="flex border-2 border-light-gray-accent border-r-0 rounded-tl-xl rounded-bl-xl p-px transition-all duration-200"
-			class:border-dashed={selecting}
+			class:border-dashed={isSelecting}
 		>
-			{#each Array(previewFrames).keys() as index}
+			{#each Array(previewFrames).keys() as index (index)}
 				{@const frameUrl = getWebFrameUrl(project, index)}
 				{@const isPrimary = (index % project.channel_period) - project.start_period === 0}
 				<button
@@ -56,11 +51,8 @@
 					<img
 						src={frameUrl}
 						alt="Preview"
+						class="h-full aspect-square object-cover pointer-events-none"
 						onload={() => (loadedFrames[frameUrl] = true)}
-						class:h-full={loadedFrames[frameUrl]}
-						class:aspect-square={loadedFrames[frameUrl]}
-						class:object-cover={loadedFrames[frameUrl]}
-						class:pointer-events-none={loadedFrames[frameUrl]}
 						style:display={loadedFrames[frameUrl] ? 'block' : 'none'}
 					/>
 				</button>
@@ -68,7 +60,7 @@
 		</div>
 	</ScrollArea>
 	<span class="text-sm text-gray-accent italic text-left">
-		{#if !selecting}
+		{#if !isSelecting}
 			Click to change the first primary frame...
 		{:else}
 			Click to select the end of the period...
