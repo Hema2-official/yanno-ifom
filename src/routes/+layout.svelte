@@ -5,6 +5,10 @@
 	import type { Snippet } from 'svelte';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import { registerFrameServiceWorker } from '$lib/workers/frameServiceWorker';
+	import { Toaster } from '$lib/components/ui/sonner';
+	import { resolve } from '$app/paths';
+	import type { Pathname } from '$app/types';
+	import { ModeWatcher } from 'mode-watcher';
 
 	import { addMessages, init } from 'svelte-i18n';
 	import en from '$lib/lang/en.json';
@@ -43,19 +47,22 @@
 		if (accountState.currentAccount === null) {
 			if (isAuthenticating) return;
 			if (path === '/logout') {
-				goto('/login');
+				goto(resolve('/login'));
 			} else {
 				const ref = path + window.location.search + window.location.hash;
-				goto(`/login?redirect=${encodeURIComponent(ref)}`);
+				goto(resolve(`/login?redirect=${encodeURIComponent(ref)}`));
 			}
 		} else {
 			if (!isAuthenticating) return;
 			const searchParams = new URLSearchParams(window.location.search);
 			const redirect = decodeURIComponent(searchParams.get('redirect') || '');
-			goto(redirect || '/');
+			goto(resolve((redirect as Pathname) || '/'));
 		}
 	});
 </script>
+
+<ModeWatcher />
+<Toaster />
 
 <main class="flex h-screen w-full">
 	{@render children()}
