@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { streamTask } from '$lib/api/realtime';
 	import type { ProjectVersion } from '$lib/types/api.type';
-	import { onDestroy } from 'svelte';
-	import Spinner from '../Common/Spinner.svelte';
 
-	let { version, onUpdate }: { version: ProjectVersion; onUpdate: () => void } = $props();
+	type Props = {
+		version: ProjectVersion;
+		onReady?: () => void;
+	};
+	let { version, onReady }: Props = $props();
 
-	let message = $state('Ready');
+	let message = $state('');
 
 	let abortController: AbortController | undefined;
 
@@ -19,7 +21,7 @@
 				message = task.status_message;
 				if (task.completed) {
 					abortController = undefined;
-					onUpdate();
+					onReady?.();
 					break;
 				}
 			}
@@ -32,13 +34,9 @@
 	$effect(() => {
 		if (!version.ready) updateStream();
 		else message = 'Ready';
+
+		return () => abortController?.abort();
 	});
-
-	onDestroy(() => abortController?.abort());
 </script>
-
-{#if !version.ready}
-	<Spinner size={16} thickness={2} />
-{/if}
 
 {message}
