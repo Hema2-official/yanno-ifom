@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { logout } from '$lib/api/auth';
+	import { resolve } from '$app/paths';
 
 	onMount(() => {
 		setTimeout(() => {
@@ -15,7 +16,7 @@
 				})
 				.finally(() => {
 					setTimeout(() => {
-						goto('/login');
+						goto(resolve('/login'));
 					}, 100);
 				});
 		}, 2000);

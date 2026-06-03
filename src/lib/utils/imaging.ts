@@ -1,4 +1,3 @@
-import { _ } from 'svelte-i18n';
 import createColormap from 'colormap';
 
 const svgTableCache = new Map<string, { r: string; g: string; b: string }>();

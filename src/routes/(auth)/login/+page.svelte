@@ -4,6 +4,8 @@
 	import { login } from '$lib/api/auth';
 	import { goto } from '$app/navigation';
 	import type { APIError, CredentialsError } from '$lib/types/api.type';
+	import { resolve } from '$app/paths';
+	import type { Pathname } from '$app/types';
 
 	let email = $state('');
 	let password = $state('');
@@ -28,9 +30,9 @@
 			.then((response) => {
 				console.log('Logged in as', response.account_id);
 				if (redirect) {
-					goto(redirect);
+					goto(resolve(redirect as Pathname));
 				} else {
-					goto('/');
+					goto(resolve('/'));
 				}
 			})
 			.catch((error: Error | APIError | CredentialsError) => {

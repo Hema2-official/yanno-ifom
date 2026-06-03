@@ -24,7 +24,7 @@ export async function* streamTask(
 		{ signal }
 	);
 
-	const events = parseServerSentEvents(response as Response);
+	const events = parseServerSentEvents(response);
 
 	for await (const event of readableStreamToAsyncIterable(events)) {
 		yield JSON.parse(event.data) as ServerTask;
