@@ -56,10 +56,7 @@
 		<ScrollArea class="w-full">
 			<div class="flex flex-col gap-3">
 				{#each projects as project (project.id)}
-					<ProjectItem
-						{project}
-						onRefresh={() => projectsResource.refetch()}
-					/>
+					<ProjectItem {project} onRefresh={() => projectsResource.refetch()} />
 				{/each}
 			</div>
 		</ScrollArea>

@@ -7,13 +7,7 @@ import globals from 'globals';
 export default [
 	// Global ignores (replaces ignorePatterns)
 	{
-		ignores: [
-			'*.cjs',
-			'.svelte-kit/**',
-			'dist/**',
-			'build/**',
-			'node_modules/**'
-		]
+		ignores: ['*.cjs', '.svelte-kit/**', 'dist/**', 'build/**', 'node_modules/**']
 	},
 
 	// 1. Recommended settings for JS and TS via typescript-eslint
