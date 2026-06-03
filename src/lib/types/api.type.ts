@@ -104,6 +104,8 @@ export type InheritanceParams = {
 	max_centroid_distance: number;
 };
 
+export type AnyStepParams = SegmentationParams | TrackingParams | InheritanceParams;
+
 export const defaultSegmentationParams: SegmentationParams = {
 	model_name: 'model_larger_set_aug1.pth',
 	score_threshold: 0.4
