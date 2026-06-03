@@ -5,7 +5,7 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"
 	},
-	"eslint.validate": ["javascript", "javascriptreact", "svelte"],
+	"eslint.validate": ["typescript", "svelte"],
 	"i18n-ally.localesPaths": ["src/lib/lang"],
 	"i18n-ally.keystyle": "nested"
 }
