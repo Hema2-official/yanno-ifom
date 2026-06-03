@@ -208,6 +208,17 @@ export async function enqueueTask(
 	}
 }
 
+export async function getTaskStatus(version: ProjectVersion, options?: Options) {
+	try {
+		return await http.get<ServerTask>(
+			`api/v0/projects/${version.project_id}/versions/${version.id}/status`,
+			options
+		);
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
 export async function cancelTask(version: ProjectVersion, options?: Options) {
 	try {
 		return await http.post<ServerTask>(
