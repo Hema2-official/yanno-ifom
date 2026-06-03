@@ -24,7 +24,7 @@ export function deepCopy<T>(obj: T) {
  *
  * @param arr the array to find the minimum of
  */
-export function getMin<T extends number | bigint>(arr: T[]): T {
+export function getMin<T extends number | bigint>(arr: ArrayLike<T>): T {
 	if (arr.length === 0) return Infinity as T;
 	let min = arr[0];
 	for (let i = 1; i < arr.length; i++) {
@@ -39,7 +39,7 @@ export function getMin<T extends number | bigint>(arr: T[]): T {
  *
  * @param arr the array to find the maximum of
  */
-export function getMax<T extends number | bigint>(arr: T[]): T {
+export function getMax<T extends number | bigint>(arr: ArrayLike<T>): T {
 	if (arr.length === 0) return -Infinity as T;
 	let max = arr[0];
 	for (let i = 1; i < arr.length; i++) {
