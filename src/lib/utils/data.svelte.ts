@@ -15,11 +15,7 @@ export function deepCopy<T>(obj: T) {
 	// ($state.snapshot doesn't care if it's not a proxy)
 	const snapshot = $state.snapshot(obj);
 
-	if (structuredClone) return structuredClone(snapshot);
-	console.warn(
-		'The structuredClone method is not supported in this browser. Falling back to JSON goofery.'
-	);
-	return JSON.parse(JSON.stringify(snapshot)) as typeof snapshot;
+	return structuredClone(snapshot);
 }
 
 /**
