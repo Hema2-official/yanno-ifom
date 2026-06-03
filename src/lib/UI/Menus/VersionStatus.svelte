@@ -55,6 +55,6 @@
 </script>
 
 {message}
-{#if errorMessage}
+{#if errorMessage !== null}
 	<span class="text-destructive">(Last run failed: {errorMessage})</span>
 {/if}
