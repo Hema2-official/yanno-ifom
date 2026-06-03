@@ -313,8 +313,8 @@ export function tracksToText(tracks: TrackType[], pos: number = 0): string {
  * @param filename - The name of the file to be downloaded.
  * @param type - The MIME type of the file (default: "text/plain").
  */
-export function download(data: BlobPart, filename: string, type: string = 'text/plain') {
-	const url = URL.createObjectURL(new Blob([data], { type: type }));
+export function download(data: BlobPart, filename: string, type: string) {
+	const url = URL.createObjectURL(new Blob([data], { type }));
 	const a = document.createElement('a');
 	a.href = url;
 	a.download = filename;
@@ -322,8 +322,8 @@ export function download(data: BlobPart, filename: string, type: string = 'text/
 	document.body.appendChild(a);
 	a.click();
 	setTimeout(function () {
-		document.body.removeChild(a);
-		window.URL.revokeObjectURL(url);
+		a.remove();
+		URL.revokeObjectURL(url);
 	}, 0);
 }
 
