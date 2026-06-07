@@ -127,7 +127,7 @@ export type ServerTask = {
 	parameters: SegmentationParams | TrackingParams | InheritanceParams;
 	created_at: string; // datetime
 	status_message: string;
-	completed: boolean;
+	finished: boolean;
 	cancelled: boolean;
 	error?: string;
 };

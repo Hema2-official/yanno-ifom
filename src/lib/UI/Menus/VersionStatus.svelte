@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { streamTask } from '$lib/api/realtime';
 	import { getTaskStatus } from '$lib/api/projects';
-	import type { ProjectVersion } from '$lib/types/api.type';
+	import type { ProjectVersion, ServerTask } from '$lib/types/api.type';
 
 	type Props = {
 		version: ProjectVersion;
@@ -14,14 +14,10 @@
 
 	let abortController: AbortController | undefined;
 
-	async function fetchInitialStatus() {
-		try {
-			const task = await getTaskStatus(version);
-			if (!task.completed && !task.cancelled) message = task.status_message;
-			errorMessage = task.error ?? null;
-		} catch {
-			// Task may not exist yet, ignore
-		}
+	function updateStatus(task: ServerTask) {
+		if (task.finished) errorMessage = task.error ?? null;
+		else if (task.cancelled) message = 'Cancelling...';
+		else message = task.status_message;
 	}
 
 	async function updateStream() {
@@ -30,9 +26,8 @@
 
 		try {
 			for await (const task of streamTask(version, abortController.signal)) {
-				message = task.status_message;
-				errorMessage = task.error ?? null;
-				if (task.completed || task.cancelled) {
+				updateStatus(task);
+				if (task.finished) {
 					abortController = undefined;
 					onReady?.();
 					break;
@@ -45,7 +40,7 @@
 	}
 
 	$effect(() => {
-		fetchInitialStatus();
+		getTaskStatus(version).then(updateStatus);
 
 		if (!version.ready) updateStream();
 		else message = 'Ready';
