@@ -17,6 +17,7 @@
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
 	import { pickFile } from '$lib/utils/filePicker';
 	import { toast } from 'svelte-sonner';
+	import { getPrimaryFrameCount } from '$lib/utils/frames';
 
 	type Props = { project: Project; onRefresh: () => void };
 
@@ -64,8 +65,6 @@
 	function handleNavigate() {
 		goto(resolve(`/projects?project=${project.id}`));
 	}
-
-	let primaryFrameCount = $derived(Math.round(project.frame_count / project.channel_period));
 </script>
 
 <Item.Root variant="outline">
@@ -91,7 +90,7 @@
 
 				{#if project.status === ProjectStatus.ready}
 					<Item.Description class="capitalize">
-						{project.color.toLowerCase()}, {primaryFrameCount} frames
+						{project.color.toLowerCase()}, {getPrimaryFrameCount(project)} frames
 					</Item.Description>
 				{:else}
 					<Item.Description>Upload a video to get started</Item.Description>

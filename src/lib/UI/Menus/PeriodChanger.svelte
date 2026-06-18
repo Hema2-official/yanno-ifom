@@ -4,6 +4,7 @@
 	import Spinner from '../Common/Spinner.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 	import { cn } from '$lib/utils/shadcn';
+	import { isPrimaryFrame } from '$lib/utils/frames';
 
 	let { project = $bindable() }: { project: Project } = $props();
 
@@ -36,11 +37,10 @@
 		>
 			{#each Array(previewFrames).keys() as index (index)}
 				{@const frameUrl = getWebFrameUrl(project, index)}
-				{@const isPrimary = (index % project.channel_period) - project.start_period === 0}
 				<button
 					class={cn(
 						'flex items-center justify-center h-20 aspect-square overflow-hidden bg-transparent outline-none p-0 m-0 cursor-pointer first:rounded-tl-lg first:rounded-bl-lg',
-						isPrimary ? 'border border-accent' : ''
+						isPrimaryFrame(project, index) ? 'border border-accent' : ''
 					)}
 					class:mr-2={index % project.channel_period === project.channel_period - 1}
 					onclick={() => handleClick(index)}

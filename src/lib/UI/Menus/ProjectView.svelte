@@ -4,6 +4,7 @@
 	import { getProject } from '$lib/api/projects';
 	import { ProjectStatus, versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
 	import { resource } from 'runed';
+	import { getPrimaryFrameCount } from '$lib/utils/frames';
 
 	import { Button } from '$lib/components/ui/button';
 	import Spinner from '../Common/Spinner.svelte';
@@ -75,7 +76,7 @@
 
 		{#if project.status === ProjectStatus.ready}
 			<p class="text-sm text-muted-foreground -mt-2">
-				{Math.round(project.frame_count / project.channel_period)} primary frames · {project.frame_count}
+				{getPrimaryFrameCount(project)} primary frames · {project.frame_count}
 				total frames
 			</p>
 
