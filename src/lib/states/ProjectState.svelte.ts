@@ -146,6 +146,10 @@ class ProjectState {
 			onProgress?.(`Converting video... (${i + 1}/${count})`);
 		}
 	}
+
+	async listLocalProjects(): Promise<DBProject[]> {
+		return await localProjectsDb.projects.toArray();
+	}
 }
 
 export const projectState = new ProjectState();
