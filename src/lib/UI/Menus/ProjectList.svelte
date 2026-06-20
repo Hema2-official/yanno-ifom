@@ -7,8 +7,7 @@
 	import ProjectItem from './ProjectItem.svelte';
 	import CreateProjectDialog from './CreateProjectDialog.svelte';
 	import Spinner from '../Common/Spinner.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { PlusIcon, RefreshCwIcon } from '@lucide/svelte';
+	import ProjectListHeader from './ProjectListHeader.svelte';
 
 	const projectsResource = resource(
 		() => accountState.currentAccount,
@@ -31,24 +30,11 @@
 </script>
 
 <div class="flex flex-col items-center gap-y-4 w-full">
-	<div class="flex items-center justify-between w-full">
-		<h2 class="text-3xl font-bold">Projects</h2>
-
-		<div class="flex gap-2">
-			<Button
-				variant="outline"
-				onclick={() => projectsResource.refetch()}
-				disabled={projectsResource.loading}
-			>
-				<RefreshCwIcon class="size-4" />
-				Refresh
-			</Button>
-			<Button variant="default" onclick={() => (showCreateDialog = true)}>
-				<PlusIcon class="size-4" />
-				New
-			</Button>
-		</div>
-	</div>
+	<ProjectListHeader
+		isRefreshing={projectsResource.loading}
+		onRefresh={() => projectsResource.refetch()}
+		onNew={() => (showCreateDialog = true)}
+	/>
 
 	{#if projectsResource.loading}
 		<Spinner />
