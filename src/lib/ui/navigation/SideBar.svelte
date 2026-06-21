@@ -6,9 +6,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
-	import { Button } from '$lib/components/ui/button';
 	import { getMax, getMin } from '$lib/utils/data.svelte';
-	import { pressedKeys } from '$lib/stores/input';
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Select from '$lib/components/ui/select';
 	import { AVAILABLE_COLORMAPS } from '$lib/utils/imaging';
@@ -17,8 +15,8 @@
 
 <nav
 	class="flex flex-col w-80 h-full px-6 py-4 overflow-y-auto border-accent {optionsState.sidebarRight
-		? 'border-l-1 order-3'
-		: 'border-r-1 order-1'}"
+		? 'border-l order-3'
+		: 'border-r order-1'}"
 >
 	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Graphics</h2>
 	<div class="flex flex-col gap-4 pb-6">
@@ -39,40 +37,39 @@
 
 	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Debug</h2>
 	<div class="flex flex-col gap-4">
-		<div class="flex items-center">
-			<Switch id="is-svg-shown" bind:checked={svgState.isSvgShown} />
-			<Label for="is-svg-shown" class="pl-2 cursor-pointer">Show SVG</Label>
-		</div>
+		<Label for="is-svg-shown" class="cursor-pointer">
+			<Switch id="is-svg-shown" bind:checked={svgState.isSvgShown} /> Show SVG
+		</Label>
 
-		<div class="flex items-center">
-			<Switch id="svg-stroke-switch" bind:checked={svgState.svgStrokeSwitch} />
-			<Label for="svg-stroke-switch" class="pl-2 cursor-pointer">Stroke</Label>
-		</div>
+		<Label for="svg-stroke-switch" class="cursor-pointer">
+			<Switch id="svg-stroke-switch" bind:checked={svgState.svgStrokeSwitch} /> Stroke
+		</Label>
 
-		<ColorPicker bind:value={svgState.svgStroke}>SVG stroke color...</ColorPicker>
+		<Label for="svg-stroke-color" class="cursor-pointer">
+			<ColorPicker id="svg-stroke-color" bind:value={svgState.svgStroke} /> Stroke color
+		</Label>
 
-		<div class="flex items-center">
-			<Switch id="svg-fill-switch" bind:checked={svgState.svgFillSwitch} />
-			<Label for="svg-fill-switch" class="pl-2 cursor-pointer">Fill</Label>
-		</div>
+		<Label for="svg-fill-switch" class="cursor-pointer">
+			<Switch id="svg-fill-switch" bind:checked={svgState.svgFillSwitch} /> Fill
+		</Label>
 
-		<ColorPicker bind:value={svgState.svgFill}>SVG fill color...</ColorPicker>
+		<Label for="svg-fill-color" class="cursor-pointer">
+			<ColorPicker id="svg-fill-color" bind:value={svgState.svgFill} /> Fill color
+		</Label>
 
 		<div class="flex flex-col gap-2">
 			<Label for="svg-alpha" class="text-nowrap">SVG opacity</Label>
 			<Slider id="svg-alpha" type="single" bind:value={svgState.svgAlpha} max={255} />
 		</div>
 
-		<div class="flex items-center">
-			<Switch id="is-editing" bind:checked={$isEditing} />
-			<Label for="is-editing" class="pl-2 cursor-pointer">Edit mode</Label>
-		</div>
+		<Label for="is-editing" class="cursor-pointer">
+			<Switch id="is-editing" bind:checked={$isEditing} /> Edit mode
+		</Label>
 
-		<div class="flex items-center">
+		<Label for="pointer-lock-enabled" class="cursor-pointer">
 			<Switch id="pointer-lock-enabled" bind:checked={optionsState.pointerLockEnabled} />
-			<Label for="pointer-lock-enabled" class="pl-2 cursor-pointer">Enable pointer lock</Label
-			>
-		</div>
+			Enable pointer lock
+		</Label>
 
 		<div class="flex flex-col gap-2">
 			<Label>Zoom multiplier</Label>
@@ -95,22 +92,5 @@
 				disabled={$isEditing || !annotationState.data}
 			/>
 		</div>
-
-		<!-- <Slider bind:value={$currentChangeIndex} min={-1} max={$annotation.changes.length - 1}
-			>Change index</Slider
-		> -->
-
-		<Button
-			variant="destructive"
-			onclick={() => {
-				sessionStorage.clear();
-				location.reload();
-			}}>Delete session</Button
-		>
-
-		<p class="m-0">shift: {pressedKeys.has('Shift')}</p>
-		<p class="m-0">ctrl: {pressedKeys.has('Control')}</p>
-		<p class="m-0">alt: {pressedKeys.has('Alt')}</p>
-		<p class="m-0">meta: {pressedKeys.has('Meta')}</p>
 	</div>
 </nav>
