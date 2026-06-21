@@ -15,7 +15,6 @@
 	import { toast } from 'svelte-sonner';
 	import { extractError } from '$lib/api/errors';
 	import { resolve } from '$app/paths';
-	import { goto } from '$app/navigation';
 	import RunTaskDialog from './RunTaskDialog.svelte';
 
 	type Props = {
@@ -58,22 +57,19 @@
 			});
 	}
 
-	function openEditor() {
-		if (!version.ready) {
-			toast.warning('This version is not ready yet.');
-			return;
-		}
-		goto(resolve(`/editor?project=${version.project_id}&version=${version.id}`));
-	}
+	const getHref = () => resolve(`/editor?project=${version.project_id}&version=${version.id}`);
 </script>
 
 <Item.Root variant="outline">
 	{#snippet child({ props })}
-		<button
+		<Button
 			{...props}
-			class="{props.class} text-left w-full hover:bg-muted/50 transition-colors"
-			class:cursor-pointer={version.ready}
-			onclick={version.ready ? openEditor : undefined}
+			class="{props.class} h-auto w-full hover:bg-muted/50! {version.ready
+				? ''
+				: 'cursor-default'}"
+			variant="ghost"
+			href={version.ready ? getHref() : undefined}
+			onclick={!version.ready ? () => toast.warning('This version is not ready.') : undefined}
 		>
 			<Item.Media variant="icon">
 				{#if version.ready}
@@ -90,7 +86,7 @@
 				</Item.Description>
 			</Item.Content>
 
-			<Item.Actions onclick={(e) => e.stopPropagation()}>
+			<Item.Actions onclick={(e) => e.preventDefault()}>
 				{#if version.ready}
 					<Button variant="ghost" size="icon-sm" onclick={() => (showRunDialog = true)}>
 						<PlayIcon class="size-4" />
@@ -113,7 +109,7 @@
 					><TrashIcon class="size-4" />
 				</Button>
 			</Item.Actions>
-		</button>
+		</Button>
 	{/snippet}
 </Item.Root>
 
