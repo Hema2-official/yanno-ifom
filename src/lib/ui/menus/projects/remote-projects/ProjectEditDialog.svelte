@@ -5,7 +5,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { Separator } from '$lib/components/ui/separator';
-	import PeriodChanger from './PeriodChanger.svelte';
+	import PeriodChanger from '../../PeriodChanger.svelte';
 	import { resource, watch } from 'runed';
 	import { updateProject } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';

@@ -6,8 +6,8 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import ProjectItem from './ProjectItem.svelte';
 	import CreateProjectDialog from './CreateProjectDialog.svelte';
-	import Spinner from '../common/Spinner.svelte';
-	import ProjectListHeader from './ProjectListHeader.svelte';
+	import Spinner from '../../../common/Spinner.svelte';
+	import ProjectListHeader from '../ProjectListHeader.svelte';
 
 	const projectsResource = resource(
 		() => accountState.currentAccount,

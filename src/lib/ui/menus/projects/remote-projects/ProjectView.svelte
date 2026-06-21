@@ -7,10 +7,10 @@
 	import { getPrimaryFrameCount } from '$lib/utils/frames';
 
 	import { Button } from '$lib/components/ui/button';
-	import Spinner from '../common/Spinner.svelte';
-	import VersionItem from './VersionItem.svelte';
+	import Spinner from '../../../common/Spinner.svelte';
+	import VersionItem from '../../version/VersionItem.svelte';
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
-	import CreateVersionDialog from './CreateVersionDialog.svelte';
+	import CreateVersionDialog from '../../version/CreateVersionDialog.svelte';
 
 	import {
 		ArrowLeftIcon,

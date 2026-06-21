@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ProjectList from '$lib/ui/menus/ProjectList.svelte';
-	import ProjectView from '$lib/ui/menus/ProjectView.svelte';
+	import ProjectList from '$lib/ui/menus/projects/remote-projects/ProjectList.svelte';
+	import ProjectView from '$lib/ui/menus/projects/remote-projects/ProjectView.svelte';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
 

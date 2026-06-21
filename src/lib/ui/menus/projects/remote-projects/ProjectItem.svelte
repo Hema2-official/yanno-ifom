@@ -14,7 +14,7 @@
 	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/shadcn';
 	import { deleteProject, uploadSourceData } from '$lib/api/projects';
-	import ProjectEditDialog from './ProjectEditDialog.svelte';
+	import ProjectEditDialog from '../ProjectEditDialog.svelte';
 	import { pickFile } from '$lib/utils/filePicker';
 	import { toast } from 'svelte-sonner';
 	import { getPrimaryFrameCount } from '$lib/utils/frames';
