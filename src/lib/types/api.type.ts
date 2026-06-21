@@ -12,7 +12,7 @@ export type MeResponse = {
 export const versionStepOrder = ['segmentation', 'tracking', 'inheritance'] as const;
 export type VersionStep = (typeof versionStepOrder)[number];
 
-export function getNextStep(step?: VersionStep): VersionStep | null {
+export function getNextStep(step?: VersionStep | null): VersionStep | null {
 	if (!step) return versionStepOrder[0];
 	const currentIndex = versionStepOrder.indexOf(step);
 	return currentIndex < versionStepOrder.length - 1 ? versionStepOrder[currentIndex + 1] : null;
@@ -33,7 +33,7 @@ export type ProjectVersion = {
 	id: string; // UUID
 	project_id: string; // UUID
 	name: string;
-	step: VersionStep;
+	step: VersionStep | null;
 	ready: boolean;
 	created_at: Date;
 	updated_at: Date;

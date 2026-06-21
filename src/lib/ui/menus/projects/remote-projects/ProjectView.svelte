@@ -17,7 +17,9 @@
 		PencilIcon,
 		PlusIcon,
 		LayersIcon,
-		CircleDashedIcon
+		CircleDashedIcon,
+		type LucideIcon,
+		SparklesIcon
 	} from '@lucide/svelte';
 
 	type Props = { projectId: string };
@@ -44,6 +46,30 @@
 		showCreateVersionDialog = true;
 	}
 </script>
+
+{#snippet VersionGroup(label: string, versions: ProjectVersion[], Icon: LucideIcon)}
+	{#if versions.length > 0}
+		<div class="flex flex-col gap-2">
+			<h3 class="text-lg font-semibold capitalize flex items-center gap-2">
+				<Icon class="size-4 text-muted-foreground" />
+				{label}
+				<span class="text-sm font-normal text-muted-foreground">
+					({versions.length})
+				</span>
+			</h3>
+
+			<div class="flex flex-col gap-2">
+				{#each versions as version (version.id)}
+					<VersionItem
+						{version}
+						onCopy={() => handleCopyVersion(version)}
+						onRefresh={() => projectResource.refetch()}
+					/>
+				{/each}
+			</div>
+		</div>
+	{/if}
+{/snippet}
 
 <div class="flex flex-col gap-6 w-full">
 	{#if projectResource.loading}
@@ -80,31 +106,17 @@
 				total frames
 			</p>
 
+			<!-- Newly created versions -->
+			{@render VersionGroup(
+				'newly created',
+				project.versions.filter((v) => v.step === null),
+				SparklesIcon
+			)}
+
 			<!-- Versions by step -->
 			{#each versionStepOrder as step (step)}
 				{@const versions = project.versions.filter((v) => v.step === step)}
-
-				{#if versions.length > 0}
-					<div class="flex flex-col gap-2">
-						<h3 class="text-lg font-semibold capitalize flex items-center gap-2">
-							<LayersIcon class="size-4 text-muted-foreground" />
-							{step}
-							<span class="text-sm font-normal text-muted-foreground">
-								({versions.length})
-							</span>
-						</h3>
-
-						<div class="flex flex-col gap-2">
-							{#each versions as version (version.id)}
-								<VersionItem
-									{version}
-									onCopy={() => handleCopyVersion(version)}
-									onRefresh={() => projectResource.refetch()}
-								/>
-							{/each}
-						</div>
-					</div>
-				{/if}
+				{@render VersionGroup(step, versions, LayersIcon)}
 			{/each}
 
 			{#if project.versions.length === 0}
