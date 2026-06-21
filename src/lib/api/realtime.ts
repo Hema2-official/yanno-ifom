@@ -11,7 +11,7 @@ async function* readableStreamToAsyncIterable<T>(stream: ReadableStream<T>): Asy
 			yield value;
 		}
 	} finally {
-		reader.cancel();
+		reader.cancel().catch(() => {});
 	}
 }
 
