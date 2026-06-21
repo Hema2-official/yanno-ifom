@@ -22,7 +22,7 @@
 		pressedKeys
 	} from '$lib/stores/input';
 	import NewEditor from './NewEditor.svelte';
-	import { maskToPolygons, rleToMask } from '$lib/utils/rle';
+	import { rleToPolygons } from '$lib/utils/rle';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { colormapToSvgTableValues } from '$lib/utils/imaging';
 
@@ -260,10 +260,7 @@
 				<g role="region">
 					{#each annotationState.currentFrame ?? [] as object (object.ObjectID)}
 						<Cell
-							cellPolygons={maskToPolygons(
-								rleToMask(object.SegmentationRLE),
-								object.SegmentationRLE.size
-							)}
+							cellPolygons={rleToPolygons(object.SegmentationRLE)}
 							cellId={object.ObjectID}
 							onContextMenu={(e) => cellContextMenu(e, object.ObjectID)}
 						/>
