@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Select from '$lib/components/ui/select';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import Spinner from '../Common/Spinner.svelte';
+	import Spinner from '../common/Spinner.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { enqueueTask } from '$lib/api/projects';
 	import {

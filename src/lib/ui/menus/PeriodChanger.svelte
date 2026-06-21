@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Project } from '$lib/types/api.type';
 	import { getWebFrameUrl } from '$lib/api/projects';
-	import Spinner from '../Common/Spinner.svelte';
+	import Spinner from '../common/Spinner.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 	import { cn } from '$lib/utils/shadcn';
 	import { isPrimaryFrame } from '$lib/utils/frames';

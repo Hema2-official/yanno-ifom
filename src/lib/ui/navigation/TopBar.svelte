@@ -11,12 +11,12 @@
 		SettingsIcon,
 		UserPenIcon
 	} from '@lucide/svelte';
-	import LogoSVG from '$lib/UI/Common/LogoSVG.svelte';
+	import LogoSVG from '$lib/ui/common/LogoSVG.svelte';
 	import type { Snippet } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { accountState } from '$lib/states/AccountState.svelte';
-	import Spinner from '../Common/Spinner.svelte';
+	import Spinner from '../common/Spinner.svelte';
 	import { resolve } from '$app/paths';
 
 	type Props = {

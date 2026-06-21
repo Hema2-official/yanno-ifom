@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Spinner from '$lib/UI/Common/Spinner.svelte';
+	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { logout } from '$lib/api/auth';

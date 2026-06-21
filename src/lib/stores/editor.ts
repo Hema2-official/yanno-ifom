@@ -1,7 +1,7 @@
 import { writable, type Writable } from 'svelte/store';
 import type { Component } from 'svelte';
-import PointTool from '$lib/UI/EditorTools/PointTool.svelte';
-import type { EditorToolProps } from '$lib/UI/EditorTools/types';
+import PointTool from '$lib/ui/editor-tools/PointTool.svelte';
+import type { EditorToolProps } from '$lib/ui/editor-tools/types';
 
 export const isEditing = writable(false);
 export const editorTool: Writable<Component<EditorToolProps>> = writable(PointTool);

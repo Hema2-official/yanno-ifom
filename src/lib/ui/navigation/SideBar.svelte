@@ -4,7 +4,7 @@
 	import { isEditing } from '$lib/stores/editor';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Label } from '$lib/components/ui/label';
-	import ColorPicker from '../Common/ColorPicker.svelte';
+	import ColorPicker from '../common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { Button } from '$lib/components/ui/button';
 	import { getMax, getMin } from '$lib/utils/data.svelte';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import TopBar from '$lib/UI/Navigation/TopBar.svelte';
+	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
 
 	let { children }: { children: Snippet } = $props();

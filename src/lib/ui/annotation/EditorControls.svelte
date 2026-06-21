@@ -2,9 +2,9 @@
 	import { _ } from 'svelte-i18n';
 	import NewEditor from './NewEditor.svelte';
 	import { editorTool } from '$lib/stores/editor';
-	import PointTool from '../EditorTools/PointTool.svelte';
-	import WholeTool from '../EditorTools/WholeTool.svelte';
-	import SmoothTool from '../EditorTools/SmoothTool.svelte';
+	import PointTool from '../editor-tools/PointTool.svelte';
+	import WholeTool from '../editor-tools/WholeTool.svelte';
+	import SmoothTool from '../editor-tools/SmoothTool.svelte';
 	import { displayMouseUpHandler } from '$lib/stores/input';
 	import { optionsState } from '$lib/states/options.svelte';
 

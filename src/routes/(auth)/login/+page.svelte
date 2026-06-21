@@ -1,5 +1,5 @@
 <script lang="ts">
-	import TextBox from '$lib/UI/Common/TextBox.svelte';
+	import TextBox from '$lib/ui/common/TextBox.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { login } from '$lib/api/auth';
 	import { goto } from '$app/navigation';

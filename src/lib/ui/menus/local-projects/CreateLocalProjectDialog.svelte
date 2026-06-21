@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { CheckIcon } from '@lucide/svelte';
-	import FileUploadInput from '../../Common/FileUploadInput.svelte';
+	import FileUploadInput from '../../common/FileUploadInput.svelte';
 	import { watch } from 'runed';
 
 	type Props = {

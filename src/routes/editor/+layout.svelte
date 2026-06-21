@@ -4,7 +4,7 @@
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	// import { redoChange, undoChange } from '$lib/stores/data';
 	import type { Snippet } from 'svelte';
-	import TopBar from '$lib/UI/Navigation/TopBar.svelte';
+	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
 	import { optionsState } from '$lib/states/options.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';

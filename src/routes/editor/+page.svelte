@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Display from '$lib/UI/Annotation/Display.svelte';
-	import SideBar from '$lib/UI/Navigation/SideBar.svelte';
-	import Spinner from '$lib/UI/Common/Spinner.svelte';
+	import Display from '$lib/ui/annotation/Display.svelte';
+	import SideBar from '$lib/ui/navigation/SideBar.svelte';
+	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { onMount } from 'svelte';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
 	import { projectState } from '$lib/states/ProjectState.svelte';
