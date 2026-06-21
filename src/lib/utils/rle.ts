@@ -146,66 +146,90 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 	const dx = [1, 1, 0, -1, -1, -1, 0, 1];
 	const dy = [0, 1, 1, 1, 0, -1, -1, -1];
 
+	function getDirIndex(fromX: number, fromY: number, toX: number, toY: number): number {
+		const diffX = toX - fromX;
+		const diffY = toY - fromY;
+		for (let i = 0; i < 8; i++) {
+			if (dx[i] === diffX && dy[i] === diffY) return i;
+		}
+		return -1;
+	}
+
 	function followBoundary(startX: number, startY: number): Polygon {
 		const polygon: Polygon = [];
-		let x = startX;
-		let y = startY;
-		let directionIndex = 0;
 
-		let foundNext = false;
-		do {
-			polygon.push({ x, y });
-			visited[y * width + x] = 1;
+		let cx = startX;
+		let cy = startY;
+		let px = startX - 1;
+		let py = startY;
 
-			foundNext = false;
-			for (let i = 0; i < 8; i++) {
-				let nextDirectionIndex = directionIndex + i;
-				if (nextDirectionIndex >= 8) nextDirectionIndex -= 8;
-				const nx = x + dx[nextDirectionIndex];
-				const ny = y + dy[nextDirectionIndex];
+		const startState = { cx, cy, px, py };
+		polygon.push({ x: cx, y: cy });
 
-				if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-				const nextIndex = ny * width + nx;
-				if (mask[nextIndex] === 1 && visited[nextIndex] === 0) {
-					x = nx;
-					y = ny;
-					directionIndex = nextDirectionIndex;
+		let limit = 100000;
+		while (limit-- > 0) {
+			const pDir = getDirIndex(cx, cy, px, py);
+			let foundNext = false;
+			let nextCx = cx;
+			let nextCy = cy;
+			let nextPx = px;
+			let nextPy = py;
+
+			for (let i = 1; i <= 8; i++) {
+				const dir = (pDir + i) % 8;
+				const nx = cx + dx[dir];
+				const ny = cy + dy[dir];
+
+				const inBounds = nx >= 0 && nx < width && ny >= 0 && ny < height;
+				const isOne = inBounds && mask[ny * width + nx] === 1;
+
+				if (isOne) {
+					nextCx = nx;
+					nextCy = ny;
 					foundNext = true;
 					break;
+				} else {
+					nextPx = nx;
+					nextPy = ny;
 				}
 			}
 
-			// Check if we've returned to the start or its neighborhood
-			if (
-				polygon.length > 2 &&
-				x - startX <= 1 &&
-				x - startX >= -1 &&
-				y - startY <= 1 &&
-				y - startY >= -1
-			) {
-				if (x !== startX || y !== startY) {
-					polygon.push({ x, y });
-					visited[y * width + x] = 1;
-				}
+			if (!foundNext) {
 				break;
 			}
-		} while (foundNext); // Stop when there are no more neighbors
 
-		// Mark the inside of the polygon's rows as visited
-		for (let i = 0; i < polygon.length; i++) {
-			const p1 = polygon[i];
-			const p2 = polygon[(i + 1) % polygon.length];
+			cx = nextCx;
+			cy = nextCy;
+			px = nextPx;
+			py = nextPy;
 
-			let yMin = p1.y;
-			let yMax = p2.y;
-			if (yMin > yMax) {
-				const temp = yMin;
-				yMin = yMax;
-				yMax = temp;
+			if (cx === startState.cx && cy === startState.cy && px === startState.px && py === startState.py) {
+				break;
 			}
 
-			for (let y = yMin; y <= yMax; y++) {
-				visited[y * width + p1.x] = 1;
+			polygon.push({ x: cx, y: cy });
+		}
+
+		// Flood fill the connected component to mark all its pixels as visited
+		if (polygon.length > 0) {
+			const queue: [number, number][] = polygon.map((p) => [p.x, p.y]);
+			for (const p of polygon) {
+				visited[p.y * width + p.x] = 1;
+			}
+			let head = 0;
+			while (head < queue.length) {
+				const [cx, cy] = queue[head++];
+				for (let i = 0; i < 8; i++) {
+					const nx = cx + dx[i];
+					const ny = cy + dy[i];
+					if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+						const nIdx = ny * width + nx;
+						if (mask[nIdx] === 1 && visited[nIdx] === 0) {
+							visited[nIdx] = 1;
+							queue.push([nx, ny]);
+						}
+					}
+				}
 			}
 		}
 
