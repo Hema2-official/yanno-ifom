@@ -76,26 +76,33 @@ export function rleToMask(rle: RLEType) {
 	let pos = 0; // linear position in column-major order
 	let value = 0; // current RLE value (alternates 0/1, starts at 0)
 
-	for (const count of counts) {
+	for (let i = 0; i < counts.length; i++) {
+		const count = counts[i];
 		if (value === 1) {
-			// Only write 1s — 0s are already the default in the Uint8Array
-			const end = pos + count;
+			let remaining = count;
 			let col = Math.trunc(pos / rows);
-			let row = pos - col * rows; // pos % rows without modulo
-			// Track output index incrementally to avoid a multiply per pixel
-			let outIdx = row * cols + col;
+			let row = pos - col * rows;
 
-			for (let j = pos; j < end; j++) {
-				result[outIdx] = 1;
-				row++;
-				outIdx += cols; // next row in row-major = +cols
+			while (remaining > 0) {
+				const colSpace = rows - row;
+				const run = Math.min(remaining, colSpace);
+
+				let outIdx = row * cols + col;
+				const colStride = cols;
+
+				for (let j = 0; j < run; j++) {
+					result[outIdx] = 1;
+					outIdx += colStride;
+				}
+
+				remaining -= run;
+				row += run;
 				if (row >= rows) {
 					row = 0;
 					col++;
-					outIdx = col; // row=0, so outIdx = 0*cols + col = col
 				}
 			}
-			pos = end;
+			pos += count;
 		} else {
 			pos += count;
 		}
@@ -113,26 +120,25 @@ export function rleToMask(rle: RLEType) {
  */
 export function maskToRle(mask: Uint8Array, size: [number, number]) {
 	const area = size[0] * size[1]; // Total pixels per mask
-	const counts: number[] = new Array(area + 1);
+	const counts: number[] = [];
 
-	let index = 0;
 	let prevPixel = 0;
 	let currentLength = 0;
 
 	for (let j = 0; j < area; j++) {
 		if (mask[j] !== prevPixel) {
-			counts[index++] = currentLength;
+			counts.push(currentLength);
 			currentLength = 0;
 			prevPixel = mask[j];
 		}
 		currentLength++;
 	}
 
-	counts[index++] = currentLength; // Final run length
+	counts.push(currentLength); // Final run length
 
 	return {
 		size,
-		counts: countsToString(counts.slice(0, index))
+		counts: countsToString(counts)
 	};
 }
 
@@ -146,14 +152,8 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 	const dx = [1, 1, 0, -1, -1, -1, 0, 1];
 	const dy = [0, 1, 1, 1, 0, -1, -1, -1];
 
-	function getDirIndex(fromX: number, fromY: number, toX: number, toY: number): number {
-		const diffX = toX - fromX;
-		const diffY = toY - fromY;
-		for (let i = 0; i < 8; i++) {
-			if (dx[i] === diffX && dy[i] === diffY) return i;
-		}
-		return -1;
-	}
+	// Lookup table to get direction index from (diffY + 1) * 3 + (diffX + 1)
+	const dirTable = new Int8Array([5, 6, 7, 4, -1, 0, 3, 2, 1]);
 
 	function followBoundary(startX: number, startY: number): Polygon {
 		const polygon: Polygon = [];
@@ -163,12 +163,16 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 		let px = startX - 1;
 		let py = startY;
 
-		const startState = { cx, cy, px, py };
+		const startCx = cx;
+		const startCy = cy;
+		const startPx = px;
+		const startPy = py;
+
 		polygon.push({ x: cx, y: cy });
 
 		let limit = 100000;
 		while (limit-- > 0) {
-			const pDir = getDirIndex(cx, cy, px, py);
+			const pDir = dirTable[(py - cy + 1) * 3 + (px - cx + 1)];
 			let foundNext = false;
 			let nextCx = cx;
 			let nextCy = cy;
@@ -176,7 +180,7 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 			let nextPy = py;
 
 			for (let i = 1; i <= 8; i++) {
-				const dir = (pDir + i) % 8;
+				const dir = (pDir + i) & 7;
 				const nx = cx + dx[dir];
 				const ny = cy + dy[dir];
 
@@ -203,7 +207,7 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 			px = nextPx;
 			py = nextPy;
 
-			if (cx === startState.cx && cy === startState.cy && px === startState.px && py === startState.py) {
+			if (cx === startCx && cy === startCy && px === startPx && py === startPy) {
 				break;
 			}
 
@@ -212,21 +216,86 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 
 		// Flood fill the connected component to mark all its pixels as visited
 		if (polygon.length > 0) {
-			const queue: [number, number][] = polygon.map((p) => [p.x, p.y]);
-			for (const p of polygon) {
-				visited[p.y * width + p.x] = 1;
+			// Allocate a small initial queue, grow dynamically if needed
+			let queueCapacity = Math.max(1024, polygon.length * 2);
+			let queue = new Int32Array(queueCapacity);
+
+			let tail = 0;
+			for (let i = 0; i < polygon.length; i++) {
+				const p = polygon[i];
+				const idx = p.y * width + p.x;
+				if (visited[idx] === 0) {
+					visited[idx] = 1;
+					queue[tail++] = idx;
+				}
 			}
 			let head = 0;
-			while (head < queue.length) {
-				const [cx, cy] = queue[head++];
-				for (let i = 0; i < 8; i++) {
-					const nx = cx + dx[i];
-					const ny = cy + dy[i];
-					if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-						const nIdx = ny * width + nx;
-						if (mask[nIdx] === 1 && visited[nIdx] === 0) {
-							visited[nIdx] = 1;
-							queue.push([nx, ny]);
+			while (head < tail) {
+				// Grow the queue once per loop iteration if we're near capacity
+				if (tail + 8 >= queueCapacity) {
+					const newQueue = new Int32Array(queueCapacity * 2);
+					newQueue.set(queue);
+					queue = newQueue;
+					queueCapacity *= 2;
+				}
+
+				const idx = queue[head++];
+				const cx = idx % width;
+				const cy = Math.trunc(idx / width);
+
+				if (cx > 0 && cx < width - 1 && cy > 0 && cy < height - 1) {
+					// Fast path: all 8 neighbors are in-bounds
+					const idx0 = idx + 1;
+					if (mask[idx0] === 1 && visited[idx0] === 0) {
+						visited[idx0] = 1;
+						queue[tail++] = idx0;
+					}
+					const idx1 = idx + width + 1;
+					if (mask[idx1] === 1 && visited[idx1] === 0) {
+						visited[idx1] = 1;
+						queue[tail++] = idx1;
+					}
+					const idx2 = idx + width;
+					if (mask[idx2] === 1 && visited[idx2] === 0) {
+						visited[idx2] = 1;
+						queue[tail++] = idx2;
+					}
+					const idx3 = idx + width - 1;
+					if (mask[idx3] === 1 && visited[idx3] === 0) {
+						visited[idx3] = 1;
+						queue[tail++] = idx3;
+					}
+					const idx4 = idx - 1;
+					if (mask[idx4] === 1 && visited[idx4] === 0) {
+						visited[idx4] = 1;
+						queue[tail++] = idx4;
+					}
+					const idx5 = idx - width - 1;
+					if (mask[idx5] === 1 && visited[idx5] === 0) {
+						visited[idx5] = 1;
+						queue[tail++] = idx5;
+					}
+					const idx6 = idx - width;
+					if (mask[idx6] === 1 && visited[idx6] === 0) {
+						visited[idx6] = 1;
+						queue[tail++] = idx6;
+					}
+					const idx7 = idx - width + 1;
+					if (mask[idx7] === 1 && visited[idx7] === 0) {
+						visited[idx7] = 1;
+						queue[tail++] = idx7;
+					}
+				} else {
+					// Slow path with bounds checking
+					for (let i = 0; i < 8; i++) {
+						const nx = cx + dx[i];
+						const ny = cy + dy[i];
+						if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+							const nIdx = ny * width + nx;
+							if (mask[nIdx] === 1 && visited[nIdx] === 0) {
+								visited[nIdx] = 1;
+								queue[tail++] = nIdx;
+							}
 						}
 					}
 				}
@@ -236,14 +305,13 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 		return polygon;
 	}
 
-	for (let y = 0; y < height; y++) {
-		const rowStart = y * width;
-		for (let x = 0; x < width; x++) {
-			const index = rowStart + x;
-			if (mask[index] === 1 && visited[index] === 0) {
-				const polygon = followBoundary(x, y);
-				if (polygon.length > 0) polygons.push(polygon);
-			}
+	const totalPixels = mask.length;
+	for (let index = 0; index < totalPixels; index++) {
+		if (mask[index] === 1 && visited[index] === 0) {
+			const x = index % width;
+			const y = Math.trunc(index / width);
+			const polygon = followBoundary(x, y);
+			if (polygon.length > 0) polygons.push(polygon);
 		}
 	}
 
