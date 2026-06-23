@@ -91,14 +91,6 @@ export async function downloadSourceData(project_id: string, options?: Options) 
 	}
 }
 
-export async function downloadEditorData(project_id: string, options?: Options) {
-	try {
-		return await http.blob(`api/v0/projects/${project_id}/editor_data`, options);
-	} catch (error) {
-		throw await handleError(error);
-	}
-}
-
 export function getWebFrameUrl(project: Project, frame_index: number) {
 	if (!Number.isInteger(frame_index)) throw new Error('Frame index must be an integer');
 	if (frame_index < 0) throw new Error('Frame index must be positive');

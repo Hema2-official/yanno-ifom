@@ -55,7 +55,6 @@ export type Project = {
 	name: string;
 	status: ProjectStatus;
 	source_data: string;
-	editor_data: string;
 	frame_count: number;
 	color: VideoColor;
 	channel_period: number;
