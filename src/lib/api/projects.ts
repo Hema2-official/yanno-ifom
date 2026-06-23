@@ -70,11 +70,11 @@ export async function deleteProject(project_id: string, options?: Options) {
 	}
 }
 
-export async function uploadSourceData(project_id: string, file: File, options?: Options) {
+export async function uploadVideo(project_id: string, file: File, options?: Options) {
 	try {
 		const formData = new FormData();
 		formData.append('file', file);
-		await http.post(`api/v0/projects/${project_id}/source_data`, {
+		await http.post(`api/v0/projects/${project_id}/video`, {
 			...options,
 			body: formData
 		});
@@ -83,9 +83,9 @@ export async function uploadSourceData(project_id: string, file: File, options?:
 	}
 }
 
-export async function downloadSourceData(project_id: string, options?: Options) {
+export async function downloadVideo(project_id: string, options?: Options) {
 	try {
-		return await http.blob(`api/v0/projects/${project_id}/source_data`, options);
+		return await http.blob(`api/v0/projects/${project_id}/video`, options);
 	} catch (error) {
 		throw await handleError(error);
 	}

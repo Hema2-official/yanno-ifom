@@ -13,7 +13,7 @@
 		UploadIcon
 	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/shadcn';
-	import { deleteProject, uploadSourceData } from '$lib/api/projects';
+	import { deleteProject, uploadVideo } from '$lib/api/projects';
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
 	import { pickFile } from '$lib/utils/filePicker';
 	import { toast } from 'svelte-sonner';
@@ -45,7 +45,7 @@
 		pickFile('.tif,.tiff')
 			.then(async (file) => {
 				if (!file) return;
-				const uploadPromise = uploadSourceData(project.id, file);
+				const uploadPromise = uploadVideo(project.id, file);
 
 				// Report status
 				toast.promise(uploadPromise, {

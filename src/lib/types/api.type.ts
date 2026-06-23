@@ -54,7 +54,6 @@ export type Project = {
 	id: string; // UUID
 	name: string;
 	status: ProjectStatus;
-	source_data: string;
 	frame_count: number;
 	color: VideoColor;
 	channel_period: number;
