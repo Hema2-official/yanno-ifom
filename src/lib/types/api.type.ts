@@ -39,12 +39,6 @@ export type ProjectVersion = {
 	updated_at: Date;
 };
 
-export enum ProjectStatus {
-	pending = 'pending',
-	uploading = 'uploading',
-	ready = 'ready'
-}
-
 export enum VideoColor {
 	GRAYSCALE = 'GRAYSCALE',
 	RGB = 'RGB'
@@ -53,7 +47,7 @@ export enum VideoColor {
 export type Project = {
 	id: string; // UUID
 	name: string;
-	status: ProjectStatus;
+	ready: boolean;
 	frame_count: number;
 	color: VideoColor;
 	channel_period: number;

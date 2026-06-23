@@ -2,7 +2,6 @@
 	import { resource } from 'runed';
 	import { getProjects } from '$lib/api/projects';
 	import { accountState } from '$lib/states/AccountState.svelte';
-	import { ProjectStatus } from '$lib/types/api.type';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import ProjectItem from './ProjectItem.svelte';
 	import CreateProjectDialog from './CreateProjectDialog.svelte';
@@ -18,11 +17,11 @@
 		{ initialValue: [] }
 	);
 
-	// Sort projects by status:
-	const order = [ProjectStatus.uploading, ProjectStatus.pending, ProjectStatus.ready];
+	// Sort projects by status: not ready first, then ready
 	let projects = $derived(
 		projectsResource.current.toSorted((a, b) => {
-			return order.indexOf(a.status) - order.indexOf(b.status);
+			if (a.ready === b.ready) return 0;
+			return a.ready ? 1 : -1;
 		})
 	);
 

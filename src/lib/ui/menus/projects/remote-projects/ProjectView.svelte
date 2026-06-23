@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { getProject } from '$lib/api/projects';
-	import { ProjectStatus, versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
+	import { versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
 	import { resource } from 'runed';
 	import { getPrimaryFrameCount } from '$lib/utils/frames';
 
@@ -100,7 +100,7 @@
 			</div>
 		</div>
 
-		{#if project.status === ProjectStatus.ready}
+		{#if project.ready}
 			<p class="text-sm text-muted-foreground -mt-2">
 				{getPrimaryFrameCount(project)} primary frames · {project.frame_count}
 				total frames

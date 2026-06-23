@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { ProjectStatus, type Project } from '$lib/types/api.type';
+	import type { Project } from '$lib/types/api.type';
 	import * as Item from '$lib/components/ui/item';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import {
@@ -76,9 +76,9 @@
 			onclick={handleNavigate}
 		>
 			<Item.Media variant="icon">
-				{#if project.status === 'ready'}
+				{#if project.ready}
 					<BadgeCheckIcon />
-				{:else if project.status === 'pending'}
+				{:else}
 					<CircleDashedIcon />
 				{/if}
 			</Item.Media>
@@ -88,7 +88,7 @@
 					{project.name}
 				</Item.Title>
 
-				{#if project.status === ProjectStatus.ready}
+				{#if project.ready}
 					<Item.Description class="capitalize">
 						{project.color.toLowerCase()}, {getPrimaryFrameCount(project)} frames
 					</Item.Description>
@@ -104,7 +104,11 @@
 			</Item.Content>
 
 			<Item.Actions onclick={(e) => e.stopPropagation()}>
-				{#if project.status === 'pending'}
+				{#if project.ready}
+					<Button variant="ghost" size="icon-sm" onclick={() => (showEditDialog = true)}>
+						<PencilIcon />
+					</Button>
+				{:else}
 					<Button
 						variant="ghost"
 						size="icon-sm"
@@ -113,10 +117,6 @@
 					>
 						{#if isUploading}<LoaderCircleIcon class="animate-spin" />
 						{:else}<UploadIcon />{/if}
-					</Button>
-				{:else if project.status === 'ready'}
-					<Button variant="ghost" size="icon-sm" onclick={() => (showEditDialog = true)}>
-						<PencilIcon />
 					</Button>
 				{/if}
 
