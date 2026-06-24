@@ -138,22 +138,12 @@ export async function copyProjectVersion(
 	}
 }
 
-export async function getVersionData(
-	version: ProjectVersion,
-	as_attachment: boolean = false,
-	options?: Options
-) {
+export async function getVersionData(version: ProjectVersion, options?: Options) {
 	try {
-		const url = new URL(
+		return await http.get<VersionManaged<TrackType[]>>(
 			`api/v0/projects/${version.project_id}/versions/${version.id}/data`,
-			BASE_URL
-		);
-		if (as_attachment) url.searchParams.append('as_attachment', 'true');
-		const data = await http.get<VersionManaged<TrackType[]>>(
-			url.pathname + url.search,
 			options
 		);
-		return data;
 	} catch (error) {
 		throw await handleError(error);
 	}
@@ -165,12 +155,9 @@ export async function updateVersionData(
 	options?: Options
 ) {
 	try {
-		const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-		const formData = new FormData();
-		formData.append('data', blob);
-		await http.patch(`api/v0/projects/${version.project_id}/versions/${version.id}`, {
+		await http.patch(`api/v0/projects/${version.project_id}/versions/${version.id}/data`, {
 			...options,
-			body: formData
+			json: data
 		});
 	} catch (error) {
 		throw await handleError(error);
