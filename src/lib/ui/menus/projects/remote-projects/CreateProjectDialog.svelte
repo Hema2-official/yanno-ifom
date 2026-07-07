@@ -46,11 +46,16 @@
 		if (!createResource.error) return;
 		toast.error("Couldn't create project", { description: extractError(createResource.error) });
 	});
+
+	function onSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		if (allowSubmit) createResource.refetch();
+	}
 </script>
 
 <Dialog.Root bind:open={isOpen}>
-	<form>
-		<Dialog.Content>
+	<Dialog.Content>
+		<form class="grid gap-4" onsubmit={onSubmit}>
 			<Dialog.Header>
 				<Dialog.Title>Create project</Dialog.Title>
 				<Dialog.Description>
@@ -65,16 +70,12 @@
 
 			<Dialog.Footer>
 				<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
-				<Button
-					type="submit"
-					onclick={() => createResource.refetch()}
-					disabled={createResource.loading || !allowSubmit}
-				>
+				<Button type="submit" disabled={createResource.loading || !allowSubmit}>
 					{#if createResource.loading}<LoaderIcon class="size-4 animate-spin" />
 					{:else}<CheckIcon class="size-4" />{/if}
 					Create
 				</Button>
 			</Dialog.Footer>
-		</Dialog.Content>
-	</form>
+		</form>
+	</Dialog.Content>
 </Dialog.Root>

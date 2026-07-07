@@ -47,52 +47,59 @@
 	watch([() => updateResource.error], ([error]) => {
 		if (error) toast.error('Failed to update project', { description: error.message });
 	});
+
+	function onSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		if (allowSubmit) updateResource.refetch();
+	}
 </script>
 
 <Dialog.Root bind:open={isOpen}>
 	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title class="flex items-center gap-2">
-				Edit Project
-				{#if updateResource.error}<CloudAlertIcon class="size-4 text-destructive" />{/if}
-			</Dialog.Title>
-		</Dialog.Header>
+		<form class="grid gap-4" onsubmit={onSubmit}>
+			<Dialog.Header>
+				<Dialog.Title class="flex items-center gap-2">
+					Edit Project
+					{#if updateResource.error}
+						<CloudAlertIcon class="size-4 text-destructive" />
+					{/if}
+				</Dialog.Title>
+			</Dialog.Header>
 
-		<div class="grid gap-4">
-			<div class="grid gap-2">
-				<Label for="project-name">Name</Label>
-				<Input
-					id="project-name"
-					bind:value={localProject.name}
-					placeholder="Project name"
-				/>
+			<div class="grid gap-4">
+				<div class="grid gap-2">
+					<Label for="project-name">Name</Label>
+					<Input
+						id="project-name"
+						bind:value={localProject.name}
+						placeholder="Project name"
+					/>
+				</div>
+
+				<Label for="project-grayscale" class="cursor-pointer">
+					<Checkbox
+						id="project-grayscale"
+						checked={localProject.color === VideoColor.GRAYSCALE}
+						onCheckedChange={(checked) =>
+							(localProject.color = checked ? VideoColor.GRAYSCALE : VideoColor.RGB)}
+					/>
+					Grayscale
+				</Label>
+
+				<Separator />
+
+				<PeriodChanger bind:project={localProject} />
 			</div>
 
-			<Label for="project-grayscale" class="cursor-pointer">
-				<Checkbox
-					id="project-grayscale"
-					checked={localProject.color === VideoColor.GRAYSCALE}
-					onCheckedChange={(checked) =>
-						(localProject.color = checked ? VideoColor.GRAYSCALE : VideoColor.RGB)}
-				/>
-				Grayscale
-			</Label>
-
-			<Separator />
-
-			<PeriodChanger bind:project={localProject} />
-		</div>
-
-		<Dialog.Footer>
-			<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
-			<Button
-				type="submit"
-				onclick={() => updateResource.refetch()}
-				disabled={updateResource.loading || !allowSubmit}
-			>
-				{#if updateResource.loading}<LoaderCircleIcon class="size-4 animate-spin" />{/if}
-				Save
-			</Button>
-		</Dialog.Footer>
+			<Dialog.Footer>
+				<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
+				<Button type="submit" disabled={updateResource.loading || !allowSubmit}>
+					{#if updateResource.loading}
+						<LoaderCircleIcon class="size-4 animate-spin" />
+					{/if}
+					Save
+				</Button>
+			</Dialog.Footer>
+		</form>
 	</Dialog.Content>
 </Dialog.Root>

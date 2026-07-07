@@ -22,7 +22,8 @@
 		newVersionName = copyFromVersion ? copyFromVersion.name + ' (copy)' : '';
 	});
 
-	function handleCreateVersion() {
+	function handleCreateVersion(e: SubmitEvent) {
+		e.preventDefault();
 		if (!newVersionName.trim()) return;
 
 		const promise = copyFromVersion
@@ -45,26 +46,22 @@
 <!-- Create version dialog -->
 <Dialog.Root bind:open={isOpen}>
 	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>New Version</Dialog.Title>
-			{#if copyFromVersion}
-				<Dialog.Description>Copying "{copyFromVersion.name}"</Dialog.Description>
-			{/if}
-		</Dialog.Header>
+		<form class="grid gap-4" onsubmit={handleCreateVersion}>
+			<Dialog.Header>
+				<Dialog.Title>New Version</Dialog.Title>
+				{#if copyFromVersion}
+					<Dialog.Description>Copying "{copyFromVersion.name}"</Dialog.Description>
+				{/if}
+			</Dialog.Header>
 
-		<div class="grid gap-4">
-			<Input
-				bind:value={newVersionName}
-				placeholder="Name"
-				onkeydown={(e) => {
-					if (e.key === 'Enter') handleCreateVersion();
-				}}
-			/>
-		</div>
+			<div class="grid gap-4">
+				<Input bind:value={newVersionName} placeholder="Name" />
+			</div>
 
-		<Dialog.Footer>
-			<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
-			<Button onclick={handleCreateVersion} disabled={!newVersionName.trim()}>Create</Button>
-		</Dialog.Footer>
+			<Dialog.Footer>
+				<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
+				<Button type="submit" disabled={!newVersionName.trim()}>Create</Button>
+			</Dialog.Footer>
+		</form>
 	</Dialog.Content>
 </Dialog.Root>

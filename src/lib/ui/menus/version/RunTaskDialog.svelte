@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Select from '$lib/components/ui/select';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import Spinner from '$lib/ui/common/Spinner.svelte';
+	import Spinner from '$lib/UI/common/Spinner.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { enqueueTask } from '$lib/api/projects';
 	import {
@@ -48,7 +48,8 @@
 
 	let allowSubmit = $derived(version?.ready ?? false);
 
-	const handleRun = () => {
+	const handleRun = (e: SubmitEvent) => {
+		e.preventDefault();
 		if (!version || !selectedStep || !parameters) return;
 		loading = true;
 		error_message = undefined;
@@ -70,8 +71,8 @@
 </script>
 
 <Dialog.Root bind:open={isOpen}>
-	<form>
-		<Dialog.Content>
+	<Dialog.Content>
+		<form class="grid gap-4" onsubmit={handleRun}>
 			<Dialog.Header>
 				<Dialog.Title>Run server task</Dialog.Title>
 			</Dialog.Header>
@@ -102,9 +103,9 @@
 					<Dialog.Close type="button" class={buttonVariants({ variant: 'secondary' })}>
 						Cancel
 					</Dialog.Close>
-					<Button type="submit" onclick={handleRun} disabled={!allowSubmit}>Run</Button>
+					<Button type="submit" disabled={!allowSubmit}>Run</Button>
 				</div>
 			{/if}
-		</Dialog.Content>
-	</form>
+		</form>
+	</Dialog.Content>
 </Dialog.Root>
