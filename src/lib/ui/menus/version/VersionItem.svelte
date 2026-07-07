@@ -60,7 +60,7 @@
 	const getHref = () => resolve(`/editor?project=${version.project_id}&version=${version.id}`);
 </script>
 
-<Item.Root variant="outline">
+<Item.Root variant="outline" class="flex-nowrap">
 	{#snippet child({ props })}
 		<Button
 			{...props}
@@ -81,7 +81,7 @@
 
 			<Item.Content>
 				<Item.Title>{version.name}</Item.Title>
-				<Item.Description>
+				<Item.Description class="text-wrap">
 					<VersionStatus {version} onReady={onRefresh} />
 				</Item.Description>
 			</Item.Content>
