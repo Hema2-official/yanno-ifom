@@ -1,5 +1,9 @@
 import type { GeoTIFFImage } from 'geotiff';
 
+type WebpConversionOptions = {
+	normalizeRgb?: boolean;
+};
+
 export class WebPConverter {
 	readonly #canvas: OffscreenCanvas;
 	readonly #ctx: OffscreenCanvasRenderingContext2D;
@@ -11,7 +15,7 @@ export class WebPConverter {
 		this.#ctx = ctx;
 	}
 
-	async tiffImageToWebP(tiffImage: GeoTIFFImage) {
+	async tiffImageToWebP(tiffImage: GeoTIFFImage, options?: WebpConversionOptions) {
 		const width = tiffImage.getWidth();
 		const height = tiffImage.getHeight();
 
@@ -45,9 +49,49 @@ export class WebPConverter {
 			}
 		}
 
+		if (options?.normalizeRgb) this.#normalizeRgb(rgbaData);
+
 		this.#ctx.putImageData(new ImageData(rgbaData, width, height), 0, 0);
 
 		// Convert to WebP blob
 		return this.#canvas.convertToBlob({ type: 'image/webp', quality: 1 });
+	}
+
+	#normalizeRgb(data: Uint8Array | Uint8ClampedArray) {
+		let min = 255;
+		let max = 0;
+		const len = data.length;
+
+		// Find min and max values across R, G, B channels (ignoring Alpha)
+		for (let i = 0; i < len; i += 4) {
+			const r = data[i];
+			const g = data[i + 1];
+			const b = data[i + 2];
+			if (r < min) min = r;
+			if (r > max) max = r;
+			if (g < min) min = g;
+			if (g > max) max = g;
+			if (b < min) min = b;
+			if (b > max) max = b;
+		}
+
+		// Normalize in-place if range is non-zero
+		if (max > min) {
+			const range = max - min;
+			for (let i = 0; i < len; i += 4) {
+				data[i] = Math.round(((data[i] - min) * 255) / range);
+				data[i + 1] = Math.round(((data[i + 1] - min) * 255) / range);
+				data[i + 2] = Math.round(((data[i + 2] - min) * 255) / range);
+			}
+		} else {
+			// If all colors are uniform, map color channels to 0
+			for (let i = 0; i < len; i += 4) {
+				data[i] = 0;
+				data[i + 1] = 0;
+				data[i + 2] = 0;
+			}
+		}
+
+		return data;
 	}
 }

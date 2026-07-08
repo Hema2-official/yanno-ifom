@@ -54,7 +54,7 @@
 
 		for (let i = 0; i < previewCount; i++) {
 			const image = await tiff.getImage(i);
-			const webpBlob = await webpConverter.tiffImageToWebP(image);
+			const webpBlob = await webpConverter.tiffImageToWebP(image, { normalizeRgb: true });
 			urls.push(URL.createObjectURL(webpBlob));
 		}
 		previewUrls = urls;
