@@ -7,15 +7,14 @@
 	import {
 		BadgeCheckIcon,
 		CircleDashedIcon,
-		LoaderCircleIcon,
 		PencilIcon,
 		TrashIcon,
 		UploadIcon
 	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/shadcn';
-	import { deleteProject, uploadVideo } from '$lib/api/projects';
+	import { deleteProject } from '$lib/api/projects';
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
-	import { pickFile } from '$lib/utils/filePicker';
+	import UploadVideoDialog from './UploadVideoDialog.svelte';
 	import { toast } from 'svelte-sonner';
 	import { getPrimaryFrameCount } from '$lib/utils/frames';
 
@@ -24,7 +23,7 @@
 	let { project = $bindable(), onRefresh }: Props = $props();
 
 	let showEditDialog = $state(false);
-	let isUploading = $state(false);
+	let showUploadDialog = $state(false);
 
 	function handleDelete() {
 		// TODO: use a real dialog
@@ -36,30 +35,6 @@
 				toast.error('Failed to delete project', { description: String(error) });
 			})
 			.finally(() => onRefresh());
-	}
-
-	function handleUpload() {
-		if (isUploading) return;
-		isUploading = true;
-
-		pickFile('.tif,.tiff')
-			.then(async (file) => {
-				if (!file) return;
-				const uploadPromise = uploadVideo(project.id, file);
-
-				// Report status
-				toast.promise(uploadPromise, {
-					success: 'Video uploaded successfully',
-					loading: 'Uploading video...',
-					error: 'Failed to upload video'
-				});
-
-				await uploadPromise;
-				onRefresh();
-			})
-			.finally(() => {
-				isUploading = false;
-			});
 	}
 
 	function handleNavigate() {
@@ -76,7 +51,7 @@
 			onclick={handleNavigate}
 		>
 			<Item.Media variant="icon">
-				{#if project.ready}
+				{#if project.video_config}
 					<BadgeCheckIcon />
 				{:else}
 					<CircleDashedIcon />
@@ -88,9 +63,9 @@
 					{project.name}
 				</Item.Title>
 
-				{#if project.ready}
+				{#if project.video_config}
 					<Item.Description class="capitalize">
-						{project.color.toLowerCase()}, {getPrimaryFrameCount(project)} frames
+						{project.video_config.color.toLowerCase()}, {getPrimaryFrameCount(project)} frames
 					</Item.Description>
 				{:else}
 					<Item.Description>Upload a video to get started</Item.Description>
@@ -104,7 +79,7 @@
 			</Item.Content>
 
 			<Item.Actions onclick={(e) => e.stopPropagation()}>
-				{#if project.ready}
+				{#if project.video_config}
 					<Button variant="ghost" size="icon-sm" onclick={() => (showEditDialog = true)}>
 						<PencilIcon />
 					</Button>
@@ -112,11 +87,9 @@
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						onclick={handleUpload}
-						disabled={isUploading}
+						onclick={() => (showUploadDialog = true)}
 					>
-						{#if isUploading}<LoaderCircleIcon class="animate-spin" />
-						{:else}<UploadIcon />{/if}
+						<UploadIcon />
 					</Button>
 				{/if}
 
@@ -133,3 +106,5 @@
 </Item.Root>
 
 <ProjectEditDialog bind:isOpen={showEditDialog} {project} {onRefresh} />
+
+<UploadVideoDialog bind:isOpen={showUploadDialog} {project} {onRefresh} />

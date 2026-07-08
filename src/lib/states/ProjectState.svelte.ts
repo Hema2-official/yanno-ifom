@@ -18,12 +18,14 @@ class ProjectState {
 	// Derived values for ease of use
 	name: string | undefined = $derived(this.cloudProject?.name ?? this.localProject?.name);
 	versionName: string | undefined = $derived(this.cloudVersion?.name);
-	color: VideoColor | undefined = $derived(this.cloudProject?.color ?? this.localProject?.color);
+	color: VideoColor | undefined = $derived(
+		this.cloudProject?.video_config?.color ?? this.localProject?.color
+	);
 	channelPeriod: number | undefined = $derived(
-		this.cloudProject?.channel_period ?? this.localProject?.channelPeriod
+		this.cloudProject?.video_config?.channel_period ?? this.localProject?.channelPeriod
 	);
 	startPeriod: number | undefined = $derived(
-		this.cloudProject?.start_period ?? this.localProject?.startPeriod
+		this.cloudProject?.video_config?.start_period ?? this.localProject?.startPeriod
 	);
 	currentFrameUrl = $derived(this.getFrameUrl(annotationState.currentFrameId));
 

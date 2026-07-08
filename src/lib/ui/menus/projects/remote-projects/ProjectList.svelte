@@ -5,7 +5,7 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import ProjectItem from './ProjectItem.svelte';
 	import CreateProjectDialog from './CreateProjectDialog.svelte';
-	import Spinner from '$lib/ui/common/Spinner.svelte';
+	import Spinner from '$lib/UI/common/Spinner.svelte';
 	import ProjectListHeader from '../ProjectListHeader.svelte';
 
 	const projectsResource = resource(
@@ -19,10 +19,9 @@
 
 	// Sort projects by status: not ready first, then ready
 	let projects = $derived(
-		projectsResource.current.toSorted((a, b) => {
-			if (a.ready === b.ready) return 0;
-			return a.ready ? 1 : -1;
-		})
+		projectsResource.current.toSorted(
+			(a, b) => (a.video_config ? 1 : 0) - (b.video_config ? 1 : 0)
+		)
 	);
 
 	let showCreateDialog = $state(false);

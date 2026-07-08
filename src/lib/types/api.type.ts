@@ -44,14 +44,17 @@ export enum VideoColor {
 	RGB = 'RGB'
 }
 
+export type VideoConfig = {
+	color: VideoColor;
+	start_period: number;
+	channel_period: number;
+};
+
 export type Project = {
 	id: string; // UUID
 	name: string;
-	ready: boolean;
 	frame_count: number;
-	color: VideoColor;
-	channel_period: number;
-	start_period: number;
+	video_config: VideoConfig | null;
 	versions: ProjectVersion[];
 	created_at: Date;
 	updated_at: Date;

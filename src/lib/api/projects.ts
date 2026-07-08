@@ -6,7 +6,7 @@ import type {
 	Project,
 	ProjectVersion,
 	ServerTask,
-	VideoColor
+	VideoConfig
 } from '$lib/types/api.type';
 import { handleError } from './errors';
 import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
@@ -48,7 +48,7 @@ export async function getProject(project_id: string, options?: Options) {
 
 export async function updateProject(
 	project_id: string,
-	body: { name?: string; color?: VideoColor; channel_period?: number; start_period?: number },
+	body: { name?: string; video_config?: VideoConfig | null },
 	options?: Options
 ) {
 	try {
@@ -70,11 +70,19 @@ export async function deleteProject(project_id: string, options?: Options) {
 	}
 }
 
-export async function uploadVideo(project_id: string, file: File, options?: Options) {
+export async function uploadVideo(
+	project_id: string,
+	file: File,
+	videoConfig: VideoConfig,
+	options?: Options
+) {
 	try {
 		const formData = new FormData();
 		formData.append('file', file);
-		await http.post(`api/v0/projects/${project_id}/video`, {
+		formData.append('color', videoConfig.color);
+		formData.append('start_period', String(videoConfig.start_period));
+		formData.append('channel_period', String(videoConfig.channel_period));
+		await http.put(`api/v0/projects/${project_id}/video`, {
 			...options,
 			body: formData
 		});

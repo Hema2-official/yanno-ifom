@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { VideoColor, type Project } from '$lib/types/api.type';
+	import type { Project } from '$lib/types/api.type';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-	import { Separator } from '$lib/components/ui/separator';
-	import PeriodChanger from '../../PeriodChanger.svelte';
 	import { resource, watch } from 'runed';
 	import { updateProject } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';
@@ -29,10 +26,7 @@
 		[],
 		async () => {
 			return updateProject(project.id, {
-				name: localProject.name.trim(),
-				color: localProject.color,
-				start_period: localProject.start_period,
-				channel_period: localProject.channel_period
+				name: localProject.name.trim()
 			});
 		},
 		{ lazy: true }
@@ -75,20 +69,6 @@
 						placeholder="Project name"
 					/>
 				</div>
-
-				<Label for="project-grayscale" class="cursor-pointer">
-					<Checkbox
-						id="project-grayscale"
-						checked={localProject.color === VideoColor.GRAYSCALE}
-						onCheckedChange={(checked) =>
-							(localProject.color = checked ? VideoColor.GRAYSCALE : VideoColor.RGB)}
-					/>
-					Grayscale
-				</Label>
-
-				<Separator />
-
-				<PeriodChanger bind:project={localProject} />
 			</div>
 
 			<Dialog.Footer>
