@@ -24,9 +24,15 @@
 	import NewEditor from './NewEditor.svelte';
 	import { rleToPolygons } from '$lib/utils/rle';
 	import { projectState } from '$lib/states/ProjectState.svelte';
-	import { colormapToSvgTableValues } from '$lib/utils/imaging';
+	import {
+		colormapToRgbFunctions,
+		getNormalizeFunctions,
+		type RGBFuntions
+	} from '$lib/utils/imaging';
 
-	let colormapFilter = $derived(colormapToSvgTableValues(svgState.videoColormap));
+	let colormapFilter = $derived(
+		colormapToRgbFunctions(svgState.videoColormap, svgState.videoColormapShades)
+	);
 
 	let contextMenuOpen = $state(false);
 	let contextMenuAnchor: Measurable | null = $state(null);
@@ -216,6 +222,15 @@
 		contextMenuOpen = true;
 	};
 
+	const normalizeFilter = $derived(
+		projectState.videoMetadata && projectState.videoConfig
+			? getNormalizeFunctions(
+					projectState.videoMetadata,
+					projectState.videoConfig.start_period
+				)
+			: null
+	);
+
 	// let svg = frameToSvg(1);
 
 	// const edit = () => {
@@ -223,6 +238,16 @@
 	// 	$isEditing = true;
 	// };
 </script>
+
+{#snippet SVGFilter(id: string, functions: RGBFuntions)}
+	<filter {id} color-interpolation-filters="sRGB">
+		<feComponentTransfer>
+			<feFuncR {...functions.r} />
+			<feFuncG {...functions.g} />
+			<feFuncB {...functions.b} />
+		</feComponentTransfer>
+	</filter>
+{/snippet}
 
 <div
 	class="display-container"
@@ -246,15 +271,17 @@
 			bind:this={svgElement}
 			opacity={svgState.isSvgShown ? svgState.svgAlpha / 255 : 0}
 		>
-			<filter id="colormap-f" color-interpolation-filters="sRGB">
-				<feComponentTransfer>
-					<feFuncR type="table" tableValues={colormapFilter.r} />
-					<feFuncG type="table" tableValues={colormapFilter.g} />
-					<feFuncB type="table" tableValues={colormapFilter.b} />
-				</feComponentTransfer>
-			</filter>
+			{@render SVGFilter('colormap-f', colormapFilter)}
+			{#if normalizeFilter}
+				{@render SVGFilter('normalize-f', normalizeFilter)}
+			{/if}
 
-			<image href={projectState.currentFrameUrl} filter="url(#colormap-f)" />
+			<image
+				href={projectState.currentFrameUrl}
+				filter="{svgState.normalizeSwitch
+					? 'url(#normalize-f)'
+					: ''} {svgState.colormapSwitch ? 'url(#colormap-f)' : ''}"
+			/>
 
 			{#if !$isEditing}
 				<g role="region">

@@ -1,6 +1,26 @@
+import type { VideoComponentMetadata, VideoMetadata } from '$lib/types/api.type';
 import createColormap from 'colormap';
 
-const svgTableCache = new Map<string, { r: string; g: string; b: string }>();
+type LinearLUT = {
+	type: 'linear';
+	slope: number;
+	intercept: number;
+};
+
+type TableLUT = {
+	type: 'table';
+	tableValues: string;
+};
+
+type SVGComponentTransferLUT = LinearLUT | TableLUT;
+
+export type RGBFuntions = {
+	r: SVGComponentTransferLUT;
+	g: SVGComponentTransferLUT;
+	b: SVGComponentTransferLUT;
+};
+
+const svgTableCache = new Map<string, RGBFuntions>();
 
 /**
  * Generates SVG `feComponentTransfer` table values for R, G, and B channels
@@ -11,10 +31,7 @@ const svgTableCache = new Map<string, { r: string; g: string; b: string }>();
  * @param nshades - Number of samples to take (default 256).
  * @returns An object with `r`, `g`, and `b` strings for use as `tableValues`.
  */
-export function colormapToSvgTableValues(
-	colormap: ColorMapType,
-	nshades: number = 256
-): { r: string; g: string; b: string } {
+export function colormapToRgbFunctions(colormap: ColorMapType, nshades: number = 256): RGBFuntions {
 	const cacheKey = `${colormap}-${nshades}`;
 	const cached = svgTableCache.get(cacheKey);
 	if (cached) return cached;
@@ -35,9 +52,31 @@ export function colormapToSvgTableValues(
 		g += sep + colors[i][1];
 		b += sep + colors[i][2];
 	}
-	const result = { r, g, b };
+	const result: RGBFuntions = {
+		r: { type: 'table', tableValues: r },
+		g: { type: 'table', tableValues: g },
+		b: { type: 'table', tableValues: b }
+	};
 	svgTableCache.set(cacheKey, result);
 	return result;
+}
+
+function getLinearLUT(componentMetadata: VideoComponentMetadata): LinearLUT {
+	const min = componentMetadata.min_value;
+	const max = componentMetadata.max_value;
+	return { type: 'linear', slope: 255 / (max - min), intercept: -min / (max - min) };
+}
+
+export function getNormalizeFunctions(
+	videoMetadata: VideoMetadata,
+	channelIndex: number
+): RGBFuntions {
+	const channelMetadata = videoMetadata.channels[channelIndex];
+	return {
+		r: getLinearLUT(channelMetadata.r),
+		g: getLinearLUT(channelMetadata.g),
+		b: getLinearLUT(channelMetadata.b)
+	};
 }
 
 export type ColorMapType = (typeof AVAILABLE_COLORMAPS)[number];

@@ -25,6 +25,9 @@ class SvgState {
 		height: 512
 	});
 
+	normalizeSwitch = $state(true);
+	colormapSwitch = $state(true);
+
 	videoColormap: ColorMapType = $state('viridis');
 	videoColormapShades = $state(64);
 }

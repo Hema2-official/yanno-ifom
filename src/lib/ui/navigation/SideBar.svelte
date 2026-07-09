@@ -4,7 +4,7 @@
 	import { isEditing } from '$lib/stores/editor';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Label } from '$lib/components/ui/label';
-	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
+	import ColorPicker from '$lib/UI/common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { getMax, getMin } from '$lib/utils/data.svelte';
 	import { Switch } from '$lib/components/ui/switch';
@@ -20,10 +20,18 @@
 >
 	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Graphics</h2>
 	<div class="flex flex-col gap-4 pb-6">
-		<div class="flex flex-col gap-2">
-			<Label>Color map</Label>
+		<Label for="normalize-switch" class="cursor-pointer">
+			<Switch id="normalize-switch" bind:checked={svgState.normalizeSwitch} /> Normalize
+		</Label>
+
+		<Label for="colormap-switch" class="cursor-pointer">
+			<Switch id="colormap-switch" bind:checked={svgState.colormapSwitch} /> Colormap
+		</Label>
+
+		<div class="flex gap-2">
+			<Label>Color map:</Label>
 			<Select.Root type="single" bind:value={svgState.videoColormap}>
-				<Select.Trigger>
+				<Select.Trigger size="sm">
 					{svgState.videoColormap}
 				</Select.Trigger>
 				<Select.Content>
@@ -32,6 +40,20 @@
 					{/each}
 				</Select.Content>
 			</Select.Root>
+		</div>
+
+		<div class="flex flex-col gap-2">
+			<Label for="colormap-shades" class="text-nowrap">
+				Shades: {svgState.videoColormapShades}
+			</Label>
+			<Slider
+				id="colormap-shades"
+				type="single"
+				bind:value={svgState.videoColormapShades}
+				min={16}
+				max={256}
+				step={1}
+			/>
 		</div>
 	</div>
 
