@@ -98,7 +98,7 @@
 			scrollbarXClasses="h-2.5 data-[orientation=horizontal]:h-2.5 data-[size=small]:h-1.5"
 		>
 			<div
-				class="flex border-2 border-light-gray-accent border-r-0 rounded-tl-xl rounded-bl-xl p-px transition-all duration-200"
+				class="flex border-2 border-secondary border-r-0 rounded-tl-xl rounded-bl-xl p-px transition-all duration-200"
 				class:border-dashed={isSelecting}
 			>
 				{#each previewUrls as frameUrl, index (frameUrl)}
@@ -120,7 +120,7 @@
 				{/each}
 			</div>
 		</ScrollArea>
-		<span class="text-sm text-gray-accent italic text-left">
+		<span class="text-sm text-muted-foreground italic text-left">
 			{#if !isSelecting}
 				Click to change the first primary frame...
 			{:else}

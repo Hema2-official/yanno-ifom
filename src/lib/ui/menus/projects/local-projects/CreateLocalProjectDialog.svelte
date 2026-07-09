@@ -46,7 +46,7 @@
 		<Dialog.Footer>
 			<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
 			<Button disabled={!name || !imageFile || !annotationFile}>
-				<CheckIcon />
+				<CheckIcon data-icon="inline-start" />
 				Create
 			</Button>
 		</Dialog.Footer>

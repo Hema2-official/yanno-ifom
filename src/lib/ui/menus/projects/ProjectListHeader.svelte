@@ -17,14 +17,14 @@
 
 	<div class="flex gap-2">
 		{#if onRefresh}
-			<Button variant="outline" onclick={onRefresh} disabled={isRefreshing}>
-				<RefreshCwIcon /> Refresh
+			<Button variant="secondary" onclick={onRefresh} disabled={isRefreshing}>
+				<RefreshCwIcon data-icon="inline-start" /> Refresh
 			</Button>
 		{/if}
 
 		{#if onNew}
 			<Button variant="default" onclick={onNew}>
-				<PlusIcon /> New
+				<PlusIcon data-icon="inline-start" /> New
 			</Button>
 		{/if}
 	</div>

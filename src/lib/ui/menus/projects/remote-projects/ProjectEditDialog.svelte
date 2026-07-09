@@ -75,7 +75,7 @@
 				<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
 				<Button type="submit" disabled={updateResource.loading || !allowSubmit}>
 					{#if updateResource.loading}
-						<LoaderCircleIcon class="size-4 animate-spin" />
+						<LoaderCircleIcon data-icon="inline-start" class="animate-spin" />
 					{/if}
 					Save
 				</Button>

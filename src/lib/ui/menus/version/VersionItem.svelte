@@ -88,25 +88,25 @@
 
 			<Item.Actions onclick={(e) => e.preventDefault()}>
 				{#if version.ready}
-					<Button variant="ghost" size="icon-sm" onclick={() => (showRunDialog = true)}>
-						<PlayIcon class="size-4" />
+					<Button variant="ghost" size="icon" onclick={() => (showRunDialog = true)}>
+						<PlayIcon />
 					</Button>
 
-					<Button variant="ghost" size="icon-sm" onclick={onCopy}>
-						<CopyIcon class="size-4" />
+					<Button variant="ghost" size="icon" onclick={onCopy}>
+						<CopyIcon />
 					</Button>
 				{:else}
-					<Button variant="ghost" size="icon-sm" onclick={handleCancelTask}>
-						<SquareIcon class="size-4" />
+					<Button variant="ghost" size="icon" onclick={handleCancelTask}>
+						<SquareIcon />
 					</Button>
 				{/if}
 
 				<Button
 					variant="ghost"
-					size="icon-sm"
+					size="icon"
 					class="hover:bg-destructive/40!"
 					onclick={handleDelete}
-					><TrashIcon class="size-4" />
+					><TrashIcon />
 				</Button>
 			</Item.Actions>
 		</Button>

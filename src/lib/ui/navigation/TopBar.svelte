@@ -11,7 +11,7 @@
 		SettingsIcon,
 		UserPenIcon
 	} from '@lucide/svelte';
-	import LogoSVG from '$lib/ui/common/LogoSVG.svelte';
+	import LogoSVG from '$lib/UI/common/LogoSVG.svelte';
 	import type { Snippet } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
@@ -144,10 +144,10 @@
 						{#if accountState.currentAccount === undefined}
 							<Spinner size={14} thickness={3} />
 						{:else}
-							<CircleUserIcon />
+							<CircleUserIcon data-icon="inline-start" />
 							{accountState.currentAccount?.email ?? 'Not logged in'}
 						{/if}
-						<ChevronsUpDownIcon />
+						<ChevronsUpDownIcon data-icon="inline-end" />
 					</Button>
 				{/snippet}
 			</DropdownMenu.Trigger>

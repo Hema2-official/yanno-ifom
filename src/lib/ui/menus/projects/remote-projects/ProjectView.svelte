@@ -78,23 +78,19 @@
 		<!-- Header -->
 		<div class="flex items-center gap-3">
 			<div class="flex items-center justify-between w-full">
-				<div class="flex items-baseline gap-3">
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						onclick={() => goto(resolve('/projects'))}
-					>
-						<ArrowLeftIcon class="size-4" />
+				<div class="flex items-baseline gap-2">
+					<Button variant="ghost" size="icon" onclick={() => goto(resolve('/projects'))}>
+						<ArrowLeftIcon />
 					</Button>
 					<h2 class="text-2xl font-bold">{project.name}</h2>
 				</div>
 
 				<div class="flex gap-2">
-					<Button variant="outline" size="sm" onclick={() => (showEditDialog = true)}>
-						<PencilIcon class="size-3.5" /> Edit
+					<Button variant="secondary" onclick={() => (showEditDialog = true)}>
+						<PencilIcon data-icon="inline-start" /> Edit
 					</Button>
-					<Button size="sm" onclick={handleCreateVersion}>
-						<PlusIcon class="size-3.5" /> New Version
+					<Button onclick={handleCreateVersion}>
+						<PlusIcon data-icon="inline-start" /> New Version
 					</Button>
 				</div>
 			</div>

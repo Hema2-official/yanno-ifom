@@ -103,7 +103,7 @@
 				</AlertDialog.Cancel>
 				<Button type="submit" disabled={!file || isUploading}>
 					{#if isUploading}
-						<LoaderCircleIcon class="size-4 animate-spin" />
+						<LoaderCircleIcon data-icon="inline-start" class="animate-spin" />
 					{/if}
 					Upload
 				</Button>

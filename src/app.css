@@ -8,8 +8,6 @@
 	--color-empty-background: var(--empty-background-color);
 	--color-accent: var(--accent-color);
 	--color-focus: var(--focus-color);
-	--color-gray-accent: var(--gray-accent);
-	--color-light-gray-accent: var(--light-gray-accent);
 	--color-border: rgba(255, 255, 255, 0.15);
 
 	--color-popover: var(--background-color);
@@ -20,8 +18,8 @@
 	--color-primary-foreground: var(--color);
 	--color-secondary: var(--light-gray-accent);
 	--color-secondary-foreground: var(--color);
-	--color-muted: var(--gray-accent);
-	--color-muted-foreground: var(--gray-accent);
+	--color-muted: var(--muted-color);
+	--color-muted-foreground: var(--muted-foreground-color);
 	--color-input: var(--gray-accent);
 	--color-ring: var(--focus-color);
 	--color-accent-foreground: var(--color);
@@ -50,6 +48,8 @@
 	--focus-color: #8524d4e7;
 	--gray-accent: #ffffff55;
 	--light-gray-accent: #ffffff22;
+	--muted-color: #2e2e2e;
+	--muted-foreground-color: #a3a3a3;
 
 	color: var(--color);
 	background-color: var(--background-color);
@@ -72,6 +72,8 @@
 		--gray-accent: #00000055;
 		--light-gray-accent: #00000022;
 		--color-border: rgba(0, 0, 0, 0.15);
+		--muted-color: #f4f4f5;
+		--muted-foreground-color: #71717a;
 	}
 }
 

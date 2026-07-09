@@ -4,12 +4,11 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import LoaderIcon from '@lucide/svelte/icons/loader';
-	import CheckIcon from '@lucide/svelte/icons/check';
 	import { resource, watch } from 'runed';
 	import { createProject } from '$lib/api/projects';
 	import type { Project } from '$lib/types/api.type';
 	import { extractError } from '$lib/api/errors';
+	import { LoaderCircleIcon } from '@lucide/svelte';
 
 	type Props = {
 		isOpen: boolean;
@@ -71,8 +70,9 @@
 			<Dialog.Footer>
 				<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
 				<Button type="submit" disabled={createResource.loading || !allowSubmit}>
-					{#if createResource.loading}<LoaderIcon class="size-4 animate-spin" />
-					{:else}<CheckIcon class="size-4" />{/if}
+					{#if createResource.loading}
+						<LoaderCircleIcon data-icon="inline-start" class="animate-spin" />
+					{/if}
 					Create
 				</Button>
 			</Dialog.Footer>
