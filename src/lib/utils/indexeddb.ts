@@ -1,12 +1,11 @@
 import Dexie, { type Table } from 'dexie';
-import type { VideoColor } from '$lib/types/api.type';
+import type { VideoConfig, VideoMetadata } from '$lib/types/api.type';
 
 export type DBProject = {
 	id?: number;
 	name: string;
-	color: VideoColor;
-	channelPeriod: number;
-	startPeriod: number;
+	video_config: VideoConfig;
+	video_metadata?: VideoMetadata;
 	annotation: Blob; // gzip compressed json
 };
 

@@ -47,12 +47,12 @@ export async function getProject(project_id: string, options?: Options) {
 }
 
 export async function updateProject(
-	project_id: string,
+	projectId: string,
 	body: { name?: string; video_config?: VideoConfig | null },
 	options?: Options
 ) {
 	try {
-		const data = await http.patch<Project>(`api/v0/projects/${project_id}`, {
+		const data = await http.patch<Project>(`api/v0/projects/${projectId}`, {
 			...options,
 			json: body
 		});
@@ -71,7 +71,7 @@ export async function deleteProject(project_id: string, options?: Options) {
 }
 
 export async function uploadVideo(
-	project_id: string,
+	projectId: string,
 	file: File,
 	videoConfig: VideoConfig,
 	options?: Options
@@ -82,7 +82,7 @@ export async function uploadVideo(
 		formData.append('color', videoConfig.color);
 		formData.append('start_period', String(videoConfig.start_period));
 		formData.append('channel_period', String(videoConfig.channel_period));
-		await http.put(`api/v0/projects/${project_id}/video`, {
+		await http.put(`api/v0/projects/${projectId}/video`, {
 			...options,
 			body: formData
 		});
@@ -99,28 +99,29 @@ export async function downloadVideo(project_id: string, options?: Options) {
 	}
 }
 
-export function getWebFrameUrl(project: Project, frame_index: number) {
-	if (!Number.isInteger(frame_index)) throw new Error('Frame index must be an integer');
-	if (frame_index < 0) throw new Error('Frame index must be positive');
-	if (frame_index >= project.frame_count) throw new Error('Frame index is out of range');
-	return `${BASE_URL}api/v0/projects/${project.id}/web_frames/${frame_index}`;
+export function getWebFrameUrl(project: Project, frameIndex: number) {
+	if (!Number.isInteger(frameIndex)) throw new Error('Frame index must be an integer');
+	if (frameIndex < 0) throw new Error('Frame index must be positive');
+	const frameCount = project.video_metadata?.frame_count ?? Infinity;
+	if (frameIndex >= frameCount) throw new Error('Frame index is out of range');
+	return `${BASE_URL}api/v0/projects/${project.id}/web_frames/${frameIndex}`;
 }
 
-export async function downloadWebFrame(project: Project, frame_index: number, options?: Options) {
+export async function downloadWebFrame(project: Project, frameIndex: number, options?: Options) {
 	try {
-		return await http.blob(getWebFrameUrl(project, frame_index), options);
+		return await http.blob(getWebFrameUrl(project, frameIndex), options);
 	} catch (error) {
 		throw await handleError(error);
 	}
 }
 
 export async function createProjectVersion(
-	project_id: string,
+	projectId: string,
 	body: CreateProjectVersionBody,
 	options?: Options
 ) {
 	try {
-		const data = await http.post<ProjectVersion>(`api/v0/projects/${project_id}/versions`, {
+		const data = await http.post<ProjectVersion>(`api/v0/projects/${projectId}/versions`, {
 			...options,
 			json: body
 		});

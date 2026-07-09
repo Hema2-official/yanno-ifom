@@ -102,7 +102,8 @@
 
 		{#if project.video_config}
 			<p class="text-sm text-muted-foreground -mt-2">
-				{getPrimaryFrameCount(project)} primary frames · {project.frame_count}
+				{getPrimaryFrameCount(project)} primary frames · {project.video_metadata
+					?.frame_count ?? 0}
 				total frames
 			</p>
 

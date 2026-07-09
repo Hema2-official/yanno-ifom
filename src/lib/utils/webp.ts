@@ -1,6 +1,8 @@
+import type { VideoChannelMetadata } from '$lib/types/api.type';
 import type { GeoTIFFImage } from 'geotiff';
 
 type WebpConversionOptions = {
+	statisticsCallback?: (stats: VideoChannelMetadata) => void;
 	normalizeRgb?: boolean;
 };
 
@@ -49,7 +51,12 @@ export class WebPConverter {
 			}
 		}
 
-		if (options?.normalizeRgb) this.#normalizeRgb(rgbaData);
+		let stats: VideoChannelMetadata | undefined;
+		if (options?.statisticsCallback) {
+			stats = this.#calculateStats(rgbaData);
+			options.statisticsCallback(stats);
+		}
+		if (options?.normalizeRgb) this.#normalizeRgb(rgbaData, stats);
 
 		this.#ctx.putImageData(new ImageData(rgbaData, width, height), 0, 0);
 
@@ -57,39 +64,47 @@ export class WebPConverter {
 		return this.#canvas.convertToBlob({ type: 'image/webp', quality: 1 });
 	}
 
-	#normalizeRgb(data: Uint8Array | Uint8ClampedArray) {
-		let min = 255;
-		let max = 0;
+	#calculateStats(data: Uint8ClampedArray): VideoChannelMetadata {
+		let minR = 255;
+		let maxR = 0;
+		let minG = 255;
+		let maxG = 0;
+		let minB = 255;
+		let maxB = 0;
 		const len = data.length;
 
-		// Find min and max values across R, G, B channels (ignoring Alpha)
 		for (let i = 0; i < len; i += 4) {
 			const r = data[i];
 			const g = data[i + 1];
 			const b = data[i + 2];
-			if (r < min) min = r;
-			if (r > max) max = r;
-			if (g < min) min = g;
-			if (g > max) max = g;
-			if (b < min) min = b;
-			if (b > max) max = b;
+
+			if (r < minR) minR = r;
+			if (r > maxR) maxR = r;
+			if (g < minG) minG = g;
+			if (g > maxG) maxG = g;
+			if (b < minB) minB = b;
+			if (b > maxB) maxB = b;
 		}
 
-		// Normalize in-place if range is non-zero
-		if (max > min) {
-			const range = max - min;
-			for (let i = 0; i < len; i += 4) {
-				data[i] = Math.round(((data[i] - min) * 255) / range);
-				data[i + 1] = Math.round(((data[i + 1] - min) * 255) / range);
-				data[i + 2] = Math.round(((data[i + 2] - min) * 255) / range);
-			}
-		} else {
-			// If all colors are uniform, map color channels to 0
-			for (let i = 0; i < len; i += 4) {
-				data[i] = 0;
-				data[i + 1] = 0;
-				data[i + 2] = 0;
-			}
+		return {
+			r: { min_value: minR, max_value: maxR },
+			g: { min_value: minG, max_value: maxG },
+			b: { min_value: minB, max_value: maxB }
+		};
+	}
+
+	#normalizeRgb(data: Uint8ClampedArray, stats?: VideoChannelMetadata) {
+		const { r, g, b } = stats ?? this.#calculateStats(data);
+
+		const rangeR = r.max_value - r.min_value;
+		const rangeG = g.max_value - g.min_value;
+		const rangeB = b.max_value - b.min_value;
+
+		const len = data.length;
+		for (let i = 0; i < len; i += 4) {
+			data[i] = rangeR > 0 ? Math.round(((data[i] - r.min_value) * 255) / rangeR) : 0;
+			data[i + 1] = rangeG > 0 ? Math.round(((data[i + 1] - g.min_value) * 255) / rangeG) : 0;
+			data[i + 2] = rangeB > 0 ? Math.round(((data[i + 2] - b.min_value) * 255) / rangeB) : 0;
 		}
 
 		return data;

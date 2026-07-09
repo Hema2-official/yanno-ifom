@@ -1,6 +1,12 @@
 import { getProject, getVersionData, getWebFrameUrl, updateVersionData } from '$lib/api/projects';
 import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
-import type { Project, ProjectVersion, VideoColor } from '$lib/types/api.type';
+import type {
+	Project,
+	ProjectVersion,
+	VideoChannelMetadata,
+	VideoConfig,
+	VideoMetadata
+} from '$lib/types/api.type';
 import { localProjectsDb, type DBProject } from '$lib/utils/indexeddb';
 import { WebPConverter } from '$lib/utils/webp';
 import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
@@ -18,14 +24,11 @@ class ProjectState {
 	// Derived values for ease of use
 	name: string | undefined = $derived(this.cloudProject?.name ?? this.localProject?.name);
 	versionName: string | undefined = $derived(this.cloudVersion?.name);
-	color: VideoColor | undefined = $derived(
-		this.cloudProject?.video_config?.color ?? this.localProject?.color
+	videoConfig: VideoConfig | undefined = $derived(
+		this.cloudProject?.video_config ?? this.localProject?.video_config
 	);
-	channelPeriod: number | undefined = $derived(
-		this.cloudProject?.video_config?.channel_period ?? this.localProject?.channelPeriod
-	);
-	startPeriod: number | undefined = $derived(
-		this.cloudProject?.video_config?.start_period ?? this.localProject?.startPeriod
+	videoMetadata: VideoMetadata | undefined = $derived(
+		this.cloudProject?.video_metadata ?? this.localProject?.video_metadata
 	);
 	currentFrameUrl = $derived(this.getFrameUrl(annotationState.currentFrameId));
 
@@ -103,9 +106,7 @@ class ProjectState {
 
 	async prepareLocalProject(
 		name: string,
-		color: VideoColor,
-		channelPeriod: number,
-		startPeriod: number,
+		video_config: VideoConfig,
 		videoFile: File,
 		annotationFile: File,
 		onProgress?: (message: string) => void
@@ -116,13 +117,8 @@ class ProjectState {
 		const annotation = await new Response(cs).blob();
 
 		// Save project to indexeddb and get auto-incremented ID
-		const projectId = await localProjectsDb.projects.add({
-			name,
-			color,
-			channelPeriod,
-			startPeriod,
-			annotation
-		});
+		const dbProject = { name, video_config: video_config, annotation };
+		const projectId = await localProjectsDb.projects.add(dbProject);
 
 		// Open TIFF and get image count
 		const tiff = await geotiff.fromBlob(videoFile);
@@ -133,20 +129,48 @@ class ProjectState {
 
 		const webpConverter = new WebPConverter();
 
+		const videoMetadata: VideoMetadata = {
+			frame_count: count,
+			width: 0,
+			height: 0,
+			channels: Array.from({ length: video_config.channel_period }, () => ({
+				r: { min_value: 255, max_value: 0 },
+				g: { min_value: 255, max_value: 0 },
+				b: { min_value: 255, max_value: 0 }
+			}))
+		};
+
+		function processStats(channelIndex: number, stats: VideoChannelMetadata) {
+			for (const c of ['r', 'g', 'b'] as const) {
+				if (stats[c].min_value < videoMetadata.channels[channelIndex][c].min_value)
+					videoMetadata.channels[channelIndex][c].min_value = stats[c].min_value;
+				if (stats[c].max_value > videoMetadata.channels[channelIndex][c].max_value)
+					videoMetadata.channels[channelIndex][c].max_value = stats[c].max_value;
+			}
+		}
+
 		for (let i = 0; i < count; i++) {
+			const image = await tiff.getImage(i);
+			if (i === 0) {
+				videoMetadata.width = image.getWidth();
+				videoMetadata.height = image.getHeight();
+			}
+
 			// Convert to WebP blob
-			const webpImageBlob = await webpConverter.tiffImageToWebP(await tiff.getImage(i));
+			const webpImageBlob = await webpConverter.tiffImageToWebP(image, {
+				statisticsCallback: (stats) => processStats(i % video_config.channel_period, stats)
+			});
 
 			// Store frame blob in IndexedDB
-			await localProjectsDb.frames.add({
-				projectId,
-				frameId: i,
-				image: webpImageBlob
-			});
+			const dbFrame = { projectId, frameId: i, image: webpImageBlob };
+			await localProjectsDb.frames.add(dbFrame);
 
 			// Update progress
 			onProgress?.(`Converting video... (${i + 1}/${count})`);
 		}
+
+		// Save the computed video metadata
+		await localProjectsDb.projects.update(projectId, { video_metadata: videoMetadata });
 	}
 
 	async listLocalProjects(): Promise<DBProject[]> {

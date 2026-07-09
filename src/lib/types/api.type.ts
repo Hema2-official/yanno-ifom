@@ -50,11 +50,29 @@ export type VideoConfig = {
 	channel_period: number;
 };
 
+export type VideoComponentMetadata = {
+	min_value: number;
+	max_value: number;
+};
+
+export type VideoChannelMetadata = {
+	r: VideoComponentMetadata;
+	g: VideoComponentMetadata;
+	b: VideoComponentMetadata;
+};
+
+export type VideoMetadata = {
+	frame_count: number;
+	width: number;
+	height: number;
+	channels: VideoChannelMetadata[];
+};
+
 export type Project = {
 	id: string; // UUID
 	name: string;
-	frame_count: number;
 	video_config: VideoConfig | null;
+	video_metadata: VideoMetadata | null;
 	versions: ProjectVersion[];
 	created_at: Date;
 	updated_at: Date;
