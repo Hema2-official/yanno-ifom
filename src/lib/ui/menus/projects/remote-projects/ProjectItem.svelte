@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/types/api.type';
 	import * as Item from '$lib/components/ui/item';
@@ -36,10 +35,6 @@
 			})
 			.finally(() => onRefresh());
 	}
-
-	function handleNavigate() {
-		goto(resolve(`/projects?project=${project.id}`));
-	}
 </script>
 
 <Item.Root variant="outline">
@@ -47,8 +42,8 @@
 		<Button
 			variant="ghost"
 			{...props}
-			class={cn(String(props.class), 'h-auto')}
-			onclick={handleNavigate}
+			class={cn(String(props.class), 'h-auto hover:bg-transparent!')}
+			href={resolve(`/projects?project=${project.id}`)}
 		>
 			<Item.Media variant="icon">
 				{#if project.video_config}
@@ -78,24 +73,20 @@
 				{/if}
 			</Item.Content>
 
-			<Item.Actions onclick={(e) => e.stopPropagation()}>
+			<Item.Actions onclick={(e) => e.preventDefault()}>
 				{#if project.video_config}
-					<Button variant="ghost" size="icon-sm" onclick={() => (showEditDialog = true)}>
+					<Button variant="ghost" size="icon" onclick={() => (showEditDialog = true)}>
 						<PencilIcon />
 					</Button>
 				{:else}
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						onclick={() => (showUploadDialog = true)}
-					>
+					<Button variant="ghost" size="icon" onclick={() => (showUploadDialog = true)}>
 						<UploadIcon />
 					</Button>
 				{/if}
 
 				<Button
 					variant="ghost"
-					size="icon-sm"
+					size="icon"
 					class="hover:bg-destructive/40!"
 					onclick={handleDelete}
 					><TrashIcon />

@@ -64,7 +64,7 @@
 	{#snippet child({ props })}
 		<Button
 			{...props}
-			class="{props.class} h-auto w-full hover:bg-muted/50! {version.ready
+			class="{props.class} h-auto w-full hover:bg-transparent! {version.ready
 				? ''
 				: 'cursor-default'}"
 			variant="ghost"

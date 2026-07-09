@@ -62,10 +62,7 @@
 				</Dialog.Description>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-3">
-				<Label for="title">Name</Label>
-				<Input id="title" type="text" bind:value={name} class="flex-1" />
-			</div>
+			<Input id="title" type="text" bind:value={name} class="flex-1" placeholder="Name" />
 
 			<Dialog.Footer>
 				<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>

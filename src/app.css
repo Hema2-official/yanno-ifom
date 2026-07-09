@@ -48,7 +48,7 @@
 	--focus-color: #8524d4e7;
 	--gray-accent: #ffffff55;
 	--light-gray-accent: #ffffff22;
-	--muted-color: #2e2e2e;
+	--muted-color: #3c3c3c;
 	--muted-foreground-color: #a3a3a3;
 
 	color: var(--color);
@@ -63,16 +63,16 @@
 
 @media (prefers-color-scheme: light) {
 	:root {
-		--color: #213547;
+		--color: #0f171f;
 		--background-color: #f9f9f9;
 		--background-color-translucent: #f9f9f9da;
 		--empty-background-color: #e6e6e6;
-		--accent-color: #646cffc4;
-		--focus-color: rgb(100, 136, 255);
+		--accent-color: #848af9c4;
+		--focus-color: #6488ff;
 		--gray-accent: #00000055;
 		--light-gray-accent: #00000022;
 		--color-border: rgba(0, 0, 0, 0.15);
-		--muted-color: #f4f4f5;
+		--muted-color: #e4e4e5;
 		--muted-foreground-color: #71717a;
 	}
 }
