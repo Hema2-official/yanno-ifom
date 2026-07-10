@@ -8,9 +8,8 @@
 	import { Slider } from '$lib/components/ui/slider';
 	import { getMax, getMin } from '$lib/utils/data.svelte';
 	import { Switch } from '$lib/components/ui/switch';
-	import * as Select from '$lib/components/ui/select';
-	import { AVAILABLE_COLORMAPS } from '$lib/utils/imaging';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
+	import ColorMapSelect from '$lib/UI/common/ColorMapSelect.svelte';
 </script>
 
 <nav
@@ -28,18 +27,9 @@
 			<Switch id="colormap-switch" bind:checked={svgState.colormapSwitch} /> Colormap
 		</Label>
 
-		<div class="flex gap-2">
+		<div class="flex gap-2 items-center">
 			<Label>Color map:</Label>
-			<Select.Root type="single" bind:value={svgState.videoColormap}>
-				<Select.Trigger size="sm">
-					{svgState.videoColormap}
-				</Select.Trigger>
-				<Select.Content>
-					{#each AVAILABLE_COLORMAPS as colormap (colormap)}
-						<Select.Item value={colormap}>{colormap}</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
+			<ColorMapSelect bind:value={svgState.videoColormap} />
 		</div>
 
 		<div class="flex flex-col gap-2">
