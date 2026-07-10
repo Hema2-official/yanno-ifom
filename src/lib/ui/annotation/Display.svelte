@@ -301,7 +301,7 @@
 
 	<ContextMenu.Root bind:open={contextMenuOpen}>
 		<ContextMenu.Content class="w-52" customAnchor={contextMenuAnchor} preventScroll={false}>
-			<ContextMenu.Label class="font-bold text-center">
+			<ContextMenu.Label class="text-center font-bold">
 				Cell #{contextMenuCellId}
 			</ContextMenu.Label>
 			<ContextMenu.Separator />

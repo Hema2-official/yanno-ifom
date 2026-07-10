@@ -108,11 +108,11 @@
 </script>
 
 <div
-	class="w-full sticky top-0 bg-background z-10 flex items-center px-3 py-2 gap-2 border-b-1 border-accent"
+	class="bg-background border-accent sticky top-0 z-10 flex w-full items-center gap-2 border-b-1 px-3 py-2"
 >
 	<LogoSVG class="size-14" />
 
-	<div class="flex flex-col h-full justify-between items-start">
+	<div class="flex h-full flex-col items-start justify-between">
 		<Breadcrumb.Root>
 			<Breadcrumb.List class="text-lg">
 				<Breadcrumb.Item>
@@ -124,7 +124,7 @@
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
 
-		<Menubar.Root class="border-none p-0 h-auto">
+		<Menubar.Root class="h-auto border-none p-0">
 			{@render extraMenus?.()}
 			<Menubar.Menu>
 				<Menubar.Trigger>Help</Menubar.Trigger>
@@ -136,7 +136,7 @@
 		</Menubar.Root>
 	</div>
 
-	<div class="flex-1 flex justify-end">
+	<div class="flex flex-1 justify-end">
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger disabled={accountState.currentAccount === undefined}>
 				{#snippet child({ props })}

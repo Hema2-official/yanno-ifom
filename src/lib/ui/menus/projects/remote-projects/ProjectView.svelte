@@ -50,10 +50,10 @@
 {#snippet VersionGroup(label: string, versions: ProjectVersion[], Icon: LucideIcon)}
 	{#if versions.length > 0}
 		<div class="flex flex-col gap-2">
-			<h3 class="text-lg font-semibold capitalize flex items-center gap-2">
-				<Icon class="size-4 text-muted-foreground" />
+			<h3 class="flex items-center gap-2 text-lg font-semibold capitalize">
+				<Icon class="text-muted-foreground size-4" />
 				{label}
-				<span class="text-sm font-normal text-muted-foreground">
+				<span class="text-muted-foreground text-sm font-normal">
 					({versions.length})
 				</span>
 			</h3>
@@ -71,13 +71,13 @@
 	{/if}
 {/snippet}
 
-<div class="flex flex-col gap-6 w-full">
+<div class="flex w-full flex-col gap-6">
 	{#if projectResource.loading}
-		<div class="flex justify-center items-center w-full"><Spinner /></div>
+		<div class="flex w-full items-center justify-center"><Spinner /></div>
 	{:else if project}
 		<!-- Header -->
 		<div class="flex items-center gap-3">
-			<div class="flex items-center justify-between w-full">
+			<div class="flex w-full items-center justify-between">
 				<div class="flex items-baseline gap-2">
 					<Button variant="ghost" size="icon" onclick={() => goto(resolve('/projects'))}>
 						<ArrowLeftIcon />
@@ -97,7 +97,7 @@
 		</div>
 
 		{#if project.video_config}
-			<p class="text-sm text-muted-foreground -mt-2">
+			<p class="text-muted-foreground -mt-2 text-sm">
 				{getPrimaryFrameCount(project)} primary frames · {project.video_metadata
 					?.frame_count ?? 0}
 				total frames
@@ -117,14 +117,14 @@
 			{/each}
 
 			{#if project.versions.length === 0}
-				<div class="flex flex-col items-center py-12 text-muted-foreground gap-2">
+				<div class="text-muted-foreground flex flex-col items-center gap-2 py-12">
 					<LayersIcon class="size-8" />
 					<p class="text-sm">No versions yet. Create one to get started.</p>
 				</div>
 			{/if}
 		{:else}
 			<div
-				class="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2"
+				class="text-muted-foreground flex flex-col items-center justify-center gap-2 py-12"
 			>
 				<CircleDashedIcon class="size-8" />
 				<p class="text-sm">This project is not ready yet. Upload source data first.</p>

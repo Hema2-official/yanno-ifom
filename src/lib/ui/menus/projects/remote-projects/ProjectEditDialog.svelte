@@ -55,7 +55,7 @@
 				<Dialog.Title class="flex items-center gap-2">
 					Edit Project
 					{#if updateResource.error}
-						<CloudAlertIcon class="size-4 text-destructive" />
+						<CloudAlertIcon class="text-destructive size-4" />
 					{/if}
 				</Dialog.Title>
 			</Dialog.Header>

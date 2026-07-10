@@ -6,7 +6,7 @@
 	let { children }: { children: Snippet } = $props();
 </script>
 
-<div class="flex flex-col items-center justify-start h-screen w-full">
+<div class="flex h-screen w-full flex-col items-center justify-start">
 	<TopBar>
 		{#snippet extraMenus()}
 			<Menubar.Menu>

@@ -54,22 +54,22 @@
 </script>
 
 <form
-	class="flex flex-col items-center justify-center w-[200px] px-3 py-4"
+	class="flex w-[200px] flex-col items-center justify-center px-3 py-4"
 	onsubmit={(e) => {
 		e.preventDefault();
 		handleSubmit();
 	}}
 >
 	{#if other_error_message}
-		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{other_error_message}</p>
+		<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{other_error_message}</p>
 	{/if}
 	<TextBox bind:value={email} type="email">Email</TextBox>
 	{#if email_field_message}
-		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{email_field_message}</p>
+		<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{email_field_message}</p>
 	{/if}
 	<TextBox bind:value={password} type="password">Password</TextBox>
 	{#if password_field_message}
-		<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{password_field_message}</p>
+		<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{password_field_message}</p>
 	{/if}
 	<Button variant="outline" class="mt-4" type="submit" disabled={isLoading}>Log in</Button>
 </form>

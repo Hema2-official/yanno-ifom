@@ -11,7 +11,7 @@
 	const params = useSearchParams(paramsSchema);
 </script>
 
-<div class="flex flex-col justify-center w-3/5 mx-auto mt-[100px]">
+<div class="mx-auto mt-[100px] flex w-3/5 flex-col justify-center">
 	{#if accountState.currentAccount}
 		{#if params.project}
 			<ProjectView projectId={params.project} />

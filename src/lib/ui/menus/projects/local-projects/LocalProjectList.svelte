@@ -5,7 +5,7 @@
 	let showCreateDialog = $state(false);
 </script>
 
-<div class="flex flex-col items-center gap-y-4 w-full">
+<div class="flex w-full flex-col items-center gap-y-4">
 	<ProjectListHeader
 		title="Local Projects"
 		onRefresh={() => {}}

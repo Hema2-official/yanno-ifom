@@ -4,12 +4,12 @@
 	let { children }: { children: Snippet } = $props();
 </script>
 
-<div class="flex flex-col items-center justify-center h-screen w-full">
+<div class="flex h-screen w-full flex-col items-center justify-center">
 	<img
 		src="/logo.svg"
 		alt=""
 		ondragstart={(e) => e.preventDefault()}
-		class="w-[100px] h-[100px]"
+		class="h-[100px] w-[100px]"
 	/>
 	{@render children()}
 </div>

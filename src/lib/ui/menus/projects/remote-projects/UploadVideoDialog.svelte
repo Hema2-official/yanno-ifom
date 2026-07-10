@@ -77,7 +77,7 @@
 				{#if file}
 					<Label
 						for="upload-grayscale"
-						class="cursor-pointer flex items-center gap-2 select-none"
+						class="flex cursor-pointer items-center gap-2 select-none"
 					>
 						<Checkbox
 							id="upload-grayscale"

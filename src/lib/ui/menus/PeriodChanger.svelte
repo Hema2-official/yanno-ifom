@@ -76,17 +76,17 @@
 	}
 </script>
 
-<div class="flex flex-col gap-1 w-full min-w-0">
+<div class="flex w-full min-w-0 flex-col gap-1">
 	{#if isDecoding}
 		<div
-			class="flex flex-col items-center justify-center py-8 gap-2 border-2 border-muted-foreground/10 rounded-xl"
+			class="border-muted-foreground/10 flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-8"
 		>
 			<Spinner size={24} thickness={3} />
-			<p class="text-xs text-muted-foreground animate-pulse">Decoding preview frames...</p>
+			<p class="text-muted-foreground animate-pulse text-xs">Decoding preview frames...</p>
 		</div>
 	{:else if decodeError}
 		<div
-			class="flex flex-col items-center justify-center py-8 text-destructive gap-2 text-center border-2 border-destructive/10 rounded-xl"
+			class="text-destructive border-destructive/10 flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-8 text-center"
 		>
 			<TriangleAlertIcon class="size-6" />
 			<p class="text-xs font-semibold">{decodeError}</p>
@@ -94,19 +94,19 @@
 	{:else}
 		<ScrollArea
 			orientation="horizontal"
-			class="pb-2.5 w-full min-w-0"
+			class="w-full min-w-0 pb-2.5"
 			scrollbarXClasses="h-2.5 data-[orientation=horizontal]:h-2.5 data-[size=small]:h-1.5"
 		>
 			<div
-				class="flex border-2 border-secondary border-r-0 rounded-tl-xl rounded-bl-xl p-px transition-all duration-200"
+				class="border-secondary flex rounded-tl-xl rounded-bl-xl border-2 border-r-0 p-px transition-all duration-200"
 				class:border-dashed={isSelecting}
 			>
 				{#each previewUrls as frameUrl, index (frameUrl)}
 					<button
 						type="button"
 						class={cn(
-							'flex items-center justify-center h-20 aspect-square overflow-hidden bg-transparent outline-none p-0 m-0 cursor-pointer first:rounded-tl-lg first:rounded-bl-lg',
-							isPrimaryFrame(index) ? 'border border-accent' : ''
+							'm-0 flex aspect-square h-20 cursor-pointer items-center justify-center overflow-hidden bg-transparent p-0 outline-none first:rounded-tl-lg first:rounded-bl-lg',
+							isPrimaryFrame(index) ? 'border-accent border' : ''
 						)}
 						class:mr-2={index % channel_period === channel_period - 1}
 						onclick={() => handleClick(index)}
@@ -114,13 +114,13 @@
 						<img
 							src={frameUrl}
 							alt="Preview"
-							class="h-full aspect-square object-cover pointer-events-none"
+							class="pointer-events-none aspect-square h-full object-cover"
 						/>
 					</button>
 				{/each}
 			</div>
 		</ScrollArea>
-		<span class="text-sm text-muted-foreground italic text-left">
+		<span class="text-muted-foreground text-left text-sm italic">
 			{#if !isSelecting}
 				Click to change the first primary frame...
 			{:else}

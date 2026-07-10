@@ -23,7 +23,7 @@
 	});
 </script>
 
-<div class="flex flex-col items-center justify-center w-full gap-1.5">
+<div class="flex w-full flex-col items-center justify-center gap-1.5">
 	<p class="text-[28px]">Logging you out...</p>
 	<Spinner />
 </div>

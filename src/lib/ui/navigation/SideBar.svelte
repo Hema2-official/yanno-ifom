@@ -13,11 +13,11 @@
 </script>
 
 <nav
-	class="flex flex-col w-80 h-full px-6 py-4 overflow-y-auto border-accent {optionsState.sidebarRight
-		? 'border-l order-3'
-		: 'border-r order-1'}"
+	class="border-accent flex h-full w-80 flex-col overflow-y-auto px-6 py-4 {optionsState.sidebarRight
+		? 'order-3 border-l'
+		: 'order-1 border-r'}"
 >
-	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Graphics</h2>
+	<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Graphics</h2>
 	<div class="flex flex-col gap-4 pb-6">
 		<Label for="normalize-switch" class="cursor-pointer">
 			<Switch id="normalize-switch" bind:checked={svgState.normalizeSwitch} /> Normalize
@@ -27,7 +27,7 @@
 			<Switch id="colormap-switch" bind:checked={svgState.colormapSwitch} /> Colormap
 		</Label>
 
-		<div class="flex gap-2 items-center">
+		<div class="flex items-center gap-2">
 			<Label>Color map:</Label>
 			<ColorMapSelect bind:value={svgState.videoColormap} />
 		</div>
@@ -47,7 +47,7 @@
 		</div>
 	</div>
 
-	<h2 class="text-center text-2xl font-semibold mt-1.5 mb-3.5">Debug</h2>
+	<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Debug</h2>
 	<div class="flex flex-col gap-4">
 		<Label for="is-svg-shown" class="cursor-pointer">
 			<Switch id="is-svg-shown" bind:checked={svgState.isSvgShown} /> Show SVG

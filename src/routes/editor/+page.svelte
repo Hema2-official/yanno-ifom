@@ -43,19 +43,19 @@
 </script>
 
 {#if errorMessage}
-	<div class="flex flex-col items-center justify-center h-full">
+	<div class="flex h-full flex-col items-center justify-center">
 		<p class="text-base font-semibold text-red-500">
 			{errorMessage}
 		</p>
 	</div>
 {:else if isLoading}
-	<div class="flex flex-col items-center justify-center h-full">
+	<div class="flex h-full flex-col items-center justify-center">
 		<Spinner />
 	</div>
 {:else}
-	<div class="flex flex-row items-start justify-start flex-1 w-full">
+	<div class="flex w-full flex-1 flex-row items-start justify-start">
 		<SideBar />
-		<div class="flex flex-col items-center h-full flex-1 order-2">
+		<div class="order-2 flex h-full flex-1 flex-col items-center">
 			<Display />
 		</div>
 	</div>

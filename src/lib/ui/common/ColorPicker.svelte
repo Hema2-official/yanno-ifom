@@ -12,7 +12,7 @@
 	{id}
 	type="color"
 	bind:value
-	class="w-5 h-5 p-0 outline-none border-none shadow-none cursor-pointer transition-all duration-100 ease-in-out hover:not-disabled:rotate-10 hover:not-disabled:shadow-[3px_3px_1px_0_var(--accent-color)] focus-visible:not-disabled:rotate-10 focus-visible:not-disabled:shadow-[3px_3px_1px_0_var(--accent-color)] disabled:opacity-60 disabled:cursor-default"
+	class="h-5 w-5 cursor-pointer border-none p-0 shadow-none transition-all duration-100 ease-in-out outline-none hover:not-disabled:rotate-10 hover:not-disabled:shadow-[3px_3px_1px_0_var(--accent-color)] focus-visible:not-disabled:rotate-10 focus-visible:not-disabled:shadow-[3px_3px_1px_0_var(--accent-color)] disabled:cursor-default disabled:opacity-60"
 	style="background-color: {value};"
 	{disabled}
 />

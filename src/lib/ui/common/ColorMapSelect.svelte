@@ -66,7 +66,7 @@
 								value = colormap;
 								closeAndFocusTrigger();
 							}}
-							class="p-0! gap-1!"
+							class="gap-1! p-0!"
 						>
 							<Button
 								variant="ghost"

@@ -8,8 +8,7 @@ export function getPrimaryFrameCount(project: Project): number {
 	const frameCount = project.video_metadata?.frame_count ?? 0;
 	if (frameCount <= project.video_config.start_period) return 0;
 	return Math.ceil(
-		(frameCount - project.video_config.start_period) /
-			project.video_config.channel_period
+		(frameCount - project.video_config.start_period) / project.video_config.channel_period
 	);
 }
 

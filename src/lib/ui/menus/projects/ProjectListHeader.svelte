@@ -12,8 +12,8 @@
 	let { title = 'Projects', isRefreshing = false, onRefresh, onNew }: Props = $props();
 </script>
 
-<div class="flex items-center justify-between w-full">
-	<h2 class="text-3xl font-bold cursor-default">{title}</h2>
+<div class="flex w-full items-center justify-between">
+	<h2 class="cursor-default text-3xl font-bold">{title}</h2>
 
 	<div class="flex gap-2">
 		{#if onRefresh}

@@ -10,7 +10,7 @@
 	);
 </script>
 
-<div class="flex justify-center w-4/5 mx-auto mt-[100px]">
+<div class="mx-auto mt-[100px] flex w-4/5 justify-center">
 	<!-- TODO: -->
 	TODO: put something here
 </div>

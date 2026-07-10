@@ -18,13 +18,13 @@
 	} = $props();
 </script>
 
-<div class="textbox-wrapper relative flex flex-col items-start pt-[22px] px-1 pb-2 w-full" {title}>
+<div class="textbox-wrapper relative flex w-full flex-col items-start px-1 pt-[22px] pb-2" {title}>
 	{#if type === 'email'}
 		<input
 			type="email"
 			placeholder=" "
 			bind:value
-			class="tb-input w-full p-px m-0 border-none outline-none bg-transparent text-base font-normal border-b-2 border-b-border transition-[border-color] duration-100 ease-in-out focus:border-b-focus"
+			class="tb-input border-b-border focus:border-b-focus m-0 w-full border-b-2 border-none bg-transparent p-px text-base font-normal transition-[border-color] duration-100 ease-in-out outline-none"
 			{disabled}
 			onchange={onChange}
 		/>
@@ -33,7 +33,7 @@
 			type="password"
 			placeholder=" "
 			bind:value
-			class="tb-input w-full p-px m-0 border-none outline-none bg-transparent text-base font-normal border-b-2 border-b-border transition-[border-color] duration-100 ease-in-out focus:border-b-focus"
+			class="tb-input border-b-border focus:border-b-focus m-0 w-full border-b-2 border-none bg-transparent p-px text-base font-normal transition-[border-color] duration-100 ease-in-out outline-none"
 			{disabled}
 			onchange={onChange}
 		/>
@@ -42,15 +42,15 @@
 			type="text"
 			placeholder=" "
 			bind:value
-			class="tb-input w-full p-px m-0 border-none outline-none bg-transparent text-base font-normal border-b-2 border-b-border transition-[border-color] duration-100 ease-in-out focus:border-b-focus"
+			class="tb-input border-b-border focus:border-b-focus m-0 w-full border-b-2 border-none bg-transparent p-px text-base font-normal transition-[border-color] duration-100 ease-in-out outline-none"
 			{disabled}
 			onchange={onChange}
 		/>
 	{/if}
 	<label
-		class="tb-label absolute left-[5px] flex text-border origin-top-left transition-all duration-100 ease-in-out cursor-default select-none"
+		class="tb-label text-border absolute left-[5px] flex origin-top-left cursor-default transition-all duration-100 ease-in-out select-none"
 	>
-		<span class="text-base font-medium leading-5">{@render children?.()}</span>
+		<span class="text-base leading-5 font-medium">{@render children?.()}</span>
 	</label>
 </div>
 

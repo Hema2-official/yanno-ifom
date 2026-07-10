@@ -77,7 +77,7 @@
 				<Dialog.Title>Run server task</Dialog.Title>
 			</Dialog.Header>
 
-			<Dialog.Description class="flex items-center gap-2 text-base text-foreground">
+			<Dialog.Description class="text-foreground flex items-center gap-2 text-base">
 				Run
 				<Select.Root type="single" bind:value={selectedStep}>
 					<Select.Trigger>{selectedStep}</Select.Trigger>
@@ -94,12 +94,12 @@
 			{#if selectedStep === 'segmentation'}{:else if selectedStep === 'tracking'}{:else if selectedStep === 'inheritance'}{/if}
 
 			{#if error_message}
-				<p class="m-0 text-xs text-red-500 px-1 pb-1 w-full">{error_message}</p>
+				<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{error_message}</p>
 			{/if}
 			{#if loading}
 				<Spinner />
 			{:else}
-				<div class="w-full flex items-center justify-end gap-2">
+				<div class="flex w-full items-center justify-end gap-2">
 					<Dialog.Close type="button" class={buttonVariants({ variant: 'secondary' })}>
 						Cancel
 					</Dialog.Close>
