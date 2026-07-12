@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { pressedKeys } from '$lib/stores/input';
 	import { svgState } from '$lib/states/svg.svelte';
-	import { cellBodyToPath } from '$lib/utils/display';
-	import { getCenterOfPolygons } from '$lib/utils/geometry';
+	import { cellBodyToPathCached } from '$lib/utils/display';
+	import { getCenterOfPolygonsCached } from '$lib/utils/geometry';
 	import type { MouseEventHandler } from 'svelte/elements';
 	import type { Point, Polygon } from '$lib/types/geometry.type';
 
@@ -14,7 +14,7 @@
 
 	let { cellPolygons, cellId, onContextMenu }: Props = $props();
 
-	let center: Point = $derived(getCenterOfPolygons(cellPolygons));
+	let center: Point = $derived(getCenterOfPolygonsCached(cellPolygons));
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -22,7 +22,7 @@
 	{#each cellPolygons ?? [] as body, index (index)}
 		<path
 			id="cell{cellId}-body{index}"
-			d={cellBodyToPath(body)}
+			d={cellBodyToPathCached(body)}
 			fill={svgState.svgFillSwitch ? svgState.svgFill : 'transparent'}
 			stroke={svgState.svgStrokeSwitch ? svgState.svgStroke : 'none'}
 			stroke-width="2px"

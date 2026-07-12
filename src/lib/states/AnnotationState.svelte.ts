@@ -1,4 +1,4 @@
-import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
+import type { ChangeType, TrackType, VersionManaged } from '$lib/types/annotation.type';
 import { deepCopy } from '$lib/utils/data.svelte';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
 import { projectState } from './ProjectState.svelte';
@@ -26,13 +26,18 @@ const jsondiffer = jsondiffpatch.create({
 });
 
 class AnnotationState {
-	data: VersionManaged<TrackType[]> | null = $state(null);
+	data: VersionManaged<TrackType[]> | null = $state.raw(null);
 	currentFrameIndex = $state(0);
 
 	currentFrame: TrackType[] | null = $derived(this.getFrame(this.currentFrameIndex));
 
+	// Cache of data entries for faster querying
+	#tracksByFrame: Map<number, TrackType[]> = $derived.by(() =>
+		Map.groupBy(this.data?.current ?? [], (track) => track.Frame)
+	);
+
 	getFrame(frameIndex: number): TrackType[] | null {
-		return this.data ? this.data.current.filter((f) => f.Frame === frameIndex) : null;
+		return this.data ? (this.#tracksByFrame.get(frameIndex) ?? []) : null;
 	}
 
 	commitData(newData: TrackType[], message?: string) {
@@ -40,13 +45,12 @@ class AnnotationState {
 
 		const newDataCopy = deepCopy(newData);
 
-		this.data.changes.push({
+		const newChange: ChangeType = {
 			time: new Date().toISOString(),
-			reverse: jsondiffer.diff(newDataCopy, $state.snapshot(this.data.current)),
+			reverse: jsondiffer.diff(newDataCopy, this.data.current),
 			...(message ? { msg: message } : {})
-		});
-
-		this.data.current = newDataCopy;
+		};
+		this.data = { current: newDataCopy, changes: this.data.changes.concat(newChange) };
 
 		projectState.saveData(this.data);
 	}

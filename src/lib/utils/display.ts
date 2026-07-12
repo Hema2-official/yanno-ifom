@@ -9,6 +9,16 @@ export function cellBodyToPath(body: Polygon) {
 	return path;
 }
 
+const pathCache = new WeakMap<Polygon, string>();
+export function cellBodyToPathCached(body: Polygon): string {
+	let path = pathCache.get(body);
+	if (path === undefined) {
+		path = cellBodyToPath(body);
+		pathCache.set(body, path);
+	}
+	return path;
+}
+
 export function getPointerCoords(e: MouseEvent): Point {
 	return { x: e.clientX, y: e.clientY };
 }

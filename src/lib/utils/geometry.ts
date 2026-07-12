@@ -88,3 +88,13 @@ export function getCenterOfPolygons(polygons: Polygon[]): Point {
 		y: (minY + maxY) / 2
 	};
 }
+
+const centerCache = new WeakMap<Polygon[], Point>();
+export function getCenterOfPolygonsCached(polygons: Polygon[]): Point {
+	let center = centerCache.get(polygons);
+	if (center === undefined) {
+		center = getCenterOfPolygons(polygons);
+		centerCache.set(polygons, center);
+	}
+	return center;
+}
