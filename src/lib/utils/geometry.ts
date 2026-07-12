@@ -1,7 +1,48 @@
+import type { BoundingBoxType } from '$lib/types/annotation.type';
 import type { Point, Polygon } from '$lib/types/geometry.type';
 
 function distance(x1: number, y1: number, x2: number, y2: number): number {
 	return Math.hypot(x2 - x1, y2 - y1);
+}
+
+/**
+ * Compute the centroid and bounding box over all points of all polygons.
+ *
+ * @param polygons Array of polygons ({x, y} vertex lists).
+ * @returns The centroid `[y, x]` and bounding box `[minX, minY, maxX, maxY]`.
+ */
+export function getPolygonsInfo(polygons: Polygon[]): {
+	centroid: [number, number];
+	bbox: BoundingBoxType;
+} {
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	let sumX = 0;
+	let sumY = 0;
+	let count = 0;
+
+	for (const polygon of polygons) {
+		for (const point of polygon) {
+			sumX += point.x;
+			sumY += point.y;
+			count++;
+			if (point.x < minX) minX = point.x;
+			if (point.y < minY) minY = point.y;
+			if (point.x > maxX) maxX = point.x;
+			if (point.y > maxY) maxY = point.y;
+		}
+	}
+
+	if (count === 0) {
+		return { centroid: [0, 0], bbox: [0, 0, 0, 0] };
+	}
+
+	return {
+		centroid: [Math.round(sumY / count), Math.round(sumX / count)],
+		bbox: [Math.round(minX), Math.round(minY), Math.round(maxX), Math.round(maxY)]
+	};
 }
 
 export function resampleCellBody(body: Polygon, segmentLength: number): Polygon {

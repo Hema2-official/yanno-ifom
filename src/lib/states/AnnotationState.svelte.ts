@@ -2,6 +2,7 @@ import type { ChangeType, TrackType, VersionManaged } from '$lib/types/annotatio
 import { deepCopy } from '$lib/utils/data.svelte';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
 import { projectState } from './ProjectState.svelte';
+import { toast } from 'svelte-sonner';
 
 const jsondiffer = jsondiffpatch.create({
 	// used to match objects when diffing arrays, by default only === operator is used
@@ -52,7 +53,9 @@ class AnnotationState {
 		};
 		this.data = { current: newDataCopy, changes: this.data.changes.concat(newChange) };
 
-		projectState.saveData(this.data);
+		projectState.saveData(this.data).catch((error: unknown) => {
+			toast.error('Failed to save annotation data', { description: String(error) });
+		});
 	}
 
 	getDataAtChangeIndex(index: number): TrackType[] {

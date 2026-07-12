@@ -1,4 +1,4 @@
-import { lastPointerViewBoxCoords } from '$lib/stores/editor';
+import { inputState } from '$lib/states/InputState.svelte';
 import { svgState } from '$lib/states/svg.svelte';
 import type { Point, Polygon } from '$lib/types/geometry.type';
 
@@ -42,7 +42,7 @@ export function getPointerViewBoxCoords(e: MouseEvent, svgElement: SVGSVGElement
 		x: ((mouse.x - offsetX) * (vb.width - vb.minX)) / shorterSide + vb.minX,
 		y: ((mouse.y - offsetY) * (vb.height - vb.minY)) / shorterSide + vb.minY
 	};
-	lastPointerViewBoxCoords.set(coords);
+	inputState.lastPointerViewBoxCoords = coords;
 	return coords;
 }
 

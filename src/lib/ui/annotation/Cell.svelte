@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { pressedKeys } from '$lib/stores/input';
+	import { inputState } from '$lib/states/InputState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { cellBodyToPathCached } from '$lib/utils/display';
 	import { getCenterOfPolygonsCached } from '$lib/utils/geometry';
@@ -36,7 +36,7 @@
 	/> -->
 </g>
 
-{#if !pressedKeys.has('Shift')}
+{#if !inputState.pressedKeys.has('Shift')}
 	<text
 		x={center.x}
 		y={center.y}

@@ -2,7 +2,8 @@
 	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
-	import { hoverElementsShown, isEditing } from '$lib/stores/editor';
+	import { editorState } from '$lib/states/EditorState.svelte';
+	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import type { TrackType } from '$lib/types/annotation.type';
 	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
@@ -15,12 +16,6 @@
 	import Cell from './Cell.svelte';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import EditorControls from './EditorControls.svelte';
-	import {
-		displayMouseMoveHandler,
-		displayMouseUpHandler,
-		displayMouseLeaveHandler,
-		pressedKeys
-	} from '$lib/stores/input';
 	import NewEditor from './NewEditor.svelte';
 	import { rleToPolygons } from '$lib/utils/rle';
 	import { projectState } from '$lib/states/ProjectState.svelte';
@@ -38,13 +33,10 @@
 
 	let contextMenuOpen = $state(false);
 	let contextMenuAnchor: Measurable | null = $state(null);
-	let contextMenuCellId = $state('');
+	let contextMenuCell: TrackType | null = $state.raw(null);
 
-	let editorComponent: NewEditor | null = $state(null);
 	let imageWrapperElement: HTMLDivElement | null = $state(null);
 	let svgElement: SVGSVGElement;
-
-	let editorCell: TrackType | null = $state(null);
 
 	let styles = $state({
 		'scale-percent': 100,
@@ -95,7 +87,7 @@
 		e.preventDefault();
 
 		// require ctrl key
-		if (!pressedKeys.has('Control')) return;
+		if (!inputState.pressedKeys.has('Control')) return;
 
 		// check if zooming makes sense
 		if (styles['scale-percent'] === zoomState.minScale && e.deltaY > 0) return;
@@ -145,8 +137,8 @@
 			styles['cursor'] = 'grabbing';
 		},
 		mouseUp: (e: MouseEvent) => {
-			if ($displayMouseUpHandler !== null) return $displayMouseUpHandler(e);
-			// if (editorComponent?.mouse.down) return editorComponent.mouse.mouseUp(e);
+			// if an editor tool owns the gesture, pass the event to it
+			if (inputState.displayMouseUp !== null) return inputState.displayMouseUp(e);
 
 			if (!isUp(Mouse.Primary, e.buttons)) return;
 			if (optionsState.pointerLockEnabled) document.exitPointerLock();
@@ -160,9 +152,8 @@
 			// Update viewbox coord values
 			getPointerViewBoxCoords(e, svgElement);
 
-			// if editor has the cursor, pass the event to it
-			if ($displayMouseMoveHandler !== null) return $displayMouseMoveHandler(e);
-			// if (editorComponent?.mouse.down) return editorComponent.mouse.mouseMove(e);
+			// if an editor tool owns the gesture, pass the event to it
+			if (inputState.displayMouseMove !== null) return inputState.displayMouseMove(e);
 
 			if (!imageMouse.down) return;
 			if (styles['scale-percent'] === zoomState.minScale) return;
@@ -196,25 +187,28 @@
 		e.preventDefault();
 		imageMouse.down = false;
 		styles['cursor'] = 'grab';
-		if ($displayMouseLeaveHandler !== null) $displayMouseLeaveHandler(e);
-		// if (editorComponent) {
-		// 	editorComponent.mouse.down = false;
-		// }
-		$hoverElementsShown = false;
+		inputState.displayMouseLeave?.(e);
+		inputState.pointerOverDisplay = false;
 	};
 
 	const displayMouseEnter = () => {
-		// if (editorComponent)
-		$hoverElementsShown = true;
+		inputState.pointerOverDisplay = true;
 	};
 
 	const cellContextMenu = (e: MouseEvent, cell: TrackType) => {
 		e.preventDefault();
 
-		contextMenuCellId = cell.ObjectID;
-		editorCell = cell;
+		contextMenuCell = cell;
 		contextMenuAnchor = toMeasurable(e);
 		contextMenuOpen = true;
+	};
+
+	const startEditingCell = () => {
+		if (!contextMenuCell) return;
+
+		annotationState.currentFrameIndex = contextMenuCell.Frame;
+		videoDisplayState.concurrentFrames = 1; // TODO: 3D editor
+		editorState.startEditing(contextMenuCell);
 	};
 
 	const normalizeFilters = $derived.by(() => {
@@ -227,7 +221,9 @@
 	const gridRows = $derived(Math.ceil(videoDisplayState.concurrentFrames / gridCols));
 
 	// Editing is only possible in single-frame mode
-	const isEditingSingleFrame = $derived($isEditing && videoDisplayState.concurrentFrames === 1);
+	const isEditorOpen = $derived(
+		editorState.session !== null && videoDisplayState.concurrentFrames === 1
+	);
 
 	// Prefetch frames around the displayed window: all channels of the shown
 	// frames (so channel toggles are instant), visible channels only for the
@@ -258,12 +254,9 @@
 		frameCache.prefetch(urls);
 	});
 
-	// let svg = frameToSvg(1);
-
-	// const edit = () => {
-	// 	contextMenuComponent.hide(false);
-	// 	$isEditing = true;
-	// };
+	$effect(() => {
+		console.log(annotationState.data);
+	});
 </script>
 
 {#snippet SVGFilter(id: string, functions: RGBFuntions)}
@@ -331,7 +324,9 @@
 						{/if}
 					{/each}
 
-					{#if !isEditingSingleFrame}
+					{#if isEditorOpen && editorState.session}
+						<NewEditor session={editorState.session} />
+					{:else}
 						<g role="region">
 							{#each annotationState.getFrame(frameIndex) ?? [] as object (object.ObjectID)}
 								<Cell
@@ -341,8 +336,6 @@
 								/>
 							{/each}
 						</g>
-					{:else if editorCell}
-						<NewEditor inputCell={editorCell} bind:this={editorComponent} />
 					{/if}
 				</svg>
 			{/each}
@@ -352,17 +345,17 @@
 	<ContextMenu.Root bind:open={contextMenuOpen}>
 		<ContextMenu.Content class="w-52" customAnchor={contextMenuAnchor} preventScroll={false}>
 			<ContextMenu.Label class="text-center font-bold">
-				Cell #{contextMenuCellId}
+				Cell #{contextMenuCell?.ObjectID}
 			</ContextMenu.Label>
 			<ContextMenu.Separator />
-			<ContextMenu.Item inset>Edit</ContextMenu.Item>
+			<ContextMenu.Item inset onSelect={startEditingCell}>Edit</ContextMenu.Item>
 			<ContextMenu.Item inset disabled>Delete</ContextMenu.Item>
 			<ContextMenu.Item inset disabled>Rename</ContextMenu.Item>
 		</ContextMenu.Content>
 	</ContextMenu.Root>
 
-	{#if $isEditing && editorComponent}
-		<EditorControls {editorComponent} />
+	{#if isEditorOpen}
+		<EditorControls />
 	{/if}
 </div>
 

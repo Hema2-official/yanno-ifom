@@ -1,59 +1,31 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
-	import NewEditor from './NewEditor.svelte';
-	import { editorTool } from '$lib/stores/editor';
-	import PointTool from '../editor-tools/PointTool.svelte';
-	import WholeTool from '../editor-tools/WholeTool.svelte';
-	import SmoothTool from '../editor-tools/SmoothTool.svelte';
-	import { displayMouseUpHandler } from '$lib/stores/input';
+	import { editorState } from '$lib/states/EditorState.svelte';
+	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
+	import { EditorMode } from '$lib/types/editor.type';
 
-	let editorControlsWrapperElement: HTMLElement;
-
-	let { editorComponent }: { editorComponent: NewEditor } = $props();
-
-	const styles: Record<string, unknown> = {};
-	const stylesUnits: { [key: string]: string } = {};
-
-	let cssVarStyles = $derived(
-		Object.entries(styles)
-			.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-			.join(';')
-	);
-
-	// function radioSelect(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
-	//     e.currentTarget.classList.add('selected');
-	//     const siblings = e.currentTarget.parentElement?.children;
-	//     if (siblings)
-	//         for (const sibling of siblings)
-	//             if (sibling !== e.currentTarget) sibling.classList.remove('selected');
-	// }
+	const tools = [
+		{ mode: EditorMode.Point, label: 'P', title: 'point_tool' },
+		{ mode: EditorMode.Whole, label: 'W', title: 'whole_tool' },
+		{ mode: EditorMode.Smooth, label: 'S', title: 'smooth_tool' }
+	];
 </script>
 
 <div
 	class="editor-controls-wrapper"
-	style={cssVarStyles}
 	role="presentation"
-	onmouseup={$displayMouseUpHandler}
-	bind:this={editorControlsWrapperElement}
+	onmouseup={(e) => inputState.displayMouseUp?.(e)}
 >
 	<div>
 		<div>
-			<button
-				title={$_('point_tool')}
-				class:selected={$editorTool === PointTool}
-				onclick={() => ($editorTool = PointTool)}>P</button
-			>
-			<button
-				title={$_('whole_tool')}
-				class:selected={$editorTool === WholeTool}
-				onclick={() => ($editorTool = WholeTool)}>W</button
-			>
-			<button
-				title={$_('smooth_tool')}
-				class:selected={$editorTool === SmoothTool}
-				onclick={() => ($editorTool = SmoothTool)}>S</button
-			>
+			{#each tools as tool (tool.mode)}
+				<button
+					title={$_(tool.title)}
+					class:selected={editorState.mode === tool.mode}
+					onclick={() => (editorState.mode = tool.mode)}>{tool.label}</button
+				>
+			{/each}
 		</div>
 		<button
 			title={$_('auto_resample')}
@@ -62,10 +34,8 @@
 		>
 	</div>
 	<div class="right">
-		<button onclick={() => editorComponent.quit(true)} title={$_('confirm_and_quit')}
-			>Save</button
-		>
-		<button onclick={() => editorComponent.quit(false)} title={$_('quit_without_saving')}
+		<button onclick={() => editorState.quit(true)} title={$_('confirm_and_quit')}>Save</button>
+		<button onclick={() => editorState.quit(false)} title={$_('quit_without_saving')}
 			>Nope</button
 		>
 	</div>

@@ -3,8 +3,3 @@ export enum EditorMode {
 	Whole,
 	Smooth
 }
-
-export type Point = {
-	x: number;
-	y: number;
-};

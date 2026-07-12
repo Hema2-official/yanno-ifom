@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
-	// import { redoChange, undoChange } from '$lib/stores/data';
+	import { editorState } from '$lib/states/EditorState.svelte';
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
@@ -19,23 +19,20 @@
 		// Global shortcuts
 		// TODO: centralize this and provide configuration
 		const handleKeyDown = (e: KeyboardEvent) => {
-			// if (e.key === 'z' && e.ctrlKey) {
-			// 	e.preventDefault();
-			// 	e.stopPropagation();
+			if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
+				e.preventDefault();
+				e.stopPropagation();
 
-			// 	// Undo
-			// 	console.log('Undo');
-			// 	undoChange();
-			// }
+				if (e.shiftKey) editorState.session?.redo();
+				else editorState.session?.undo();
+			}
 
-			// if (e.key === 'y' && e.ctrlKey) {
-			// 	e.preventDefault();
-			// 	e.stopPropagation();
+			if (e.ctrlKey && e.key === 'y') {
+				e.preventDefault();
+				e.stopPropagation();
 
-			// 	// Redo
-			// 	console.log('Redo');
-			// 	redoChange();
-			// }
+				editorState.session?.redo();
+			}
 
 			// hold space to hide annotation
 			if (e.key === ' ') {
@@ -181,12 +178,18 @@
 			<Menubar.Menu>
 				<Menubar.Trigger>Edit</Menubar.Trigger>
 				<Menubar.Content>
-					<!-- <Menubar.Item onSelect={undoChange}>
+					<Menubar.Item
+						onSelect={() => editorState.session?.undo()}
+						disabled={!editorState.session?.canUndo}
+					>
 						Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
 					</Menubar.Item>
-					<Menubar.Item onSelect={redoChange}>
+					<Menubar.Item
+						onSelect={() => editorState.session?.redo()}
+						disabled={!editorState.session?.canRedo}
+					>
 						Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
-					</Menubar.Item> -->
+					</Menubar.Item>
 					<Menubar.Separator />
 					<Menubar.Item onSelect={createNewCell}>New Cell...</Menubar.Item>
 					<Menubar.Separator />

@@ -47,21 +47,20 @@ class ProjectState {
 	}
 
 	async saveData(data: VersionManaged<TrackType[]>) {
-		if (!(this.cloudProject && this.cloudVersion) || !this.localProject?.id)
-			throw new Error('No project loaded');
-
 		try {
 			this.isSaving = true;
 
-			if (this.cloudProject) {
+			if (this.cloudProject && this.cloudVersion) {
 				await updateVersionData(this.cloudVersion, $state.snapshot(data));
-			} else {
+			} else if (this.localProject?.id) {
 				const cs = new Blob([JSON.stringify(data)])
 					.stream()
 					.pipeThrough(new CompressionStream('gzip'));
 				await localProjectsDb.projects.update(this.localProject.id, {
 					annotation: await new Response(cs).blob()
 				});
+			} else {
+				throw new Error('No project loaded');
 			}
 		} finally {
 			this.isSaving = false;

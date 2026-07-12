@@ -1,41 +1,30 @@
 <script lang="ts">
-	import { hoverElementsShown, lastPointerViewBoxCoords, smoothRadius } from '$lib/stores/editor';
-	import {
-		displayMouseLeaveHandler,
-		displayMouseMoveHandler,
-		displayMouseUpHandler,
-		pressedKeys
-	} from '$lib/stores/input';
+	import { editorState } from '$lib/states/EditorState.svelte';
+	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
-	import type { Point } from '$lib/types/editor.type';
+	import type { Point } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBodies } from '$lib/utils/geometry';
+	import { overrideDisplayPointerWhile } from './interaction.svelte';
 	import type { EditorToolProps } from './types';
 
-	let { bodies, pushLocalState }: EditorToolProps = $props();
+	let { bodies = $bindable(), pushLocalState }: EditorToolProps = $props();
 
-	let interactiveRoot: SVGElement | undefined;
+	let interactiveRoot: SVGGElement | undefined = $state();
 	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
 
-	let mouseStartPos: Point;
-
-	// For each point in each body
-	let coeffs: number[][] = [];
-	let startPositons: Point[][] = [];
-
 	let isMouseDown = $state(false);
+	let mouseStartPos: Point = { x: 0, y: 0 };
 
-	$effect(() => {
-		if (isMouseDown) {
-			$displayMouseMoveHandler = handleMouseMove;
-			$displayMouseUpHandler = handleMouseUp;
-			$displayMouseLeaveHandler = handleMouseUp;
-		} else {
-			$displayMouseMoveHandler = null;
-			$displayMouseUpHandler = null;
-			$displayMouseLeaveHandler = null;
-		}
-	});
+	// Per point in each body, captured at the start of a drag
+	let coeffs: number[][] = [];
+	let startPositions: Point[][] = [];
+
+	overrideDisplayPointerWhile(
+		() => isMouseDown,
+		(e) => handleMouseMove(e),
+		(e) => handleMouseUp(e)
+	);
 
 	const handleMouseDown = (e: MouseEvent) => {
 		e.preventDefault();
@@ -44,30 +33,16 @@
 		if (!svgElement) return;
 		mouseStartPos = getPointerViewBoxCoords(e, svgElement);
 
-		coeffs = $bodies.map((body) =>
+		// Influence of the drag on each point falls off linearly with the
+		// point's distance from the drag origin
+		coeffs = bodies.map((body) =>
 			body.map((point) => {
-				const dx = point.x - mouseStartPos.x;
-				const dy = point.y - mouseStartPos.y;
-				const dist = Math.sqrt(dx * dx + dy * dy);
-				return 1 - Math.min(dist / $smoothRadius, 1);
+				const dist = Math.hypot(point.x - mouseStartPos.x, point.y - mouseStartPos.y);
+				return 1 - Math.min(dist / editorState.smoothRadius, 1);
 			})
 		);
+		startPositions = bodies.map((body) => body.map((point) => ({ x: point.x, y: point.y })));
 
-		// TODO: just copy
-		startPositons = $bodies.map((body) => body.map((point) => ({ x: point.x, y: point.y })));
-
-		// cell.x.forEach((x, i) => {
-		//     const dx = x - mouseStartPos.x;
-		//     const dy = cell.y[i] - mouseStartPos.y;
-		//     const dist = Math.sqrt(dx * dx + dy * dy);
-		//     const co = 1 - dist / $smoothRadius;
-		//     if (dist < $smoothRadius)
-		//         relations.push({
-		//             index: i,
-		//             coeff: { x: co, y: co },
-		//             startingPos: { x: x, y: cell.y[i] }
-		//         });
-		// });
 		isMouseDown = true;
 	};
 
@@ -75,52 +50,44 @@
 		e.preventDefault();
 		e.stopPropagation();
 
+		if (!isMouseDown) return;
 		isMouseDown = false;
 
 		if (optionsState.autoResample)
-			bodies.update((_bodies) =>
-				resampleCellBodies(_bodies, optionsState.resampleSegmentLength)
-			);
+			bodies = resampleCellBodies(bodies, optionsState.resampleSegmentLength);
 		pushLocalState();
 	};
 
 	const handleMouseMove = (e: MouseEvent) => {
-		if (!svgElement) return;
-
-		// Update viewbox coord values
-		getPointerViewBoxCoords(e, svgElement);
-
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (!isMouseDown) return;
+		if (!svgElement) return;
 
+		// Also keeps inputState.lastPointerViewBoxCoords (the hover circle) updated
 		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
 
-		bodies.update((_bodies) => {
-			_bodies.forEach((body, bodyIndex) => {
-				body.forEach((point, pointIndex) => {
-					point.x =
-						startPositons[bodyIndex][pointIndex].x +
-						(mouseViewBox.x - mouseStartPos.x) * coeffs[bodyIndex][pointIndex];
-					point.y =
-						startPositons[bodyIndex][pointIndex].y +
-						(mouseViewBox.y - mouseStartPos.y) * coeffs[bodyIndex][pointIndex];
-				});
+		if (!isMouseDown) return;
+
+		const deltaX = mouseViewBox.x - mouseStartPos.x;
+		const deltaY = mouseViewBox.y - mouseStartPos.y;
+		bodies.forEach((body, bodyIndex) => {
+			body.forEach((point, pointIndex) => {
+				const coeff = coeffs[bodyIndex][pointIndex];
+				point.x = startPositions[bodyIndex][pointIndex].x + deltaX * coeff;
+				point.y = startPositions[bodyIndex][pointIndex].y + deltaY * coeff;
 			});
-			return _bodies;
 		});
 	};
 
 	const handleWheel = (e: WheelEvent) => {
-		// Check if the user is zooming
-		if (pressedKeys.has('Control')) return;
+		// Ctrl+wheel is zoom, leave it to the display
+		if (inputState.pressedKeys.has('Control')) return;
 
 		e.preventDefault();
 		e.stopPropagation();
 		const delta = e.deltaY > 0 ? 1 : -1;
-		$smoothRadius = Math.max(1, $smoothRadius - delta);
-		console.log('$smoothRadius:', $smoothRadius);
+		editorState.smoothRadius = Math.max(1, editorState.smoothRadius - delta);
 	};
 </script>
 
@@ -137,9 +104,9 @@
 
 <mask id="pointerMaskCircle">
 	<circle
-		cx={$lastPointerViewBoxCoords.x}
-		cy={$lastPointerViewBoxCoords.y}
-		r={$smoothRadius}
+		cx={inputState.lastPointerViewBoxCoords.x}
+		cy={inputState.lastPointerViewBoxCoords.y}
+		r={editorState.smoothRadius}
 		fill="url('#maskRadialGradient')"
 	/>
 </mask>
@@ -153,21 +120,20 @@
 	onwheel={handleWheel}
 	bind:this={interactiveRoot}
 >
-	{#each $bodies as body}
+	{#each bodies as body, i (i)}
 		<path
 			class="smooth-tool"
 			d={cellBodyToPath(body)}
 			fill="none"
 			stroke="url('#handleRadialGradient')"
-			stroke-width={$smoothRadius * 2}
+			stroke-width={editorState.smoothRadius * 2}
 			opacity="1"
 		/>
 	{/each}
 </g>
 
 <!-- Non-interactive elements on top -->
-
-{#each $bodies as body}
+{#each bodies as body, i (i)}
 	<path
 		class="smooth-tool no-interact"
 		d={cellBodyToPath(body)}
@@ -178,10 +144,10 @@
 	/>
 {/each}
 
-{#if $hoverElementsShown}
+{#if inputState.pointerOverDisplay}
 	<g mask="url(#pointerMaskCircle)">
-		{#each $bodies as body}
-			{#each body as point, i}
+		{#each bodies as body, bodyIndex (bodyIndex)}
+			{#each body as point, pointIndex (pointIndex)}
 				{@const halfSize = 0.25}
 				<path
 					class="smooth-tool no-interact"

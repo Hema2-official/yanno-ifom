@@ -1,42 +1,33 @@
 <script lang="ts">
-	import {
-		displayMouseLeaveHandler,
-		displayMouseMoveHandler,
-		displayMouseUpHandler
-	} from '$lib/stores/input';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { P } from '$lib/utils/pattern';
+	import { overrideDisplayPointerWhile } from './interaction.svelte';
 	import type { EditorToolProps } from './types';
 
-	let { bodies, pushLocalState }: EditorToolProps = $props();
+	let { bodies = $bindable(), pushLocalState }: EditorToolProps = $props();
 
-	let interactiveRoot: SVGElement | undefined;
+	let interactiveRoot: SVGGElement | undefined = $state();
 	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
 
-	let currentBodyIndex = $state(-1);
-	let currentHandleIndex = $state(-1);
+	const handleIdPattern = P('hdl#_#');
+	let currentBodyIndex = -1;
+	let currentHandleIndex = -1;
 	let isMouseDown = $state(false);
 
-	$effect(() => {
-		if (isMouseDown) {
-			$displayMouseMoveHandler = handleMouseMove;
-			$displayMouseUpHandler = handleMouseUp;
-			$displayMouseLeaveHandler = handleMouseUp;
-		} else {
-			$displayMouseMoveHandler = null;
-			$displayMouseUpHandler = null;
-			$displayMouseLeaveHandler = null;
-		}
-	});
+	overrideDisplayPointerWhile(
+		() => isMouseDown,
+		(e) => handleMouseMove(e),
+		(e) => handleMouseUp(e)
+	);
 
 	const handleMouseDown = (e: MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 
-		const target = e.target as HTMLElement;
+		const target = e.target as SVGElement;
 		if (!target.id.startsWith('hdl')) return;
-		[currentBodyIndex, currentHandleIndex] = P('hdl#_#').match(target.id);
+		[currentBodyIndex, currentHandleIndex] = handleIdPattern.match(target.id);
 
 		isMouseDown = true;
 	};
@@ -45,9 +36,7 @@
 		e.preventDefault();
 		e.stopPropagation();
 
-		// reset
-		currentBodyIndex = -1;
-		currentHandleIndex = -1;
+		if (!isMouseDown) return;
 		isMouseDown = false;
 		pushLocalState();
 	};
@@ -56,19 +45,16 @@
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (!svgElement) return;
-		if (!isMouseDown) return;
+		if (!svgElement || !isMouseDown) return;
 
 		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
-
-		// set handle pos
-		$bodies[currentBodyIndex][currentHandleIndex].x = mouseViewBox.x;
-		$bodies[currentBodyIndex][currentHandleIndex].y = mouseViewBox.y;
+		bodies[currentBodyIndex][currentHandleIndex].x = mouseViewBox.x;
+		bodies[currentBodyIndex][currentHandleIndex].y = mouseViewBox.y;
 	};
 </script>
 
 <!-- Non-interactive elements -->
-{#each $bodies as body, i}
+{#each bodies as body, i (i)}
 	<path
 		id="body{i}"
 		d={cellBodyToPath(body)}
@@ -87,12 +73,12 @@
 	onmousemove={handleMouseMove}
 	bind:this={interactiveRoot}
 >
-	{#each $bodies as body, bodyIndex}
+	{#each bodies as body, bodyIndex (bodyIndex)}
+		{@const halfSize = 200 / svgState.svgScalePercent}
 		<g>
-			{#each body as point, i}
-				{@const halfSize = 200 / svgState.svgScalePercent}
+			{#each body as point, pointIndex (pointIndex)}
 				<rect
-					id="hdl{bodyIndex}_{i}"
+					id="hdl{bodyIndex}_{pointIndex}"
 					x={point.x - halfSize}
 					y={point.y - halfSize}
 					width={halfSize * 2}

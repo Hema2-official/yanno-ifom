@@ -118,20 +118,24 @@ export function rleToMask(rle: RLEType) {
  * @param mask Binary mask of size height * width
  * @param size Size of the mask in [height, width]
  */
-export function maskToRle(mask: Uint8Array, size: [number, number]) {
-	const area = size[0] * size[1]; // Total pixels per mask
+export function maskToRle(mask: Uint8Array, size: [number, number]): RLEType {
+	const height = size[0];
+	const width = size[1];
 	const counts: number[] = [];
 
 	let prevPixel = 0;
 	let currentLength = 0;
 
-	for (let j = 0; j < area; j++) {
-		if (mask[j] !== prevPixel) {
-			counts.push(currentLength);
-			currentLength = 0;
-			prevPixel = mask[j];
+	for (let col = 0; col < width; col++) {
+		for (let row = 0; row < height; row++) {
+			const pixel = mask[row * width + col];
+			if (pixel !== prevPixel) {
+				counts.push(currentLength);
+				currentLength = 0;
+				prevPixel = pixel;
+			}
+			currentLength++;
 		}
-		currentLength++;
 	}
 
 	counts.push(currentLength); // Final run length
@@ -140,6 +144,99 @@ export function maskToRle(mask: Uint8Array, size: [number, number]) {
 		size,
 		counts: countsToString(counts)
 	};
+}
+
+/**
+ * Rasterize polygons into an RLE-encoded binary mask.
+ *
+ * Each polygon is filled using an even-odd scanline algorithm, then its outline
+ * is stroked into the mask so that boundary pixels traced by `maskToPolygons`
+ * are always included (a `maskToPolygons` -> `polygonsToRle` round trip must not
+ * shrink the mask).
+ *
+ * @param polygons Array of polygons ({x, y} vertex lists) to rasterize.
+ * @param size The mask dimensions as [height, width].
+ * @returns An RLEType object representing the union of the filled polygons.
+ */
+export function polygonsToRle(polygons: Polygon[], size: [number, number]): RLEType {
+	const height = size[0];
+	const width = size[1];
+	const mask = new Uint8Array(height * width);
+
+	// Scanline (even-odd) fill for each polygon.
+	for (const polygon of polygons) {
+		const n = polygon.length;
+		if (n < 2) continue;
+
+		for (let i = 0; i < n; i++) {
+			const p1 = polygon[i];
+			const p2 = polygon[(i + 1) % n];
+
+			const x0 = Math.round(p1.x);
+			const y0 = Math.round(p1.y);
+			const x1 = Math.round(p2.x);
+			const y1 = Math.round(p2.y);
+
+			if (y0 === y1) continue; // skip horizontal edges
+
+			const minY = Math.min(y0, y1);
+			const maxY = Math.max(y0, y1);
+
+			// Half-open [minY, maxY) avoids the double-toggle at shared vertices.
+			for (let y = minY; y < maxY; y++) {
+				if (y < 0 || y >= height) continue;
+				const xIntersect = Math.round(x0 + ((x1 - x0) * (y - y0)) / (y1 - y0));
+				const rowStart = y * width;
+				for (let x = Math.max(0, xIntersect); x < width; x++) {
+					mask[rowStart + x] = mask[rowStart + x] ? 0 : 1;
+				}
+			}
+		}
+	}
+
+	// Stroke each polygon outline so the traced boundary is always set.
+	for (const polygon of polygons) {
+		const n = polygon.length;
+		if (n < 1) continue;
+
+		for (let i = 0; i < n; i++) {
+			const p1 = polygon[i];
+			const p2 = polygon[(i + 1) % n];
+
+			let x0 = Math.round(p1.x);
+			let y0 = Math.round(p1.y);
+			const x1 = Math.round(p2.x);
+			const y1 = Math.round(p2.y);
+
+			// Simple DDA line rasterization.
+			const dx = x1 - x0;
+			const dy = y1 - y0;
+			const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+			if (steps === 0) {
+				if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height) {
+					mask[y0 * width + x0] = 1;
+				}
+				continue;
+			}
+
+			const xStep = dx / steps;
+			const yStep = dy / steps;
+			let fx = x0;
+			let fy = y0;
+			for (let s = 0; s <= steps; s++) {
+				x0 = Math.round(fx);
+				y0 = Math.round(fy);
+				if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height) {
+					mask[y0 * width + x0] = 1;
+				}
+				fx += xStep;
+				fy += yStep;
+			}
+		}
+	}
+
+	return maskToRle(mask, size);
 }
 
 export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygon[] {
@@ -341,15 +438,3 @@ export function rleToPolygons(rle: RLEType): Polygon[] {
 	polygonCache.set(rle, { counts: rle.counts, polygons });
 	return polygons;
 }
-
-const mask = [
-	[0, 1, 1, 0],
-	[0, 1, 1, 0],
-	[1, 1, 1, 0],
-	[0, 1, 0, 0]
-];
-const height = 4;
-const width = 4;
-
-const polygons = maskToPolygons(new Uint8Array(mask.flat()), [height, width]);
-console.debug('polygons', polygons);
