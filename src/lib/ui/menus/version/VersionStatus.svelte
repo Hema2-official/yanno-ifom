@@ -40,7 +40,9 @@
 	}
 
 	$effect(() => {
-		getTaskStatus(version).then(updateStatus);
+		getTaskStatus(version)
+			.then(updateStatus)
+			.catch((err) => console.debug('Failed to fetch task: ', err));
 
 		if (!version.ready) updateStream();
 		else message = 'Ready';

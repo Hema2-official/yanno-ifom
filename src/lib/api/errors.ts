@@ -8,16 +8,33 @@ export function extractError(error: unknown): string {
 
 export async function handleError(error: unknown): Promise<string> {
 	if (error instanceof HTTPError) {
-		const data = await error.response.json<{ detail?: string }>();
-		if ('detail' in data && typeof data.detail === 'string') return data.detail;
+		const data: APIError | undefined =
+			error.data ??
+			(error.response.bodyUsed
+				? undefined
+				: await error.response.json().catch(() => undefined));
+		if (
+			data &&
+			typeof data === 'object' &&
+			'detail' in data &&
+			typeof data.detail === 'string'
+		) {
+			return data.detail;
+		}
 	}
 	return extractError(error);
 }
 
 export async function handleCredentialsError(error: unknown): Promise<APIError | CredentialsError> {
-	if (error instanceof HTTPError && error.response.headers.get('Content-Length') !== '0') {
-		const data = await error.response.json();
-		if (typeof data === 'object') return data as APIError | CredentialsError;
+	if (error instanceof HTTPError) {
+		const data =
+			error.data ??
+			(error.response.bodyUsed
+				? undefined
+				: await error.response.json().catch(() => undefined));
+		if (data && typeof data === 'object') {
+			return data as APIError | CredentialsError;
+		}
 	}
 	return { detail: extractError(error) };
 }
