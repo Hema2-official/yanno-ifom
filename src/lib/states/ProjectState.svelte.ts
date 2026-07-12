@@ -11,6 +11,8 @@ import { localProjectsDb, type DBProject } from '$lib/utils/indexeddb';
 import { WebPConverter } from '$lib/utils/webp';
 import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
 import { annotationState } from './AnnotationState.svelte';
+import { videoDisplayState } from './VideoDisplayState.svelte';
+import { getFrameCount, getImageIndex } from '$lib/utils/frames';
 import * as geotiff from 'geotiff';
 
 class ProjectState {
@@ -30,13 +32,16 @@ class ProjectState {
 	videoMetadata: VideoMetadata | undefined = $derived(
 		this.cloudProject?.video_metadata ?? this.localProject?.video_metadata
 	);
-	currentFrameUrl = $derived(this.getFrameUrl(annotationState.currentFrameId));
+	frameCount = $derived(getFrameCount(this.videoConfig, this.videoMetadata));
 
-	getFrameUrl(frameId: number): string {
+	getChannelFrameUrl(frameIndex: number, channelIndex: number): string | null {
+		const imageIndex = getImageIndex(this.videoConfig, frameIndex, channelIndex);
+		const imageCount = this.videoMetadata?.frame_count;
+		if (imageCount !== undefined && imageIndex >= imageCount) return null;
 		if (this.cloudProject) {
-			return getWebFrameUrl(this.cloudProject, frameId);
+			return getWebFrameUrl(this.cloudProject, imageIndex);
 		} else if (this.localProject?.id) {
-			return getLocalFrameUrl(this.localProject.id, frameId);
+			return getLocalFrameUrl(this.localProject.id, imageIndex);
 		}
 		throw new Error('No project loaded');
 	}
@@ -67,6 +72,8 @@ class ProjectState {
 		this.cloudProject = null;
 		this.cloudVersion = null;
 		this.localProject = null;
+		annotationState.currentFrameIndex = 0;
+		videoDisplayState.concurrentFrames = 1;
 	}
 
 	async loadCloudProject(projectId: string, versionId: string) {

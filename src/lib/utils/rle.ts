@@ -332,8 +332,14 @@ export function getPolygonSize(polygon: Polygon) {
 	return (maxX - minX) * (maxY - minY);
 }
 
-export function rleToPolygons(rle: RLEType) {
-	return maskToPolygons(rleToMask(rle), rle.size);
+const polygonCache = new WeakMap<RLEType, { counts: string; polygons: Polygon[] }>();
+export function rleToPolygons(rle: RLEType): Polygon[] {
+	const cached = polygonCache.get(rle);
+	if (cached && cached.counts === rle.counts) return cached.polygons;
+
+	const polygons = maskToPolygons(rleToMask(rle), rle.size);
+	polygonCache.set(rle, { counts: rle.counts, polygons });
+	return polygons;
 }
 
 const mask = [

@@ -24,6 +24,8 @@
 	import NewEditor from './NewEditor.svelte';
 	import { rleToPolygons } from '$lib/utils/rle';
 	import { projectState } from '$lib/states/ProjectState.svelte';
+	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
+	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import {
 		colormapToRgbFunctions,
 		getNormalizeFunctions,
@@ -206,30 +208,55 @@
 		$hoverElementsShown = true;
 	};
 
-	const cellContextMenu = (e: MouseEvent, cellId: string) => {
+	const cellContextMenu = (e: MouseEvent, cell: TrackType) => {
 		e.preventDefault();
 
-		contextMenuCellId = cellId;
-		const targetCell = annotationState.currentFrame?.find((f) => f.ObjectID == cellId);
-
-		if (!targetCell) {
-			console.warn('Cell not found');
-			return;
-		}
-
-		editorCell = targetCell;
+		contextMenuCellId = cell.ObjectID;
+		editorCell = cell;
 		contextMenuAnchor = toMeasurable(e);
 		contextMenuOpen = true;
 	};
 
-	const normalizeFilter = $derived(
-		projectState.videoMetadata && projectState.videoConfig
-			? getNormalizeFunctions(
-					projectState.videoMetadata,
-					projectState.videoConfig.start_period
-				)
-			: null
-	);
+	const normalizeFilters = $derived.by(() => {
+		const metadata = projectState.videoMetadata;
+		if (!metadata) return [];
+		return metadata.channels.map((_, i) => getNormalizeFunctions(metadata, i));
+	});
+
+	const gridCols = $derived(Math.ceil(Math.sqrt(videoDisplayState.concurrentFrames)));
+	const gridRows = $derived(Math.ceil(videoDisplayState.concurrentFrames / gridCols));
+
+	// Editing is only possible in single-frame mode
+	const isEditingSingleFrame = $derived($isEditing && videoDisplayState.concurrentFrames === 1);
+
+	// Prefetch frames around the displayed window: all channels of the shown
+	// frames (so channel toggles are instant), visible channels only for the
+	// surrounding radius, forward-biased
+	$effect(() => {
+		const start = annotationState.currentFrameIndex;
+		const count = videoDisplayState.concurrentFrames;
+		const frameCount = projectState.frameCount;
+		if (frameCount === 0) return;
+
+		const channelVisibility = videoDisplayState.channels.map((c) => c.visible);
+		const urls: string[] = [];
+		const addFrame = (frameIndex: number, visibleChannelsOnly: boolean) => {
+			if (frameIndex < 0 || frameIndex >= frameCount) return;
+			channelVisibility.forEach((visible, channelIndex) => {
+				if (visibleChannelsOnly && !visible) return;
+				const url = projectState.getChannelFrameUrl(frameIndex, channelIndex);
+				if (url) urls.push(url);
+			});
+		};
+
+		for (let i = 0; i < count; i++) addFrame(start + i, false);
+		for (let distance = 1; distance <= frameCache.prefetchRadius; distance++) {
+			addFrame(start + count - 1 + distance, true);
+			addFrame(start - distance, true);
+		}
+
+		frameCache.prefetch(urls);
+	});
 
 	// let svg = frameToSvg(1);
 
@@ -264,7 +291,7 @@
 	<div class="image-wrapper" role="presentation" bind:this={imageWrapperElement}>
 		<svg
 			viewBox="{svgState.svgViewBox.minX} {svgState.svgViewBox.minY} {svgState.svgViewBox
-				.width} {svgState.svgViewBox.height}"
+				.width * gridCols} {svgState.svgViewBox.height * gridRows}"
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
 			class="zoomable annotation-svg"
@@ -272,30 +299,53 @@
 			opacity={svgState.isSvgShown ? svgState.svgAlpha / 255 : 0}
 		>
 			{@render SVGFilter('colormap-f', colormapFilter)}
-			{#if normalizeFilter}
-				{@render SVGFilter('normalize-f', normalizeFilter)}
-			{/if}
+			{#each normalizeFilters as functions, channelIndex (channelIndex)}
+				{@render SVGFilter(`normalize-f-${channelIndex}`, functions)}
+			{/each}
 
-			<image
-				href={projectState.currentFrameUrl}
-				filter="{svgState.normalizeSwitch
-					? 'url(#normalize-f)'
-					: ''} {svgState.colormapSwitch ? 'url(#colormap-f)' : ''}"
-			/>
-
-			{#if !$isEditing}
-				<g role="region">
-					{#each annotationState.currentFrame ?? [] as object (object.ObjectID)}
-						<Cell
-							cellPolygons={rleToPolygons(object.SegmentationRLE)}
-							cellId={object.ObjectID}
-							onContextMenu={(e) => cellContextMenu(e, object.ObjectID)}
-						/>
+			{#each { length: videoDisplayState.concurrentFrames }, gridIndex (gridIndex)}
+				{@const frameIndex = annotationState.currentFrameIndex + gridIndex}
+				{@const vb = svgState.svgViewBox}
+				<svg
+					x={(gridIndex % gridCols) * vb.width}
+					y={Math.floor(gridIndex / gridCols) * vb.height}
+					width={vb.width}
+					height={vb.height}
+					viewBox="{vb.minX} {vb.minY} {vb.width} {vb.height}"
+				>
+					{#each videoDisplayState.channels as channel, channelIndex (channelIndex)}
+						{@const url = channel.visible
+							? projectState.getChannelFrameUrl(frameIndex, channelIndex)
+							: null}
+						{@const href = url ? frameCache.getUrl(url) : null}
+						{#if href}
+							<image
+								{href}
+								width={vb.width}
+								height={vb.height}
+								opacity={channel.opacity / 100}
+								filter="{svgState.normalizeSwitch && normalizeFilters[channelIndex]
+									? `url(#normalize-f-${channelIndex})`
+									: ''} {svgState.colormapSwitch ? 'url(#colormap-f)' : ''}"
+							/>
+						{/if}
 					{/each}
-				</g>
-			{:else if editorCell}
-				<NewEditor inputCell={editorCell} bind:this={editorComponent} />
-			{/if}
+
+					{#if !isEditingSingleFrame}
+						<g role="region">
+							{#each annotationState.getFrame(frameIndex) ?? [] as object (object.ObjectID)}
+								<Cell
+									cellPolygons={rleToPolygons(object.SegmentationRLE)}
+									cellId={object.ObjectID}
+									onContextMenu={(e) => cellContextMenu(e, object)}
+								/>
+							{/each}
+						</g>
+					{:else if editorCell}
+						<NewEditor inputCell={editorCell} bind:this={editorComponent} />
+					{/if}
+				</svg>
+			{/each}
 		</svg>
 	</div>
 

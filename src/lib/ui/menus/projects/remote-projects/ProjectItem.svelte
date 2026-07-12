@@ -15,7 +15,7 @@
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
 	import UploadVideoDialog from './UploadVideoDialog.svelte';
 	import { toast } from 'svelte-sonner';
-	import { getPrimaryFrameCount } from '$lib/utils/frames';
+	import { getFrameCount } from '$lib/utils/frames';
 
 	type Props = { project: Project; onRefresh: () => void };
 
@@ -60,7 +60,10 @@
 
 				{#if project.video_config}
 					<Item.Description class="capitalize">
-						{project.video_config.color.toLowerCase()}, {getPrimaryFrameCount(project)} frames
+						{project.video_config.color.toLowerCase()}, {getFrameCount(
+							project.video_config,
+							project.video_metadata
+						)} frames
 					</Item.Description>
 				{:else}
 					<Item.Description>Upload a video to get started</Item.Description>

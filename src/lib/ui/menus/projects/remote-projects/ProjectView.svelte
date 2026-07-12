@@ -4,7 +4,7 @@
 	import { getProject } from '$lib/api/projects';
 	import { versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
 	import { resource } from 'runed';
-	import { getPrimaryFrameCount } from '$lib/utils/frames';
+	import { getFrameCount } from '$lib/utils/frames';
 
 	import { Button } from '$lib/components/ui/button';
 	import Spinner from '$lib/UI/common/Spinner.svelte';
@@ -98,8 +98,8 @@
 
 		{#if project.video_config}
 			<p class="text-muted-foreground -mt-2 text-sm">
-				{getPrimaryFrameCount(project)} primary frames · {project.video_metadata
-					?.frame_count ?? 0}
+				{getFrameCount(project.video_config, project.video_metadata)} primary frames · {project
+					.video_metadata?.frame_count ?? 0}
 				total frames
 			</p>
 

@@ -1,4 +1,5 @@
 import type { ColorMapType } from '$lib/utils/imaging';
+import { projectState } from './ProjectState.svelte';
 
 export type SvgViewBoxType = {
 	minX: number;
@@ -18,11 +19,14 @@ class SvgState {
 
 	svgScalePercent = $state(100);
 
-	svgViewBox: SvgViewBoxType = $state({
-		minX: 0,
-		minY: 0,
-		width: 512,
-		height: 512
+	svgViewBox: SvgViewBoxType = $derived.by(() => {
+		const metadata = projectState.videoMetadata;
+		return {
+			minX: 0,
+			minY: 0,
+			width: metadata?.width || 512,
+			height: metadata?.height || 512
+		};
 	});
 
 	normalizeSwitch = $state(true);

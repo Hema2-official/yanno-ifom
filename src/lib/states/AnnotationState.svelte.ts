@@ -27,11 +27,13 @@ const jsondiffer = jsondiffpatch.create({
 
 class AnnotationState {
 	data: VersionManaged<TrackType[]> | null = $state(null);
-	currentFrameId = $state(1);
+	currentFrameIndex = $state(0);
 
-	currentFrame: TrackType[] | null = $derived(
-		this.data ? this.data.current.filter((f) => f.Frame === this.currentFrameId) : null
-	);
+	currentFrame: TrackType[] | null = $derived(this.getFrame(this.currentFrameIndex));
+
+	getFrame(frameIndex: number): TrackType[] | null {
+		return this.data ? this.data.current.filter((f) => f.Frame === frameIndex) : null;
+	}
 
 	commitData(newData: TrackType[], message?: string) {
 		if (!this.data) throw new Error('No data to commit changes to');

@@ -6,10 +6,26 @@
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '$lib/UI/common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
-	import { getMax, getMin } from '$lib/utils/data.svelte';
 	import { Switch } from '$lib/components/ui/switch';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
+	import { projectState } from '$lib/states/ProjectState.svelte';
+	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
 	import ColorMapSelect from '$lib/UI/common/ColorMapSelect.svelte';
+
+	const primaryChannelIndex = $derived(projectState.videoConfig?.start_period ?? 0);
+	const maxConcurrentFrames = $derived(Math.max(1, Math.min(6, projectState.frameCount)));
+	const maxFrameIndex = $derived(
+		Math.max(0, projectState.frameCount - videoDisplayState.concurrentFrames)
+	);
+	const lastShownFrameIndex = $derived(
+		annotationState.currentFrameIndex + videoDisplayState.concurrentFrames - 1
+	);
+
+	// Keep the frame window in range when the grid grows
+	$effect(() => {
+		if (annotationState.currentFrameIndex > maxFrameIndex)
+			annotationState.currentFrameIndex = maxFrameIndex;
+	});
 </script>
 
 <nav
@@ -43,6 +59,60 @@
 				min={16}
 				max={256}
 				step={1}
+			/>
+		</div>
+	</div>
+
+	<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Video</h2>
+	<div class="flex flex-col gap-4 pb-6">
+		{#each videoDisplayState.channels as channel, channelIndex (channelIndex)}
+			<div class="flex flex-col gap-2">
+				<Label for="channel-{channelIndex}-visible" class="cursor-pointer">
+					<Switch id="channel-{channelIndex}-visible" bind:checked={channel.visible} />
+					Channel {channelIndex}{channelIndex === primaryChannelIndex ? ' (primary)' : ''}
+				</Label>
+				<Slider
+					type="single"
+					bind:value={channel.opacity}
+					min={0}
+					max={100}
+					step={1}
+					disabled={!channel.visible}
+				/>
+			</div>
+		{/each}
+
+		<div class="flex flex-col gap-2">
+			<Label for="concurrent-frames" class="text-nowrap tabular-nums">
+				Concurrent frames: {videoDisplayState.concurrentFrames}
+			</Label>
+			<Slider
+				id="concurrent-frames"
+				type="single"
+				bind:value={videoDisplayState.concurrentFrames}
+				min={1}
+				max={maxConcurrentFrames}
+				step={1}
+				disabled={$isEditing || maxConcurrentFrames < 2}
+			/>
+		</div>
+
+		<div class="flex flex-col gap-2">
+			<Label for="current-frame-index" class="text-nowrap tabular-nums">
+				{#if videoDisplayState.concurrentFrames > 1}
+					Frames: {annotationState.currentFrameIndex}–{lastShownFrameIndex}
+				{:else}
+					Frame: {annotationState.currentFrameIndex}
+				{/if}
+			</Label>
+			<Slider
+				id="current-frame-index"
+				type="single"
+				bind:value={annotationState.currentFrameIndex}
+				min={0}
+				max={maxFrameIndex}
+				step={1}
+				disabled={$isEditing || projectState.frameCount === 0}
 			/>
 		</div>
 	</div>
@@ -86,23 +156,6 @@
 		<div class="flex flex-col gap-2">
 			<Label>Zoom multiplier</Label>
 			<Slider type="single" bind:value={zoomState.scrollMultiplier} min={0.1} max={10} />
-		</div>
-
-		<div class="flex flex-col gap-2">
-			<Label for="current-frame-id" class="text-nowrap">
-				Current frame: {annotationState.currentFrameId}
-			</Label>
-			<Slider
-				type="single"
-				bind:value={annotationState.currentFrameId}
-				min={annotationState.data
-					? getMin(annotationState.data.current.map((f) => f.Frame))
-					: 0}
-				max={annotationState.data
-					? getMax(annotationState.data.current.map((f) => f.Frame))
-					: 0}
-				disabled={$isEditing || !annotationState.data}
-			/>
 		</div>
 	</div>
 </nav>

@@ -86,7 +86,7 @@
 		// pushChange({
 		// 	time: Date.now(),
 		// 	message: `Add new cell ${newCellId}`,
-		// 	frames: [{ id: annotationState.currentFrameId, cells: [newCell] }]
+		// 	frames: [{ id: annotationState.currentFrameIndex, cells: [newCell] }]
 		// });
 	};
 
