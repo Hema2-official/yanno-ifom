@@ -11,13 +11,13 @@ export type TrackType = {
 	Frame: number;
 	ObjectID: string;
 	SegmentationRLE: RLEType;
-	LocalTrackRLE: RLEType[];
-	Centroid: [number, number];
-	SegBbox: BoundingBoxType;
-	TrackBbox: BoundingBoxType;
+	LocalTrackRLE: RLEType[] | null;
+	Centroid: [number, number] | null;
+	SegBbox: BoundingBoxType | null;
+	TrackBbox: BoundingBoxType | null;
 	PrevID: string | null;
 	NextID: string | null;
-	TrackID: number;
+	TrackID: number | null;
 	Interpolated: boolean;
 };
 

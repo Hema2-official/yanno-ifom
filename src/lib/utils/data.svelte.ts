@@ -2,7 +2,6 @@ import { get } from 'svelte/store';
 import { _ } from 'svelte-i18n';
 import type { TrackType } from '$lib/types/annotation.type';
 import { polygonsToRle, rleToPolygons } from '$lib/utils/rle';
-import { getPolygonsInfo } from '$lib/utils/geometry';
 
 /**
  * Creates a deep copy of the given object or proxy.
@@ -130,16 +129,16 @@ export function textToTracks(input: string): TrackType[] {
 		const rle = polygonsToRle([points], defaultSize);
 
 		// Compute centroid and bounding box
-		const { centroid, bbox } = getPolygonsInfo([points]);
+		// const { centroid, bbox } = getPolygonsInfo([points]);
 
 		tracks.push({
 			Frame: group.frame,
 			ObjectID: String(group.cellId).padStart(8, '0'),
 			SegmentationRLE: rle,
-			LocalTrackRLE: [],
-			Centroid: centroid,
-			SegBbox: bbox,
-			TrackBbox: [...bbox] as [number, number, number, number],
+			LocalTrackRLE: null,
+			Centroid: null,
+			SegBbox: null,
+			TrackBbox: null,
 			PrevID: null,
 			NextID: null,
 			TrackID: trackId++,
