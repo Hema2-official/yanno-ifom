@@ -82,7 +82,7 @@
 
 	const handleWheel = (e: WheelEvent) => {
 		// Ctrl+wheel is zoom, leave it to the display
-		if (inputState.pressedKeys.has('Control')) return;
+		if (e.ctrlKey) return;
 
 		e.preventDefault();
 		e.stopPropagation();

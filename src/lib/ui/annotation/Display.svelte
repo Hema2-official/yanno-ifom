@@ -87,7 +87,7 @@
 		e.preventDefault();
 
 		// require ctrl key
-		if (!inputState.pressedKeys.has('Control')) return;
+		if (!e.ctrlKey) return;
 
 		// check if zooming makes sense
 		if (styles['scale-percent'] === zoomState.minScale && e.deltaY > 0) return;
