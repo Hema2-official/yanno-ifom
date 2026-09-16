@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/shadcn.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
+	import { cn } from '$lib/utils/shadcn.js';
 	import type { ComponentProps } from 'svelte';
 
 	let {

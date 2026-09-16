@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/shadcn.js';
 	import { Command as CommandPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils/shadcn.js';
 
 	export type CommandRootApi = CommandPrimitive.Root;
 
