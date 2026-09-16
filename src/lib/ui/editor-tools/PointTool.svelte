@@ -21,7 +21,7 @@
 		(e) => handleMouseUp(e)
 	);
 
-	const handleMouseDown = (e: MouseEvent) => {
+	function handleMouseDown(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -30,18 +30,18 @@
 		[currentBodyIndex, currentHandleIndex] = handleIdPattern.match(target.id);
 
 		isMouseDown = true;
-	};
+	}
 
-	const handleMouseUp = (e: MouseEvent) => {
+	function handleMouseUp(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
 		if (!isMouseDown) return;
 		isMouseDown = false;
 		pushLocalState();
-	};
+	}
 
-	const handleMouseMove = (e: MouseEvent) => {
+	function handleMouseMove(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -50,7 +50,7 @@
 		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
 		bodies[currentBodyIndex][currentHandleIndex].x = mouseViewBox.x;
 		bodies[currentBodyIndex][currentHandleIndex].y = mouseViewBox.y;
-	};
+	}
 </script>
 
 <!-- Non-interactive elements -->

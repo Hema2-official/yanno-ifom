@@ -26,7 +26,7 @@
 		(e) => handleMouseUp(e)
 	);
 
-	const handleMouseDown = (e: MouseEvent) => {
+	function handleMouseDown(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -44,9 +44,9 @@
 		startPositions = bodies.map((body) => body.map((point) => ({ x: point.x, y: point.y })));
 
 		isMouseDown = true;
-	};
+	}
 
-	const handleMouseUp = (e: MouseEvent) => {
+	function handleMouseUp(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -56,9 +56,9 @@
 		if (optionsState.autoResample)
 			bodies = resampleCellBodies(bodies, optionsState.resampleSegmentLength);
 		pushLocalState();
-	};
+	}
 
-	const handleMouseMove = (e: MouseEvent) => {
+	function handleMouseMove(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -78,9 +78,9 @@
 				point.y = startPositions[bodyIndex][pointIndex].y + deltaY * coeff;
 			});
 		});
-	};
+	}
 
-	const handleWheel = (e: WheelEvent) => {
+	function handleWheel(e: WheelEvent) {
 		// Ctrl+wheel is zoom, leave it to the display
 		if (e.ctrlKey) return;
 
@@ -88,7 +88,7 @@
 		e.stopPropagation();
 		const delta = e.deltaY > 0 ? 1 : -1;
 		editorState.smoothRadius = Math.max(1, editorState.smoothRadius - delta);
-	};
+	}
 </script>
 
 <defs>

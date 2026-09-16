@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
 	import type { Point } from '$lib/types/geometry.type';
-	import { getMax, getMin } from '$lib/utils/data.svelte';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
-	import { resampleCellBodies } from '$lib/utils/geometry';
+	import { getPolygonsBounds, resampleCellBodies, type Bounds } from '$lib/utils/geometry';
 	import { P } from '$lib/utils/pattern';
+	import { watch } from 'runed';
 	import { overrideDisplayPointerWhile } from './interaction.svelte';
 	import type { EditorToolProps } from './types';
 
@@ -25,12 +26,17 @@
 	);
 
 	let mouseStartPos: Point = { x: 0, y: 0 };
+	let lastMouseEvent: MouseEvent | undefined = $state();
 
 	// Per point in each body, captured at the start of a gesture
 	let rotateCoeffs: { dist: number; angle: number }[][] = [];
 	let moveStartPositions: Point[][] = [];
-	let resizeCoeffs: Point[][] = [];
 	let resizeStartPositions: Point[][] = [];
+
+	let startBounds: Bounds | undefined;
+
+	let isCtrlHeld = $derived(inputState.pressedKeys.has('Control'));
+	let isShiftHeld = $derived(inputState.pressedKeys.has('Shift'));
 
 	const resizeDirection: Point = { x: 0, y: 0 };
 	const resizeIdPattern = P('hdl_#:#');
@@ -38,17 +44,14 @@
 	const color1 = 'white';
 	const color2 = 'gray';
 
-	let minX = $derived(getMin(bodies.map((body) => getMin(body.map((point) => point.x)))));
-	let minY = $derived(getMin(bodies.map((body) => getMin(body.map((point) => point.y)))));
-	let maxX = $derived(getMax(bodies.map((body) => getMax(body.map((point) => point.x)))));
-	let maxY = $derived(getMax(bodies.map((body) => getMax(body.map((point) => point.y)))));
-	let midX = $derived((minX + maxX) / 2);
-	let midY = $derived((minY + maxY) / 2);
+	const bounds = $derived(getPolygonsBounds(bodies));
 	let size = $derived(400 / svgState.svgScalePercent);
 
-	const copyPositions = () => bodies.map((body) => body.map((point) => ({ ...point })));
+	function copyPositions() {
+		return bodies.map((body) => body.map((point) => ({ ...point })));
+	}
 
-	const handleMouseDown = (e: MouseEvent) => {
+	function handleMouseDown(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -60,11 +63,12 @@
 		// Rotate
 		if (target.id === 'hdl_r') {
 			mouseStartPos = getPointerViewBoxCoords(e, svgElement);
+			startBounds = { ...bounds };
 
 			rotateCoeffs = bodies.map((body) =>
 				body.map((point) => {
-					const dx = point.x - midX;
-					const dy = point.y - midY;
+					const dx = point.x - bounds.midX;
+					const dy = point.y - bounds.midY;
 					return {
 						dist: Math.hypot(dx, dy),
 						angle: Math.atan2(dy, dx)
@@ -88,34 +92,18 @@
 		}
 
 		// Resize
-		const width = maxX - minX;
-		const height = maxY - minY;
+		startBounds = { ...bounds };
 
 		[resizeDirection.x, resizeDirection.y] = resizeIdPattern.match(target.id);
 
-		mouseStartPos = {
-			x: resizeDirection.x === 0 ? midX : resizeDirection.x === -1 ? minX : maxX,
-			y: resizeDirection.y === 0 ? midY : resizeDirection.y === -1 ? minY : maxY
-		};
-
-		resizeCoeffs = bodies.map((body) =>
-			body.map((point) => ({
-				x:
-					resizeDirection.x !== 0
-						? ((point.x - mouseStartPos.x) / width) * resizeDirection.x + 1
-						: 0,
-				y:
-					resizeDirection.y !== 0
-						? ((point.y - mouseStartPos.y) / height) * resizeDirection.y + 1
-						: 0
-			}))
-		);
+		mouseStartPos = getPointerViewBoxCoords(e, svgElement);
 		resizeStartPositions = copyPositions();
 
+		lastMouseEvent = undefined;
 		isMouseDown = true;
-	};
+	}
 
-	const handleMouseUp = (e: MouseEvent) => {
+	function handleMouseUp(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -123,13 +111,14 @@
 		isRotating = false;
 		isMoving = false;
 		isMouseDown = false;
+		lastMouseEvent = undefined;
 
 		if (optionsState.autoResample)
 			bodies = resampleCellBodies(bodies, optionsState.resampleSegmentLength);
 		pushLocalState();
-	};
+	}
 
-	const handleMouseMove = (e: MouseEvent) => {
+	function handleMouseMove(e: MouseEvent) {
 		if (!isMouseDown) return;
 
 		e.preventDefault();
@@ -138,47 +127,93 @@
 		if (!svgElement) return;
 		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
 
-		if (isRotating) {
-			const mouseAngle =
-				Math.atan2(mouseViewBox.y - midY, mouseViewBox.x - midX) -
-				Math.atan2(mouseStartPos.y - midY, mouseStartPos.x - midX);
-
-			// TODO: maybe optimize reactivity updates
-			bodies.forEach((body, bodyIndex) => {
-				body.forEach((point, pointIndex) => {
-					const coeff = rotateCoeffs[bodyIndex][pointIndex];
-					const angle = coeff.angle + mouseAngle;
-					point.x = midX + Math.cos(angle) * coeff.dist;
-					point.y = midY + Math.sin(angle) * coeff.dist;
-				});
-			});
-			return;
-		}
-
 		if (isMoving) {
 			const deltaX = mouseViewBox.x - mouseStartPos.x;
 			const deltaY = mouseViewBox.y - mouseStartPos.y;
-			bodies.forEach((body, bodyIndex) => {
-				body.forEach((point, pointIndex) => {
+			for (const [bodyIndex, body] of bodies.entries()) {
+				for (const [pointIndex, point] of body.entries()) {
 					point.x = moveStartPositions[bodyIndex][pointIndex].x + deltaX;
 					point.y = moveStartPositions[bodyIndex][pointIndex].y + deltaY;
-				});
-			});
+				}
+			}
 			return;
 		}
 
-		bodies.forEach((body, bodyIndex) => {
-			body.forEach((point, pointIndex) => {
-				const coeff = resizeCoeffs[bodyIndex][pointIndex];
-				point.x =
-					resizeStartPositions[bodyIndex][pointIndex].x +
-					(mouseViewBox.x - mouseStartPos.x) * coeff.x;
-				point.y =
-					resizeStartPositions[bodyIndex][pointIndex].y +
-					(mouseViewBox.y - mouseStartPos.y) * coeff.y;
-			});
-		});
-	};
+		if (!startBounds) return;
+
+		if (isRotating) {
+			const mouseAngle =
+				Math.atan2(mouseViewBox.y - startBounds.midY, mouseViewBox.x - startBounds.midX) -
+				Math.atan2(mouseStartPos.y - startBounds.midY, mouseStartPos.x - startBounds.midX);
+
+			for (const [bodyIndex, body] of bodies.entries()) {
+				for (const [pointIndex, point] of body.entries()) {
+					const coeff = rotateCoeffs[bodyIndex][pointIndex];
+					const angle = coeff.angle + mouseAngle;
+					point.x = startBounds.midX + Math.cos(angle) * coeff.dist;
+					point.y = startBounds.midY + Math.sin(angle) * coeff.dist;
+				}
+			}
+			return;
+		}
+
+		lastMouseEvent = e;
+
+		const mouseDeltaX = mouseViewBox.x - mouseStartPos.x;
+		const mouseDeltaY = mouseViewBox.y - mouseStartPos.y;
+
+		const w = Math.max(startBounds.maxX - startBounds.minX, 1e-5);
+		const h = Math.max(startBounds.maxY - startBounds.minY, 1e-5);
+
+		let s_x = 1;
+		let s_y = 1;
+
+		if (resizeDirection.x !== 0) {
+			const factor = isCtrlHeld ? 2 : 1;
+			s_x = 1 + (factor * resizeDirection.x * mouseDeltaX) / w;
+		}
+		if (resizeDirection.y !== 0) {
+			const factor = isCtrlHeld ? 2 : 1;
+			s_y = 1 + (factor * resizeDirection.y * mouseDeltaY) / h;
+		}
+
+		if (isShiftHeld) {
+			if (resizeDirection.x !== 0 && resizeDirection.y !== 0) {
+				const s = Math.abs(s_x - 1) > Math.abs(s_y - 1) ? s_x : s_y;
+				s_x = s;
+				s_y = s;
+			} else if (resizeDirection.x !== 0) {
+				s_y = s_x;
+			} else if (resizeDirection.y !== 0) {
+				s_x = s_y;
+			}
+		}
+
+		let pivot_x = startBounds.midX;
+		let pivot_y = startBounds.midY;
+
+		if (!isCtrlHeld) {
+			if (resizeDirection.x === -1) pivot_x = startBounds.maxX;
+			else if (resizeDirection.x === 1) pivot_x = startBounds.minX;
+
+			if (resizeDirection.y === -1) pivot_y = startBounds.maxY;
+			else if (resizeDirection.y === 1) pivot_y = startBounds.minY;
+		}
+
+		for (const [bodyIndex, body] of bodies.entries()) {
+			for (const [pointIndex, point] of body.entries()) {
+				const startPoint = resizeStartPositions[bodyIndex][pointIndex];
+				point.x = pivot_x + (startPoint.x - pivot_x) * s_x;
+				point.y = pivot_y + (startPoint.y - pivot_y) * s_y;
+			}
+		}
+	}
+
+	watch([() => isCtrlHeld, () => isShiftHeld], () => {
+		if (isMouseDown && lastMouseEvent) {
+			handleMouseMove(lastMouseEvent);
+		}
+	});
 </script>
 
 <!-- Non-interactive elements -->
@@ -204,10 +239,10 @@
 >
 	<rect
 		id="hdl_m"
-		x={minX}
-		y={minY}
-		width={maxX - minX}
-		height={maxY - minY}
+		x={bounds.minX}
+		y={bounds.minY}
+		width={bounds.maxX - bounds.minX}
+		height={bounds.maxY - bounds.minY}
 		fill="transparent"
 		stroke="none"
 		cursor="move"
@@ -216,7 +251,7 @@
 		<!-- rotate -->
 		<path
 			id="hdl_r"
-			d={`M${midX - size * 2},${minY - 2} Q${midX} ${minY - 2 - size},${midX + size * 2} ${minY - 2}`}
+			d={`M${bounds.midX - size * 2},${bounds.minY - 2} Q${bounds.midX} ${bounds.minY - 2 - size},${bounds.midX + size * 2} ${bounds.minY - 2}`}
 			fill="transparent"
 			stroke={color1}
 			stroke-width={size * 2}
@@ -228,10 +263,10 @@
 		<!-- top -->
 		<line
 			id="hdl_0:-1"
-			x1={minX}
-			y1={minY}
-			x2={maxX}
-			y2={minY}
+			x1={bounds.minX}
+			y1={bounds.minY}
+			x2={bounds.maxX}
+			y2={bounds.minY}
 			stroke={color2}
 			stroke-width={size}
 			cursor="ns-resize"
@@ -239,10 +274,10 @@
 		<!-- bottom -->
 		<line
 			id="hdl_0:1"
-			x1={minX}
-			y1={maxY}
-			x2={maxX}
-			y2={maxY}
+			x1={bounds.minX}
+			y1={bounds.maxY}
+			x2={bounds.maxX}
+			y2={bounds.maxY}
 			stroke={color2}
 			stroke-width={size}
 			cursor="ns-resize"
@@ -250,10 +285,10 @@
 		<!-- left -->
 		<line
 			id="hdl_-1:0"
-			x1={minX}
-			y1={minY}
-			x2={minX}
-			y2={maxY}
+			x1={bounds.minX}
+			y1={bounds.minY}
+			x2={bounds.minX}
+			y2={bounds.maxY}
 			stroke={color2}
 			stroke-width={size}
 			cursor="ew-resize"
@@ -261,10 +296,10 @@
 		<!-- right -->
 		<line
 			id="hdl_1:0"
-			x1={maxX}
-			y1={minY}
-			x2={maxX}
-			y2={maxY}
+			x1={bounds.maxX}
+			y1={bounds.minY}
+			x2={bounds.maxX}
+			y2={bounds.maxY}
 			stroke={color2}
 			stroke-width={size}
 			cursor="ew-resize"
@@ -273,8 +308,8 @@
 		<!-- top left -->
 		<rect
 			id="hdl_-1:-1"
-			x={minX - size}
-			y={minY - size}
+			x={bounds.minX - size}
+			y={bounds.minY - size}
 			width={size * 2}
 			height={size * 2}
 			fill={color1}
@@ -283,8 +318,8 @@
 		<!-- top right -->
 		<rect
 			id="hdl_1:-1"
-			x={maxX - size}
-			y={minY - size}
+			x={bounds.maxX - size}
+			y={bounds.minY - size}
 			width={size * 2}
 			height={size * 2}
 			fill={color1}
@@ -293,8 +328,8 @@
 		<!-- bottom left -->
 		<rect
 			id="hdl_-1:1"
-			x={minX - size}
-			y={maxY - size}
+			x={bounds.minX - size}
+			y={bounds.maxY - size}
 			width={size * 2}
 			height={size * 2}
 			fill={color1}
@@ -303,8 +338,8 @@
 		<!-- bottom right -->
 		<rect
 			id="hdl_1:1"
-			x={maxX - size}
-			y={maxY - size}
+			x={bounds.maxX - size}
+			y={bounds.maxY - size}
 			width={size * 2}
 			height={size * 2}
 			fill={color1}
