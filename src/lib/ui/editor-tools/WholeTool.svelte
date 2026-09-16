@@ -179,9 +179,7 @@
 
 		if (isShiftHeld) {
 			if (resizeDirection.x !== 0 && resizeDirection.y !== 0) {
-				const s = Math.abs(s_x - 1) > Math.abs(s_y - 1) ? s_x : s_y;
-				s_x = s;
-				s_y = s;
+				s_x = s_y = (s_x + s_y) / 2;
 			} else if (resizeDirection.x !== 0) {
 				s_y = s_x;
 			} else if (resizeDirection.y !== 0) {
