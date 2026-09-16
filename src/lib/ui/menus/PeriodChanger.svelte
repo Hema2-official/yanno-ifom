@@ -82,7 +82,7 @@
 			class="border-muted-foreground/10 flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-8"
 		>
 			<Spinner size={24} thickness={3} />
-			<p class="text-muted-foreground animate-pulse text-xs">Decoding preview frames...</p>
+			<p class="text-muted-foreground text-xs">Decoding preview frames...</p>
 		</div>
 	{:else if decodeError}
 		<div
