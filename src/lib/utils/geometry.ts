@@ -15,10 +15,8 @@ export function getPolygonsInfo(polygons: Polygon[]): {
 	centroid: [number, number];
 	bbox: BoundingBoxType;
 } {
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
+	const { minX, minY, maxX, maxY } = getPolygonsBounds(polygons);
+
 	let sumX = 0;
 	let sumY = 0;
 	let count = 0;
@@ -28,10 +26,6 @@ export function getPolygonsInfo(polygons: Polygon[]): {
 			sumX += point.x;
 			sumY += point.y;
 			count++;
-			if (point.x < minX) minX = point.x;
-			if (point.y < minY) minY = point.y;
-			if (point.x > maxX) maxX = point.x;
-			if (point.y > maxY) maxY = point.y;
 		}
 	}
 
@@ -86,48 +80,49 @@ export function resampleCellBodies(bodies: Polygon[], segmentLength: number): Po
 	return bodies.map((body) => resampleCellBody(body, segmentLength));
 }
 
-export function getCenterOfPolygon(polygon: Polygon): Point {
+export interface Bounds {
+	minX: number;
+	minY: number;
+	maxX: number;
+	maxY: number;
+	midX: number;
+	midY: number;
+}
+
+export function getPolygonsBounds(polygons: Polygon[]): Bounds {
 	let minX = Infinity;
-	let maxX = -Infinity;
 	let minY = Infinity;
+	let maxX = -Infinity;
 	let maxY = -Infinity;
 
-	for (const point of polygon) {
-		if (point.x < minX) minX = point.x;
-		if (point.x > maxX) maxX = point.x;
-		if (point.y < minY) minY = point.y;
-		if (point.y > maxY) maxY = point.y;
+	for (let i = 0; i < polygons.length; i++) {
+		const polygon = polygons[i];
+		for (let j = 0; j < polygon.length; j++) {
+			const p = polygon[j];
+			if (p.x < minX) minX = p.x;
+			if (p.y < minY) minY = p.y;
+			if (p.x > maxX) maxX = p.x;
+			if (p.y > maxY) maxY = p.y;
+		}
 	}
 
-	if (!Number.isFinite(minX) || !Number.isFinite(minY)) return { x: 0, y: 0 };
-
 	return {
-		x: (minX + maxX) / 2,
-		y: (minY + maxY) / 2
+		minX,
+		minY,
+		maxX,
+		maxY,
+		midX: minX === Infinity ? 0 : (minX + maxX) / 2,
+		midY: minY === Infinity ? 0 : (minY + maxY) / 2
 	};
 }
 
 export function getCenterOfPolygons(polygons: Polygon[]): Point {
-	let minX = Infinity;
-	let maxX = -Infinity;
-	let minY = Infinity;
-	let maxY = -Infinity;
+	const bounds = getPolygonsBounds(polygons);
+	return { x: bounds.midX, y: bounds.midY };
+}
 
-	for (const polygon of polygons) {
-		for (const point of polygon) {
-			if (point.x < minX) minX = point.x;
-			if (point.x > maxX) maxX = point.x;
-			if (point.y < minY) minY = point.y;
-			if (point.y > maxY) maxY = point.y;
-		}
-	}
-
-	if (!Number.isFinite(minX) || !Number.isFinite(minY)) return { x: 0, y: 0 };
-
-	return {
-		x: (minX + maxX) / 2,
-		y: (minY + maxY) / 2
-	};
+export function getCenterOfPolygon(polygon: Polygon): Point {
+	return getCenterOfPolygons([polygon]);
 }
 
 const centerCache = new WeakMap<Polygon[], Point>();

@@ -1,5 +1,6 @@
 import type { RLEType } from '$lib/types/annotation.type';
 import type { Polygon } from '$lib/types/geometry.type';
+import { getPolygonsBounds } from './geometry';
 
 function countsToString(counts: number[]) {
 	// Similar to LEB128 but using 6 bits/char and ASCII chars 48-111.
@@ -416,17 +417,8 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 }
 
 export function getPolygonSize(polygon: Polygon) {
-	let minX = Infinity;
-	let maxX = -Infinity;
-	let minY = Infinity;
-	let maxY = -Infinity;
-	for (const p of polygon) {
-		if (p.x < minX) minX = p.x;
-		if (p.x > maxX) maxX = p.x;
-		if (p.y < minY) minY = p.y;
-		if (p.y > maxY) maxY = p.y;
-	}
-	return (maxX - minX) * (maxY - minY);
+	const bounds = getPolygonsBounds([polygon]);
+	return (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY);
 }
 
 const polygonCache = new WeakMap<RLEType, { counts: string; polygons: Polygon[] }>();
