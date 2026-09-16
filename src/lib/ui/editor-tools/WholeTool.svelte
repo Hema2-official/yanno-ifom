@@ -41,11 +41,26 @@
 	const resizeDirection: Point = { x: 0, y: 0 };
 	const resizeIdPattern = P('hdl_#:#');
 
-	const color1 = 'white';
-	const color2 = 'gray';
+	const light = '#ffffff';
+	const dark = '#0f172a';
 
 	const bounds = $derived(getPolygonsBounds(bodies));
-	let size = $derived(400 / svgState.svgScalePercent);
+	const boxWidth = $derived(bounds.maxX - bounds.minX);
+	const boxHeight = $derived(bounds.maxY - bounds.minY);
+
+	// One "screen unit" in viewBox coordinates: keeps handles the same on-screen size at any zoom.
+	const u = $derived(100 / svgState.svgScalePercent);
+	const hairline = $derived(u); // visible line width
+	const halo = $derived(3 * u); // dark outline
+	const handleHalf = $derived(4 * u); // visible corner handle
+	const handleStroke = $derived(1.5 * u);
+	const cornerHit = $derived(7 * u); // corner hit area
+	const edgeHit = $derived(10 * u); // edge hit strip
+	const rotateOffset = $derived(18 * u); // distance of the rotation knob above the box
+	const rotateRadius = $derived(4.5 * u);
+	const rotateHit = $derived(10 * u);
+
+	const showResizeHandles = $derived(!isMouseDown || (!isRotating && !isMoving));
 
 	function copyPositions() {
 		return bodies.map((body) => body.map((point) => ({ ...point })));
@@ -219,15 +234,110 @@
 	<path
 		id="body{i}"
 		d={cellBodyToPath(body)}
-		fill="none"
-		stroke="black"
-		stroke-width="1"
+		stroke={svgState.svgStroke}
 		stroke-dasharray="3, 2"
-		opacity="0.5"
+		class="fill-none stroke-1 opacity-80"
 	/>
 {/each}
 
-<!-- Interactive elements -->
+<!-- Handle visuals -->
+<g pointer-events="none">
+	{#if !isRotating}
+		<!-- bounding box -->
+		<rect
+			x={bounds.minX}
+			y={bounds.minY}
+			width={boxWidth}
+			height={boxHeight}
+			fill="none"
+			stroke={dark}
+			stroke-width={halo}
+			opacity="0.55"
+		/>
+		<rect
+			x={bounds.minX}
+			y={bounds.minY}
+			width={boxWidth}
+			height={boxHeight}
+			fill="none"
+			stroke={light}
+			stroke-width={hairline}
+		/>
+	{/if}
+
+	{#if !isMouseDown}
+		<!-- rotation stem + knob -->
+		<line
+			x1={bounds.midX}
+			y1={bounds.minY}
+			x2={bounds.midX}
+			y2={bounds.minY - rotateOffset + rotateRadius}
+			stroke={dark}
+			stroke-width={halo}
+			opacity="0.55"
+		/>
+		<line
+			x1={bounds.midX}
+			y1={bounds.minY}
+			x2={bounds.midX}
+			y2={bounds.minY - rotateOffset + rotateRadius}
+			stroke={light}
+			stroke-width={hairline}
+		/>
+		<circle
+			cx={bounds.midX}
+			cy={bounds.minY - rotateOffset}
+			r={rotateRadius}
+			fill={light}
+			stroke={dark}
+			stroke-width={handleStroke}
+		/>
+	{/if}
+
+	{#if showResizeHandles}
+		{@const corners = [
+			[bounds.minX, bounds.minY],
+			[bounds.maxX, bounds.minY],
+			[bounds.minX, bounds.maxY],
+			[bounds.maxX, bounds.maxY]
+		]}
+		{@const edges = [
+			{ x: bounds.midX, y: bounds.minY, horizontal: true },
+			{ x: bounds.midX, y: bounds.maxY, horizontal: true },
+			{ x: bounds.minX, y: bounds.midY, horizontal: false },
+			{ x: bounds.maxX, y: bounds.midY, horizontal: false }
+		]}
+		<!-- edge midpoint pills -->
+		{#each edges as edge, i (i)}
+			{@const w = edge.horizontal ? 10 * u : 4 * u}
+			{@const h = edge.horizontal ? 4 * u : 10 * u}
+			<rect
+				x={edge.x - w / 2}
+				y={edge.y - h / 2}
+				width={w}
+				height={h}
+				rx={2 * u}
+				fill={light}
+				stroke={dark}
+				stroke-width={handleStroke}
+			/>
+		{/each}
+		<!-- corner squares -->
+		{#each corners as [x, y], i (i)}
+			<rect
+				x={x - handleHalf}
+				y={y - handleHalf}
+				width={handleHalf * 2}
+				height={handleHalf * 2}
+				fill={light}
+				stroke={dark}
+				stroke-width={handleStroke}
+			/>
+		{/each}
+	{/if}
+</g>
+
+<!-- Hit targets -->
 <g
 	role="presentation"
 	onmousedown={handleMouseDown}
@@ -239,25 +349,21 @@
 		id="hdl_m"
 		x={bounds.minX}
 		y={bounds.minY}
-		width={bounds.maxX - bounds.minX}
-		height={bounds.maxY - bounds.minY}
-		fill="transparent"
-		stroke="none"
-		cursor="move"
+		width={boxWidth}
+		height={boxHeight}
+		class="cursor-move fill-transparent stroke-none"
 	/>
 	{#if !isMouseDown}
 		<!-- rotate -->
-		<path
+		<circle
 			id="hdl_r"
-			d={`M${bounds.midX - size * 2},${bounds.minY - 2} Q${bounds.midX} ${bounds.minY - 2 - size},${bounds.midX + size * 2} ${bounds.minY - 2}`}
-			fill="transparent"
-			stroke={color1}
-			stroke-width={size * 2}
-			stroke-linecap="round"
-			cursor="ew-resize"
+			cx={bounds.midX}
+			cy={bounds.minY - rotateOffset}
+			r={rotateHit}
+			class="cursor-ew-resize fill-transparent"
 		/>
 	{/if}
-	{#if !isMouseDown || (!isRotating && !isMoving)}
+	{#if showResizeHandles}
 		<!-- top -->
 		<line
 			id="hdl_0:-1"
@@ -265,9 +371,8 @@
 			y1={bounds.minY}
 			x2={bounds.maxX}
 			y2={bounds.minY}
-			stroke={color2}
-			stroke-width={size}
-			cursor="ns-resize"
+			stroke-width={edgeHit}
+			class="cursor-ns-resize stroke-transparent"
 		/>
 		<!-- bottom -->
 		<line
@@ -276,9 +381,8 @@
 			y1={bounds.maxY}
 			x2={bounds.maxX}
 			y2={bounds.maxY}
-			stroke={color2}
-			stroke-width={size}
-			cursor="ns-resize"
+			stroke-width={edgeHit}
+			class="cursor-ns-resize stroke-transparent"
 		/>
 		<!-- left -->
 		<line
@@ -287,9 +391,8 @@
 			y1={bounds.minY}
 			x2={bounds.minX}
 			y2={bounds.maxY}
-			stroke={color2}
-			stroke-width={size}
-			cursor="ew-resize"
+			stroke-width={edgeHit}
+			class="cursor-ew-resize stroke-transparent"
 		/>
 		<!-- right -->
 		<line
@@ -298,50 +401,45 @@
 			y1={bounds.minY}
 			x2={bounds.maxX}
 			y2={bounds.maxY}
-			stroke={color2}
-			stroke-width={size}
-			cursor="ew-resize"
+			stroke-width={edgeHit}
+			class="cursor-ew-resize stroke-transparent"
 		/>
 
 		<!-- top left -->
 		<rect
 			id="hdl_-1:-1"
-			x={bounds.minX - size}
-			y={bounds.minY - size}
-			width={size * 2}
-			height={size * 2}
-			fill={color1}
-			cursor="nwse-resize"
+			x={bounds.minX - cornerHit}
+			y={bounds.minY - cornerHit}
+			width={cornerHit * 2}
+			height={cornerHit * 2}
+			class="cursor-nwse-resize fill-transparent"
 		/>
 		<!-- top right -->
 		<rect
 			id="hdl_1:-1"
-			x={bounds.maxX - size}
-			y={bounds.minY - size}
-			width={size * 2}
-			height={size * 2}
-			fill={color1}
-			cursor="nesw-resize"
+			x={bounds.maxX - cornerHit}
+			y={bounds.minY - cornerHit}
+			width={cornerHit * 2}
+			height={cornerHit * 2}
+			class="cursor-nesw-resize fill-transparent"
 		/>
 		<!-- bottom left -->
 		<rect
 			id="hdl_-1:1"
-			x={bounds.minX - size}
-			y={bounds.maxY - size}
-			width={size * 2}
-			height={size * 2}
-			fill={color1}
-			cursor="nesw-resize"
+			x={bounds.minX - cornerHit}
+			y={bounds.maxY - cornerHit}
+			width={cornerHit * 2}
+			height={cornerHit * 2}
+			class="cursor-nesw-resize fill-transparent"
 		/>
 		<!-- bottom right -->
 		<rect
 			id="hdl_1:1"
-			x={bounds.maxX - size}
-			y={bounds.maxY - size}
-			width={size * 2}
-			height={size * 2}
-			fill={color1}
-			cursor="nwse-resize"
+			x={bounds.maxX - cornerHit}
+			y={bounds.maxY - cornerHit}
+			width={cornerHit * 2}
+			height={cornerHit * 2}
+			class="cursor-nwse-resize fill-transparent"
 		/>
 	{/if}
 </g>
