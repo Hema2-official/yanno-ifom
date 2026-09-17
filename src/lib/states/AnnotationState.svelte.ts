@@ -46,13 +46,21 @@ class AnnotationState {
 
 		const newDataCopy = deepCopy(newData);
 
+		const reverse = jsondiffer.diff(newDataCopy, this.data.current);
+		if (reverse === undefined) return;
+
 		const newChange: ChangeType = {
 			time: new Date().toISOString(),
-			reverse: jsondiffer.diff(newDataCopy, this.data.current),
+			reverse,
 			...(message ? { msg: message } : {})
 		};
 		this.data = { current: newDataCopy, changes: this.data.changes.concat(newChange) };
 
+		this.save();
+	}
+
+	save() {
+		if (!this.data) return;
 		projectState.saveData(this.data).catch((error: unknown) => {
 			toast.error('Failed to save annotation data', { description: String(error) });
 		});

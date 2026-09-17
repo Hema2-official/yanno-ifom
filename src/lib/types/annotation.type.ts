@@ -24,7 +24,7 @@ export type TrackType = {
 export type ChangeType = {
 	time?: string; // ISO 8601
 	msg?: string;
-	reverse: Delta;
+	reverse: Exclude<Delta, undefined>;
 };
 
 export type VersionManaged<T> = {

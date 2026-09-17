@@ -9,7 +9,8 @@
 	import { optionsState } from '$lib/states/options.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { CloudIcon, CloudOffIcon, CloudSyncIcon } from '@lucide/svelte';
+	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { CloudAlertIcon, CloudIcon, CloudOffIcon, CloudSyncIcon } from '@lucide/svelte';
 	import { download, tracksToText } from '$lib/utils/data.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 
@@ -140,16 +141,33 @@
 				</Breadcrumb.Item>
 			{/if}
 
-			<Breadcrumb.Item>
-				{#if projectState.cloudProject && projectState.isSaving}
-					<CloudSyncIcon size={18} />
-					Saving...
-				{:else if projectState.cloudProject}
-					<CloudIcon size={18} />
-				{:else}
-					<CloudOffIcon size={18} />
-					<span class="text-muted-foreground">Editing locally</span>
-				{/if}
+			<Breadcrumb.Item class="[&_svg]:mt-0.5 [&_svg]:size-4.5">
+				<Tooltip.Provider delayDuration={200}>
+					<Tooltip.Root>
+						{#if projectState.cloudProject && projectState.isSaving}
+							<CloudSyncIcon /> Saving...
+						{:else if projectState.saveError}
+							<!-- TODO: make the clickability more obvious either by saying click to retry or adding an actual Button next to the status -->
+							<Tooltip.Trigger
+								class="text-destructive inline-flex items-center gap-1"
+								onclick={() => annotationState.save()}
+							>
+								<CloudAlertIcon />
+								{projectState.cloudProject ? 'Out of sync' : 'Not saved'}
+							</Tooltip.Trigger>
+							<Tooltip.Content class="flex-col items-start">
+								<span>{projectState.saveError}</span>
+								<span class="opacity-70">Click to retry saving</span>
+							</Tooltip.Content>
+						{:else if projectState.cloudProject}
+							<Tooltip.Trigger><CloudIcon /></Tooltip.Trigger>
+							<Tooltip.Content><span>Saved in the cloud</span></Tooltip.Content>
+						{:else}
+							<CloudOffIcon />
+							<span class="text-muted-foreground">Editing locally</span>
+						{/if}
+					</Tooltip.Root>
+				</Tooltip.Provider>
 			</Breadcrumb.Item>
 		{/snippet}
 

@@ -13,6 +13,7 @@ import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/fr
 import { annotationState } from './AnnotationState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
+import { extractError } from '$lib/api/errors';
 import * as geotiff from 'geotiff';
 
 class ProjectState {
@@ -22,6 +23,9 @@ class ProjectState {
 	localProject: DBProject | null = $state(null);
 
 	isSaving = $state(false);
+	saveError: string | null = $state(null);
+
+	private saveQueue: Promise<void> = Promise.resolve();
 
 	// Derived values for ease of use
 	name: string | undefined = $derived(this.cloudProject?.name ?? this.localProject?.name);
@@ -46,7 +50,13 @@ class ProjectState {
 		throw new Error('No project loaded');
 	}
 
-	async saveData(data: VersionManaged<TrackType[]>) {
+	saveData(data: VersionManaged<TrackType[]>): Promise<void> {
+		const save = this.saveQueue.then(() => this.writeData(data));
+		this.saveQueue = save.catch(() => {});
+		return save;
+	}
+
+	private async writeData(data: VersionManaged<TrackType[]>) {
 		try {
 			this.isSaving = true;
 
@@ -62,6 +72,11 @@ class ProjectState {
 			} else {
 				throw new Error('No project loaded');
 			}
+
+			this.saveError = null;
+		} catch (error) {
+			this.saveError = extractError(error);
+			throw error;
 		} finally {
 			this.isSaving = false;
 		}
@@ -71,6 +86,7 @@ class ProjectState {
 		this.cloudProject = null;
 		this.cloudVersion = null;
 		this.localProject = null;
+		this.saveError = null;
 		annotationState.currentFrameIndex = 0;
 		videoDisplayState.concurrentFrames = 1;
 	}

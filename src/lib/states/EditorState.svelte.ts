@@ -6,6 +6,8 @@ import { getPolygonsInfo, resampleCellBodies } from '$lib/utils/geometry';
 import { polygonsToRle, rleToPolygons } from '$lib/utils/rle';
 import { annotationState } from './AnnotationState.svelte';
 import { optionsState } from './options.svelte';
+import { extractError } from '$lib/api/errors';
+import { toast } from 'svelte-sonner';
 
 /**
  * One cell-editing session: owns the working polygons and their undo history.
@@ -55,19 +57,25 @@ export class EditingSession {
 		this.bodies = deepCopy(this.#history[this.#historyIndex]);
 	}
 
-	/** Convert the polygons back to RLE and commit the edited cell. */
-	commit() {
+	/**
+	 * Convert the polygons back to RLE and commit the edited cell.
+	 * Returns a boolean indicating success.
+	 */
+	commit(): boolean {
 		const data = annotationState.data;
-		if (!data) return;
+		if (!data) return false;
 
-		const polygons = deepCopy(this.bodies);
-		const { centroid, bbox } = getPolygonsInfo(polygons);
-		const editedCell: TrackType = {
-			...this.cell,
-			SegmentationRLE: polygonsToRle(polygons, this.cell.SegmentationRLE.size),
-			Centroid: centroid,
-			SegBbox: bbox
-		};
+		let editedCell: TrackType;
+		try {
+			const polygons = deepCopy(this.bodies);
+			const { centroid, bbox } = getPolygonsInfo(polygons);
+			const rle = polygonsToRle(polygons, this.cell.SegmentationRLE.size);
+			rleToPolygons(rle); // test conversion before allowing
+			editedCell = { ...this.cell, SegmentationRLE: rle, Centroid: centroid, SegBbox: bbox };
+		} catch (error) {
+			toast.error("Couldn't apply the edit", { description: extractError(error) });
+			return false;
+		}
 
 		const newData = data.current.map((track) =>
 			track.ObjectID === this.cell.ObjectID && track.Frame === this.cell.Frame
@@ -75,6 +83,7 @@ export class EditingSession {
 				: track
 		);
 		annotationState.commitData(newData, `Edit cell ${this.cell.ObjectID}`);
+		return true;
 	}
 }
 
@@ -100,9 +109,12 @@ class EditorState {
 		this.session = new EditingSession(cell);
 	}
 
-	/** End the active session, committing it first if `commit` is true. */
+	/**
+	 * End the active session, committing it first if `commit` is true.
+	 * A failed commit keeps the session open so nothing is lost.
+	 */
 	quit(commit: boolean) {
-		if (commit) this.session?.commit();
+		if (commit && this.session && !this.session.commit()) return;
 		this.session = null;
 	}
 }
