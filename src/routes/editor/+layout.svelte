@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { svgState } from '$lib/states/svg.svelte';
-	import { annotationState } from '$lib/states/AnnotationState.svelte';
+	import { annotationState, type HistoryController } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/ui/navigation/TopBar.svelte';
@@ -13,26 +13,42 @@
 	import { CloudAlertIcon, CloudIcon, CloudOffIcon, CloudSyncIcon } from '@lucide/svelte';
 	import { download, tracksToText } from '$lib/utils/data.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
+	import { beforeNavigate } from '$app/navigation';
 
 	let { children }: { children: Snippet } = $props();
+
+	// Undos are only saved with the next change; don't lose them by leaving
+	beforeNavigate(() => {
+		if (annotationState.hasPendingUndo) annotationState.save();
+	});
+
+	// Undo/redo applies to the open editing session, otherwise to the committed changes
+	const history: HistoryController = $derived(editorState.session ?? annotationState);
+
+	// Shortcuts must not steal keystrokes from text fields
+	const isTypingTarget = (e: KeyboardEvent) =>
+		e.target instanceof HTMLElement &&
+		(e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName));
 
 	onMount(() => {
 		// Global shortcuts
 		// TODO: centralize this and provide configuration
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (isTypingTarget(e)) return;
+
 			if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
 				e.preventDefault();
 				e.stopPropagation();
 
-				if (e.shiftKey) editorState.session?.redo();
-				else editorState.session?.undo();
+				if (e.shiftKey) history.redo();
+				else history.undo();
 			}
 
 			if (e.ctrlKey && e.key === 'y') {
 				e.preventDefault();
 				e.stopPropagation();
 
-				editorState.session?.redo();
+				history.redo();
 			}
 
 			// hold space to hide annotation
@@ -46,6 +62,8 @@
 		};
 
 		const handleKeyUp = (e: KeyboardEvent) => {
+			if (isTypingTarget(e)) return;
+
 			if (e.key === ' ') {
 				e.preventDefault();
 				e.stopPropagation();
@@ -161,7 +179,10 @@
 							</Tooltip.Content>
 						{:else if projectState.cloudProject}
 							<Tooltip.Trigger><CloudIcon /></Tooltip.Trigger>
-							<Tooltip.Content><span>Saved in the cloud</span></Tooltip.Content>
+							<Tooltip.Content>
+								{#if annotationState.hasPendingUndo}Undid changes pending
+								{:else}Synchronized with the cloud{/if}
+							</Tooltip.Content>
 						{:else}
 							<CloudOffIcon />
 							<span class="text-muted-foreground">Editing locally</span>
@@ -196,16 +217,10 @@
 			<Menubar.Menu>
 				<Menubar.Trigger>Edit</Menubar.Trigger>
 				<Menubar.Content>
-					<Menubar.Item
-						onSelect={() => editorState.session?.undo()}
-						disabled={!editorState.session?.canUndo}
-					>
+					<Menubar.Item onSelect={() => history.undo()} disabled={!history.canUndo}>
 						Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
 					</Menubar.Item>
-					<Menubar.Item
-						onSelect={() => editorState.session?.redo()}
-						disabled={!editorState.session?.canRedo}
-					>
+					<Menubar.Item onSelect={() => history.redo()} disabled={!history.canRedo}>
 						Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
 					</Menubar.Item>
 					<Menubar.Separator />

@@ -87,6 +87,7 @@ class ProjectState {
 		this.cloudVersion = null;
 		this.localProject = null;
 		this.saveError = null;
+		annotationState.load(null);
 		annotationState.currentFrameIndex = 0;
 		videoDisplayState.concurrentFrames = 1;
 	}
@@ -107,7 +108,7 @@ class ProjectState {
 
 		// Get version data from server
 		const versionData = await getVersionData(version);
-		annotationState.data = versionData;
+		annotationState.load(versionData);
 	}
 
 	async loadLocalProject(localProjectId: number) {
@@ -123,7 +124,7 @@ class ProjectState {
 
 		// Decompress annotation json
 		const ds = project.annotation.stream().pipeThrough(new DecompressionStream('gzip'));
-		annotationState.data = await new Response(ds).json();
+		annotationState.load(await new Response(ds).json());
 	}
 
 	async prepareLocalProject(

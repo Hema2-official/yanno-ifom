@@ -4,7 +4,7 @@ import type { Polygon } from '$lib/types/geometry.type';
 import { deepCopy } from '$lib/utils/data.svelte';
 import { getPolygonsInfo, resampleCellBodies } from '$lib/utils/geometry';
 import { polygonsToRle, rleToPolygons } from '$lib/utils/rle';
-import { annotationState } from './AnnotationState.svelte';
+import { annotationState, type HistoryController } from './AnnotationState.svelte';
 import { optionsState } from './options.svelte';
 import { extractError } from '$lib/api/errors';
 import { toast } from 'svelte-sonner';
@@ -14,7 +14,7 @@ import { toast } from 'svelte-sonner';
  * Created by `editorState.startEditing`; the original cell is untouched until
  * `commit`.
  */
-export class EditingSession {
+export class EditingSession implements HistoryController {
 	readonly cell: TrackType;
 
 	/** The polygons being edited. Tools mutate points in place while dragging. */
