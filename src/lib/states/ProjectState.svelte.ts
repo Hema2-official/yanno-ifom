@@ -51,22 +51,29 @@ class ProjectState {
 	}
 
 	saveData(data: VersionManaged<TrackType[]>): Promise<void> {
-		const save = this.saveQueue.then(() => this.writeData(data));
+		const { cloudVersion, localProject } = this;
+		const save = this.saveQueue.then(() =>
+			this.writeData(data, cloudVersion, localProject?.id)
+		);
 		this.saveQueue = save.catch(() => {});
 		return save;
 	}
 
-	private async writeData(data: VersionManaged<TrackType[]>) {
+	private async writeData(
+		data: VersionManaged<TrackType[]>,
+		version: ProjectVersion | null,
+		localProjectId: number | undefined
+	) {
 		try {
 			this.isSaving = true;
 
-			if (this.cloudProject && this.cloudVersion) {
-				await updateVersionData(this.cloudVersion, $state.snapshot(data));
-			} else if (this.localProject?.id) {
+			if (version) {
+				await updateVersionData(version, $state.snapshot(data));
+			} else if (localProjectId) {
 				const cs = new Blob([JSON.stringify(data)])
 					.stream()
 					.pipeThrough(new CompressionStream('gzip'));
-				await localProjectsDb.projects.update(this.localProject.id, {
+				await localProjectsDb.projects.update(localProjectId, {
 					annotation: await new Response(cs).blob()
 				});
 			} else {

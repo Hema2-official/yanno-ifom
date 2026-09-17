@@ -14,12 +14,23 @@
 	import { download, tracksToText } from '$lib/utils/data.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { beforeNavigate } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 
 	let { children }: { children: Snippet } = $props();
 
-	// Undos are only saved with the next change; don't lose them by leaving
-	beforeNavigate(() => {
-		if (annotationState.hasPendingUndo) annotationState.save();
+	beforeNavigate((navigation) => {
+		// Edits only exist in the session until saved
+		if (editorState.isEditing) {
+			navigation.cancel();
+			if (!navigation.willUnload) toast.warning('Finish or cancel editing first');
+			return;
+		}
+
+		// Ask the user to stay so pending undos can finish saving
+		if (annotationState.hasPendingUndo) {
+			annotationState.save();
+			if (navigation.willUnload) navigation.cancel();
+		}
 	});
 
 	// Undo/redo applies to the open editing session, otherwise to the committed changes
