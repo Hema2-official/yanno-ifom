@@ -2,6 +2,7 @@
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
+	import { svgState } from '$lib/states/svg.svelte';
 	import type { Point } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBodies } from '$lib/utils/geometry';
@@ -14,11 +15,30 @@
 	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
 
 	let isMouseDown = $state(false);
-	let mouseStartPos: Point = { x: 0, y: 0 };
+	let mouseStartPos: Point = $state.raw({ x: 0, y: 0 });
 
 	// Per point in each body, captured at the start of a drag
-	let coeffs: number[][] = [];
+	let coeffs: number[][] = $state.raw([]);
 	let startPositions: Point[][] = [];
+
+	const light = '#ffffff';
+	const dark = '#0f172a';
+
+	// One "screen unit" in viewBox coordinates: keeps the brush ring and markers crisp at any zoom.
+	const u = $derived(100 / svgState.svgScalePercent);
+	const hairline = $derived(u);
+	const halo = $derived(3 * u);
+	const markerRadius = $derived(1.75 * u);
+	const markerStroke = $derived(0.75 * u);
+
+	const radius = $derived(editorState.smoothRadius);
+	// While dragging, the influence is frozen around the drag origin
+	const brushCenter = $derived(isMouseDown ? mouseStartPos : inputState.lastPointerViewBoxCoords);
+
+	const RADIUS_STEP = 1.08;
+	const MIN_RADIUS = 1;
+	const viewBox = $derived(svgState.svgViewBox);
+	const maxRadius = $derived(Math.max(viewBox.width, viewBox.height) / 2);
 
 	overrideDisplayPointerWhile(
 		() => isMouseDown,
@@ -64,7 +84,7 @@
 
 		if (!svgElement) return;
 
-		// Also keeps inputState.lastPointerViewBoxCoords (the hover circle) updated
+		// Also keeps inputState.lastPointerViewBoxCoords (the brush ring) updated
 		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
 
 		if (!isMouseDown) return;
@@ -86,86 +106,129 @@
 
 		e.preventDefault();
 		e.stopPropagation();
-		const delta = e.deltaY > 0 ? 1 : -1;
-		editorState.smoothRadius = Math.max(1, editorState.smoothRadius - delta);
+		const factor = e.deltaY > 0 ? 1 / RADIUS_STEP : RADIUS_STEP;
+		editorState.smoothRadius = Math.min(
+			maxRadius,
+			Math.max(MIN_RADIUS, editorState.smoothRadius * factor)
+		);
 	}
 </script>
 
+{#snippet vertexMarkers(opacityOf: (bodyIndex: number, pointIndex: number) => number)}
+	{#each bodies as body, bodyIndex (bodyIndex)}
+		{#each body as point, pointIndex (pointIndex)}
+			{@const opacity = opacityOf(bodyIndex, pointIndex)}
+			{#if opacity > 0}
+				<circle
+					cx={point.x}
+					cy={point.y}
+					r={markerRadius}
+					fill={light}
+					stroke={dark}
+					stroke-width={markerStroke}
+					{opacity}
+				/>
+			{/if}
+		{/each}
+	{/each}
+{/snippet}
+
 <defs>
-	<radialGradient id="maskRadialGradient">
+	<!-- Luminance mask matching the linear falloff of the drag influence -->
+	<radialGradient id="smooth-mask-gradient">
 		<stop offset="0%" stop-color="white" />
 		<stop offset="100%" stop-color="black" />
 	</radialGradient>
-	<radialGradient id="handleRadialGradient" spreadMethod="reflect">
-		<stop offset="25%" stop-color="white" stop-opacity="0" />
-		<stop offset="100%" stop-color="white" stop-opacity="0.4" />
+	<radialGradient id="smooth-falloff-gradient">
+		<stop offset="0%" stop-color={light} stop-opacity="0.35" />
+		<stop offset="100%" stop-color={light} stop-opacity="0" />
 	</radialGradient>
+	<mask id="smooth-pointer-mask">
+		<circle
+			cx={brushCenter.x}
+			cy={brushCenter.y}
+			r={radius}
+			fill="url('#smooth-mask-gradient')"
+		/>
+	</mask>
 </defs>
 
-<mask id="pointerMaskCircle">
-	<circle
-		cx={inputState.lastPointerViewBoxCoords.x}
-		cy={inputState.lastPointerViewBoxCoords.y}
-		r={editorState.smoothRadius}
-		fill="url('#maskRadialGradient')"
+<!-- Wheel anywhere over the frame changes the brush radius (Ctrl+wheel bubbles up to the display zoom) -->
+<g role="presentation" onwheel={handleWheel}>
+	<rect
+		x={viewBox.minX}
+		y={viewBox.minY}
+		width={viewBox.width}
+		height={viewBox.height}
+		class="fill-transparent stroke-none"
 	/>
-</mask>
 
-<!-- Interactive elements -->
-<g
-	role="presentation"
-	onmousedown={handleMouseDown}
-	onmouseup={handleMouseUp}
-	onmousemove={handleMouseMove}
-	onwheel={handleWheel}
-	bind:this={interactiveRoot}
->
+	<!-- Hit targets: a band of the brush radius around each outline -->
+	<g
+		role="presentation"
+		onmousedown={handleMouseDown}
+		onmouseup={handleMouseUp}
+		onmousemove={handleMouseMove}
+		bind:this={interactiveRoot}
+	>
+		{#each bodies as body, i (i)}
+			<path
+				d={cellBodyToPath(body)}
+				stroke-width={radius * 2}
+				stroke-linejoin="round"
+				stroke-linecap="round"
+				class="cursor-crosshair fill-none stroke-transparent"
+			/>
+		{/each}
+	</g>
+</g>
+
+<!-- Outline -->
+<g pointer-events="none">
 	{#each bodies as body, i (i)}
 		<path
-			class="smooth-tool"
+			id="body{i}"
 			d={cellBodyToPath(body)}
-			fill="none"
-			stroke="url('#handleRadialGradient')"
-			stroke-width={editorState.smoothRadius * 2}
-			opacity="1"
+			stroke={svgState.svgStroke}
+			class="fill-none stroke-1 opacity-80"
 		/>
 	{/each}
 </g>
 
-<!-- Non-interactive elements on top -->
-{#each bodies as body, i (i)}
-	<path
-		class="smooth-tool no-interact"
-		d={cellBodyToPath(body)}
-		fill="none"
-		stroke="black"
-		stroke-width="2"
-		opacity="0.6"
-	/>
-{/each}
+<!-- Brush ring and the vertices under the brush -->
+{#if inputState.pointerOverDisplay || isMouseDown}
+	<g pointer-events="none">
+		<circle
+			cx={brushCenter.x}
+			cy={brushCenter.y}
+			r={radius}
+			fill="url('#smooth-falloff-gradient')"
+		/>
+		<circle
+			cx={brushCenter.x}
+			cy={brushCenter.y}
+			r={radius}
+			fill="none"
+			stroke={dark}
+			stroke-width={halo}
+			opacity="0.65"
+		/>
+		<circle
+			cx={brushCenter.x}
+			cy={brushCenter.y}
+			r={radius}
+			fill="none"
+			stroke={light}
+			stroke-width={hairline}
+		/>
 
-{#if inputState.pointerOverDisplay}
-	<g mask="url(#pointerMaskCircle)">
-		{#each bodies as body, bodyIndex (bodyIndex)}
-			{#each body as point, pointIndex (pointIndex)}
-				{@const halfSize = 0.25}
-				<path
-					class="smooth-tool no-interact"
-					d={`M${point.x - halfSize},${point.y - halfSize} L${point.x + halfSize},${point.y + halfSize}
-                    M${point.x + halfSize},${point.y - halfSize} L${point.x - halfSize},${point.y + halfSize}`}
-					stroke="white"
-					stroke-width={halfSize / 1.5}
-				/>
-			{/each}
-		{/each}
+		{#if isMouseDown}
+			<!-- Markers follow the moving points, faded by their frozen influence -->
+			{@render vertexMarkers((bodyIndex, pointIndex) => coeffs[bodyIndex]?.[pointIndex] ?? 0)}
+		{:else}
+			<g mask="url(#smooth-pointer-mask)">
+				{@render vertexMarkers(() => 1)}
+			</g>
+		{/if}
 	</g>
 {/if}
-
-<style lang="scss">
-	.smooth-tool {
-		cursor: move;
-	}
-	.no-interact {
-		pointer-events: none;
-	}
-</style>
