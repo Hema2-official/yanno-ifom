@@ -11,6 +11,7 @@
 		TrashIcon
 	} from '@lucide/svelte';
 	import VersionStatus from './VersionStatus.svelte';
+	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
 	import { cancelTask, deleteVersion } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';
 	import { extractError } from '$lib/api/errors';
@@ -26,12 +27,10 @@
 	let { version, onCopy, onRefresh }: Props = $props();
 
 	let showRunDialog = $state(false);
+	let showDeleteDialog = $state(false);
+	let showCancelDialog = $state(false);
 
 	function handleDelete() {
-		// TODO: use a real dialog
-		const choice = confirm(`Delete version "${version.name}"?`);
-		if (!choice) return;
-
 		deleteVersion(version)
 			.then(() => {
 				toast.success('Version deleted');
@@ -43,10 +42,6 @@
 	}
 
 	function handleCancelTask() {
-		// TODO: use a real dialog
-		const choice = confirm(`Cancel ongoing processing of "${version.name}"?`);
-		if (!choice) return;
-
 		cancelTask(version)
 			.then(() => {
 				toast.success('Task cancelled');
@@ -96,7 +91,7 @@
 						<CopyIcon />
 					</Button>
 				{:else}
-					<Button variant="ghost" size="icon" onclick={handleCancelTask}>
+					<Button variant="ghost" size="icon" onclick={() => (showCancelDialog = true)}>
 						<SquareIcon />
 					</Button>
 				{/if}
@@ -105,7 +100,7 @@
 					variant="ghost"
 					size="icon"
 					class="hover:bg-destructive/40!"
-					onclick={handleDelete}
+					onclick={() => (showDeleteDialog = true)}
 					><TrashIcon />
 				</Button>
 			</Item.Actions>
@@ -114,3 +109,19 @@
 </Item.Root>
 
 <RunTaskDialog bind:isOpen={showRunDialog} {version} {onRefresh} />
+
+<ConfirmDialog
+	bind:open={showDeleteDialog}
+	title="Delete version?"
+	description={`"${version.name}" will be deleted permanently.`}
+	confirmLabel="Delete"
+	onConfirm={handleDelete}
+/>
+
+<ConfirmDialog
+	bind:open={showCancelDialog}
+	title="Cancel processing?"
+	description={`The ongoing processing of "${version.name}" will be stopped.`}
+	confirmLabel="Stop processing"
+	onConfirm={handleCancelTask}
+/>

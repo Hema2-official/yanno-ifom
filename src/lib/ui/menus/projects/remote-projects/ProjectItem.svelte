@@ -14,6 +14,7 @@
 	import { deleteProject } from '$lib/api/projects';
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
 	import UploadVideoDialog from './UploadVideoDialog.svelte';
+	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
 	import { toast } from 'svelte-sonner';
 	import { getFrameCount } from '$lib/utils/frames';
 
@@ -23,12 +24,9 @@
 
 	let showEditDialog = $state(false);
 	let showUploadDialog = $state(false);
+	let showDeleteDialog = $state(false);
 
 	function handleDelete() {
-		// TODO: use a real dialog
-		const choice = confirm(`Are you sure you want to delete project "${project.name}"?`);
-		if (!choice) return;
-
 		deleteProject(project.id)
 			.catch((error: unknown) => {
 				toast.error('Failed to delete project', { description: String(error) });
@@ -91,7 +89,7 @@
 					variant="ghost"
 					size="icon"
 					class="hover:bg-destructive/40!"
-					onclick={handleDelete}
+					onclick={() => (showDeleteDialog = true)}
 					><TrashIcon />
 				</Button>
 			</Item.Actions>
@@ -102,3 +100,12 @@
 <ProjectEditDialog bind:isOpen={showEditDialog} {project} {onRefresh} />
 
 <UploadVideoDialog bind:isOpen={showUploadDialog} {project} {onRefresh} />
+
+<!-- TODO: reword to "mark for deletion" when that feature is live -->
+<ConfirmDialog
+	bind:open={showDeleteDialog}
+	title="Delete project?"
+	description={`"${project.name}" and all of its versions will be deleted permanently.`}
+	confirmLabel="Delete"
+	onConfirm={handleDelete}
+/>
