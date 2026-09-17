@@ -26,6 +26,7 @@
 		getNormalizeFunctions,
 		type RGBFuntions
 	} from '$lib/utils/imaging';
+	import { toast } from 'svelte-sonner';
 
 	let colormapFilter = $derived(
 		colormapToRgbFunctions(svgState.videoColormap, svgState.videoColormapShades)
@@ -211,6 +212,18 @@
 		editorState.startEditing(contextMenuCell);
 	};
 
+	const deleteCell = () => {
+		if (!contextMenuCell || !annotationState.data) return;
+
+		annotationState.commitData(
+			annotationState.data.current.filter((t) => t.ObjectID !== contextMenuCell!.ObjectID),
+			`Delete cell ${contextMenuCell!.ObjectID}`
+		);
+		toast(`Cell ${contextMenuCell.ObjectID} deleted`, {
+			action: { label: 'Undo', onClick: () => annotationState.undo() }
+		});
+	};
+
 	const normalizeFilters = $derived.by(() => {
 		const metadata = projectState.videoMetadata;
 		if (!metadata) return [];
@@ -252,10 +265,6 @@
 		}
 
 		frameCache.prefetch(urls);
-	});
-
-	$effect(() => {
-		console.log(annotationState.data);
 	});
 </script>
 
@@ -349,7 +358,7 @@
 			</ContextMenu.Label>
 			<ContextMenu.Separator />
 			<ContextMenu.Item inset onSelect={startEditingCell}>Edit</ContextMenu.Item>
-			<ContextMenu.Item inset disabled>Delete</ContextMenu.Item>
+			<ContextMenu.Item inset onSelect={deleteCell}>Delete</ContextMenu.Item>
 			<ContextMenu.Item inset disabled>Rename</ContextMenu.Item>
 		</ContextMenu.Content>
 	</ContextMenu.Root>
