@@ -61,7 +61,7 @@
 	});
 </script>
 
-<ModeWatcher />
+<ModeWatcher lightClassNames={['light']} />
 <Toaster />
 
 <main class="flex h-screen w-full">
