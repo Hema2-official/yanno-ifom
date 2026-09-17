@@ -4,13 +4,13 @@
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Label } from '$lib/components/ui/label';
-	import ColorPicker from '$lib/UI/common/ColorPicker.svelte';
+	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { Switch } from '$lib/components/ui/switch';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
-	import ColorMapSelect from '$lib/UI/common/ColorMapSelect.svelte';
+	import ColorMapSelect from '$lib/ui/common/ColorMapSelect.svelte';
 
 	const primaryChannelIndex = $derived(projectState.videoConfig?.start_period ?? 0);
 	const maxConcurrentFrames = $derived(Math.max(1, Math.min(6, projectState.frameCount)));

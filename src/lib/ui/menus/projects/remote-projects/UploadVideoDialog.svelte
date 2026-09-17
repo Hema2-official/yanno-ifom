@@ -4,7 +4,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import PeriodChanger from '../../PeriodChanger.svelte';
-	import FileUploadInput from '$lib/UI/common/FileUploadInput.svelte';
+	import FileUploadInput from '$lib/ui/common/FileUploadInput.svelte';
 	import { VideoColor, type Project, type VideoConfig } from '$lib/types/api.type';
 	import { uploadVideo } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';

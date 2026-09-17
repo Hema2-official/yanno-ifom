@@ -7,7 +7,7 @@
 	import { getFrameCount } from '$lib/utils/frames';
 
 	import { Button } from '$lib/components/ui/button';
-	import Spinner from '$lib/UI/common/Spinner.svelte';
+	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import VersionItem from '../../version/VersionItem.svelte';
 	import ProjectEditDialog from './ProjectEditDialog.svelte';
 	import CreateVersionDialog from '../../version/CreateVersionDialog.svelte';

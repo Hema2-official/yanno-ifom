@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Spinner from '$lib/UI/common/Spinner.svelte';
+	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 	import { cn } from '$lib/utils/shadcn';
 	import * as geotiff from 'geotiff';
