@@ -261,16 +261,23 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 		let px = startX - 1;
 		let py = startY;
 
-		const startCx = cx;
-		const startCy = cy;
-		const startPx = px;
-		const startPy = py;
-
 		polygon.push({ x: cx, y: cy });
+
+		const seenStates = new Map<number, number>(); // state -> index of its pixel in polygon
+		let cycleStart = 0;
 
 		let limit = 100000;
 		while (limit-- > 0) {
 			const pDir = dirTable[(py - cy + 1) * 3 + (px - cx + 1)];
+			const stateKey = (cy * width + cx) * 8 + pDir;
+			const seenAt = seenStates.get(stateKey);
+			if (seenAt !== undefined) {
+				cycleStart = seenAt;
+				polygon.pop(); // the cycle's first pixel was pushed again on re-entry
+				break;
+			}
+			seenStates.set(stateKey, polygon.length - 1);
+
 			let foundNext = false;
 			let nextCx = cx;
 			let nextCy = cy;
@@ -305,12 +312,12 @@ export function maskToPolygons(mask: Uint8Array, size: [number, number]): Polygo
 			px = nextPx;
 			py = nextPy;
 
-			if (cx === startCx && cy === startCy && px === startPx && py === startPy) {
-				break;
-			}
-
 			polygon.push({ x: cx, y: cy });
 		}
+		if (limit < 0) throw new Error('Boundary tracing did not terminate');
+
+		// Drop the lead-in before the cycle (normally empty: the start state is part of the cycle)
+		if (cycleStart > 0) polygon.splice(0, cycleStart);
 
 		// Flood fill the connected component to mark all its pixels as visited
 		if (polygon.length > 0) {
