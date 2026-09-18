@@ -166,7 +166,7 @@
 						<LogOutIcon /> Log out
 					</DropdownMenu.Item>
 				{:else}
-					<DropdownMenu.Item>
+					<DropdownMenu.Item onSelect={() => goto(resolve('/login'))}>
 						<LogInIcon /> Log in
 					</DropdownMenu.Item>
 				{/if}

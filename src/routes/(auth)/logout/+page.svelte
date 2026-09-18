@@ -1,9 +1,8 @@
 <script lang="ts">
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { logout } from '$lib/api/auth';
-	import { resolve } from '$app/paths';
+	import { accountState } from '$lib/states/AccountState.svelte';
 
 	onMount(() => {
 		setTimeout(() => {
@@ -14,11 +13,8 @@
 				.catch((error) => {
 					console.error(error);
 				})
-				.finally(() => {
-					setTimeout(() => {
-						goto(resolve('/login'));
-					}, 100);
-				});
+				// The root layout redirects once the account is known
+				.finally(() => accountState.refresh());
 		}, 2000);
 	});
 </script>

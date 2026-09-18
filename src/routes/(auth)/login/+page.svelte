@@ -2,10 +2,8 @@
 	import TextBox from '$lib/ui/common/TextBox.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { login } from '$lib/api/auth';
-	import { goto } from '$app/navigation';
 	import type { APIError, CredentialsError } from '$lib/types/api.type';
-	import { resolve } from '$app/paths';
-	import type { Pathname } from '$app/types';
+	import { accountState } from '$lib/states/AccountState.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -15,8 +13,6 @@
 	let other_error_message = $state('');
 
 	let isLoading = $state(false);
-
-	const redirect = new URLSearchParams(window.location.search).get('redirect');
 
 	const handleSubmit = () => {
 		if (isLoading) return;
@@ -29,11 +25,8 @@
 		login(email, password)
 			.then((response) => {
 				console.log('Logged in as', response.account_id);
-				if (redirect) {
-					goto(resolve(redirect as Pathname));
-				} else {
-					goto(resolve('/'));
-				}
+				// The root layout redirects once the account is known
+				return accountState.refresh();
 			})
 			.catch((error: Error | APIError | CredentialsError) => {
 				if (typeof error === 'object' && 'detail' in error) {
