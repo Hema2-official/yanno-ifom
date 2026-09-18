@@ -34,7 +34,7 @@ importers:
         version: 0.1.0
       runed:
         specifier: ^0.37.1
-        version: 0.37.1(@sveltejs/kit@2.60.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(typescript@5.9.3)(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))
+        version: 0.37.1(@sveltejs/kit@2.60.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(typescript@5.9.3)(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(zod@4.6.5)
       svelte-i18n:
         specifier: ^4.0.1
         version: 4.0.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))
@@ -47,6 +47,9 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@internationalized/date':
         specifier: ^3.12.0
@@ -2046,6 +2049,9 @@ packages:
   zimmerframe@1.1.4:
     resolution: {integrity: sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ==}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
   zstddec@0.2.0:
     resolution: {integrity: sha512-oyPnDa1X5c13+Y7mA/FDMNJrn4S8UNBe0KCqtDmor40Re7ALrPN6npFwyYVRRh+PqozZQdeg23QtbcamZnG5rA==}
 
@@ -3354,7 +3360,7 @@ snapshots:
     optionalDependencies:
       '@sveltejs/kit': 2.60.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(typescript@5.9.3)(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0))
 
-  runed@0.37.1(@sveltejs/kit@2.60.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(typescript@5.9.3)(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4)):
+  runed@0.37.1(@sveltejs/kit@2.60.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(typescript@5.9.3)(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(zod@4.6.5):
     dependencies:
       dequal: 2.0.3
       esm-env: 1.2.2
@@ -3362,6 +3368,7 @@ snapshots:
       svelte: 5.55.9(@typescript-eslint/types@8.59.4)
     optionalDependencies:
       '@sveltejs/kit': 2.60.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.9(@typescript-eslint/types@8.59.4))(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0)))(svelte@5.55.9(@typescript-eslint/types@8.59.4))(typescript@5.9.3)(vite@6.4.3(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.100.0)(sass@1.100.0))
+      zod: 4.6.5
 
   rxjs@7.8.2:
     dependencies:
@@ -3657,5 +3664,7 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zimmerframe@1.1.4: {}
+
+  zod@4.6.5: {}
 
   zstddec@0.2.0: {}
