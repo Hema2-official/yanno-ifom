@@ -40,7 +40,7 @@ function makeChange(newData: TrackType[], oldData: TrackType[], msg?: string): C
 }
 
 /** The state before the last `count` changes of `data`. */
-function stateBefore(data: VersionManaged<TrackType[]>, count: number): TrackType[] {
+export function stateBefore(data: VersionManaged<TrackType[]>, count: number): TrackType[] {
 	let result = deepCopy(data.current);
 	for (let i = data.changes.length - 1; i >= data.changes.length - count; i--) {
 		result = jsondiffer.patch(result, data.changes[i].reverse) as TrackType[];

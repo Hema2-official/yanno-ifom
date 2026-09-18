@@ -1,5 +1,9 @@
 import { getProject, getVersionData, getWebFrameUrl, updateVersionData } from '$lib/api/projects';
-import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
+import {
+	annotationDataSchema,
+	type TrackType,
+	type VersionManaged
+} from '$lib/types/annotation.type';
 import type {
 	Project,
 	ProjectVersion,
@@ -15,7 +19,7 @@ import {
 } from '$lib/utils/indexeddb';
 import { WebPConverter } from '$lib/utils/webp';
 import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
-import { annotationState } from './AnnotationState.svelte';
+import { annotationState, stateBefore } from './AnnotationState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
 import { extractError } from '$lib/api/errors';
@@ -227,11 +231,22 @@ class ProjectState {
 }
 
 async function readAnnotationFile(file: File): Promise<VersionManaged<TrackType[]>> {
-	const parsed = JSON.parse(await file.text());
-	if (Array.isArray(parsed)) return { current: parsed, changes: [] };
-	if (Array.isArray(parsed?.current))
-		return { current: parsed.current, changes: parsed.changes ?? [] };
-	throw new Error('Unrecognized annotation file format');
+	const parsed: unknown = JSON.parse(await file.text());
+	const result = annotationDataSchema.safeParse(
+		Array.isArray(parsed) ? { current: parsed, changes: [] } : parsed
+	);
+	if (!result.success) {
+		const [{ path, message }] = result.error.issues;
+		throw new Error(`Invalid annotation file at ${path.join('.') || 'root'}: ${message}`);
+	}
+
+	try {
+		// The history must apply cleanly
+		stateBefore(result.data, result.data.changes.length);
+	} catch (error) {
+		throw new Error(`Invalid change history: ${extractError(error)}`);
+	}
+	return result.data;
 }
 
 export const projectState = new ProjectState();
