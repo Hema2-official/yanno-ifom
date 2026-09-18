@@ -16,6 +16,11 @@
 		confirmLabel = 'Confirm',
 		onConfirm
 	}: Props = $props();
+
+	function handleConfirm() {
+		open = false;
+		onConfirm();
+	}
 </script>
 
 <AlertDialog.Root bind:open>
@@ -28,7 +33,7 @@
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel variant="secondary">Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action variant="destructive" onclick={onConfirm}>
+			<AlertDialog.Action variant="destructive" onclick={handleConfirm}>
 				{confirmLabel}
 			</AlertDialog.Action>
 		</AlertDialog.Footer>
