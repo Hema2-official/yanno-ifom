@@ -26,6 +26,29 @@ class LocalProjectsDB extends Dexie {
 			frames: '[projectId+frameId]'
 		});
 	}
+
+	/** Deletes a project together with its frames. */
+	deleteProject(projectId: number) {
+		return this.transaction('rw', this.projects, this.frames, async () => {
+			await this.frames
+				.where('[projectId+frameId]')
+				.between([projectId, Dexie.minKey], [projectId, Dexie.maxKey])
+				.delete();
+			await this.projects.delete(projectId);
+		});
+	}
 }
 
 export const localProjectsDb = new LocalProjectsDB();
+
+export async function compressJson(value: unknown): Promise<Blob> {
+	const stream = new Blob([JSON.stringify(value)])
+		.stream()
+		.pipeThrough(new CompressionStream('gzip'));
+	return new Response(stream).blob();
+}
+
+export async function decompressJson<T>(blob: Blob): Promise<T> {
+	const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+	return new Response(stream).json();
+}

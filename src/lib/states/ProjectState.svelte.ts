@@ -7,7 +7,12 @@ import type {
 	VideoConfig,
 	VideoMetadata
 } from '$lib/types/api.type';
-import { localProjectsDb, type DBProject } from '$lib/utils/indexeddb';
+import {
+	compressJson,
+	decompressJson,
+	localProjectsDb,
+	type DBProject
+} from '$lib/utils/indexeddb';
 import { WebPConverter } from '$lib/utils/webp';
 import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
 import { annotationState } from './AnnotationState.svelte';
@@ -70,11 +75,8 @@ class ProjectState {
 			if (version) {
 				await updateVersionData(version, $state.snapshot(data));
 			} else if (localProjectId) {
-				const cs = new Blob([JSON.stringify(data)])
-					.stream()
-					.pipeThrough(new CompressionStream('gzip'));
 				await localProjectsDb.projects.update(localProjectId, {
-					annotation: await new Response(cs).blob()
+					annotation: await compressJson(data)
 				});
 			} else {
 				throw new Error('No project loaded');
@@ -129,27 +131,39 @@ class ProjectState {
 		if (!project) throw new Error("Couldn't find project");
 		this.localProject = project;
 
-		// Decompress annotation json
-		const ds = project.annotation.stream().pipeThrough(new DecompressionStream('gzip'));
-		annotationState.load(await new Response(ds).json());
+		annotationState.load(await decompressJson(project.annotation));
 	}
 
 	async prepareLocalProject(
 		name: string,
 		video_config: VideoConfig,
 		videoFile: File,
-		annotationFile: File,
+		annotationFile: File | null,
 		onProgress?: (message: string) => void
 	) {
-		// Compress the annotation
 		onProgress?.('Saving annotation...');
-		const cs = annotationFile.stream().pipeThrough(new CompressionStream('gzip'));
-		const annotation = await new Response(cs).blob();
+		const annotation = await compressJson(
+			annotationFile ? await readAnnotationFile(annotationFile) : { current: [], changes: [] }
+		);
 
 		// Save project to indexeddb and get auto-incremented ID
-		const dbProject = { name, video_config: video_config, annotation };
-		const projectId = await localProjectsDb.projects.add(dbProject);
+		const projectId = await localProjectsDb.projects.add({ name, video_config, annotation });
 
+		try {
+			await this.#storeLocalFrames(projectId, video_config, videoFile, onProgress);
+		} catch (error) {
+			// Don't leave a half-converted project behind
+			await localProjectsDb.deleteProject(projectId);
+			throw error;
+		}
+	}
+
+	async #storeLocalFrames(
+		projectId: number,
+		video_config: VideoConfig,
+		videoFile: File,
+		onProgress?: (message: string) => void
+	) {
 		// Open TIFF and get image count
 		const tiff = await geotiff.fromBlob(videoFile);
 		const count = await tiff.getImageCount();
@@ -206,6 +220,18 @@ class ProjectState {
 	async listLocalProjects(): Promise<DBProject[]> {
 		return await localProjectsDb.projects.toArray();
 	}
+
+	async deleteLocalProject(localProjectId: number) {
+		await localProjectsDb.deleteProject(localProjectId);
+	}
+}
+
+async function readAnnotationFile(file: File): Promise<VersionManaged<TrackType[]>> {
+	const parsed = JSON.parse(await file.text());
+	if (Array.isArray(parsed)) return { current: parsed, changes: [] };
+	if (Array.isArray(parsed?.current))
+		return { current: parsed.current, changes: parsed.changes ?? [] };
+	throw new Error('Unrecognized annotation file format');
 }
 
 export const projectState = new ProjectState();
