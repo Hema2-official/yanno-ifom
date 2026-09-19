@@ -7,10 +7,10 @@
 	import { Progress } from '$lib/components/ui/progress';
 	import { Separator } from '$lib/components/ui/separator';
 	import FileUploadInput from '$lib/ui/common/FileUploadInput.svelte';
-	import PeriodChanger from '../PeriodChanger.svelte';
+	import VideoConfigurator from './VideoConfigurator.svelte';
 	import { extractError } from '$lib/api/errors';
 	import { projectState } from '$lib/states/ProjectState.svelte';
-	import { VideoColor } from '$lib/types/api.type';
+	import { defaultVideoConfig } from '$lib/types/api.type';
 	import { LoaderCircleIcon } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
@@ -27,9 +27,7 @@
 
 	let name = $state('');
 	let videoFile: File | null = $state(null);
-	let color = $state(VideoColor.GRAYSCALE);
-	let start_period = $state(0);
-	let channel_period = $state(1);
+	let videoConfig = $state(defaultVideoConfig);
 	let importAnnotation = $state(false);
 	let annotationFile: File | null = $state(null);
 
@@ -46,9 +44,7 @@
 		if (open) return;
 		name = '';
 		videoFile = null;
-		color = VideoColor.GRAYSCALE;
-		start_period = 0;
-		channel_period = 1;
+		videoConfig = defaultVideoConfig;
 		importAnnotation = false;
 		annotationFile = null;
 	});
@@ -62,7 +58,7 @@
 		try {
 			const id = await projectState[local ? 'createLocalProject' : 'createCloudProject'](
 				name.trim(),
-				{ color, start_period, channel_period },
+				$state.snapshot(videoConfig),
 				videoFile,
 				importAnnotation ? annotationFile : null,
 				(message, fraction) => {
@@ -110,29 +106,11 @@
 				<FileUploadInput label="Video" accept=".tif,.tiff" bind:file={videoFile} />
 
 				{#if videoFile}
-					<Label
-						for="{uid}-grayscale"
-						class="flex cursor-pointer items-center gap-2 select-none"
-					>
-						<Checkbox
-							id="{uid}-grayscale"
-							checked={color === VideoColor.GRAYSCALE}
-							onCheckedChange={(checked) =>
-								(color = checked ? VideoColor.GRAYSCALE : VideoColor.RGB)}
-						/> Grayscale
-					</Label>
-
-					<Separator />
-
-					<PeriodChanger file={videoFile} bind:start_period bind:channel_period />
-
+					<VideoConfigurator file={videoFile} bind:videoConfig />
 					<Separator />
 				{/if}
 
-				<Label
-					for="{uid}-import"
-					class="flex cursor-pointer items-center gap-2 select-none"
-				>
+				<Label for="{uid}-import" class="flex items-center gap-2 select-none">
 					<Checkbox
 						id="{uid}-import"
 						checked={importAnnotation}

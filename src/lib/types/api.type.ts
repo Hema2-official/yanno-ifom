@@ -50,6 +50,12 @@ export type VideoConfig = {
 	channel_period: number;
 };
 
+export const defaultVideoConfig: VideoConfig = {
+	color: VideoColor.GRAYSCALE,
+	start_period: 0,
+	channel_period: 1
+};
+
 export type VideoComponentMetadata = {
 	min_value: number;
 	max_value: number;

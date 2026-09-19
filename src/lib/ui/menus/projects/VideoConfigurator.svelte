@@ -5,18 +5,25 @@
 	import * as geotiff from 'geotiff';
 	import { WebPConverter } from '$lib/utils/webp';
 	import { TriangleAlertIcon } from '@lucide/svelte';
+	import { VideoColor, type VideoConfig } from '$lib/types/api.type';
+	import { Label } from '$lib/components/ui/label';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { fly } from 'svelte/transition';
 
 	type Props = {
 		file: File;
-		start_period: number;
-		channel_period: number;
+		videoConfig: VideoConfig;
 	};
 
-	let { file, start_period = $bindable(0), channel_period = $bindable(1) }: Props = $props();
+	let { file, videoConfig = $bindable() }: Props = $props();
+
+	const uid = $props.id();
 
 	let previewUrls: string[] = $state([]);
 	let isDecoding = $state(false);
 	let decodeError = $state<string | null>(null);
+
+	let suggestedColor = $state<VideoColor | null>(null);
 
 	let selectedStartIndex: number | null = $state(null);
 	let isSelecting = $derived(selectedStartIndex !== null);
@@ -56,6 +63,12 @@
 			const image = await tiff.getImage(i);
 			const webpBlob = await webpConverter.tiffImageToWebP(image, { normalizeRgb: true });
 			urls.push(URL.createObjectURL(webpBlob));
+
+			// Auto-set video color on first frame
+			if (i === 0) {
+				videoConfig.color = suggestedColor =
+					image.getSamplesPerPixel() > 1 ? VideoColor.RGB : VideoColor.GRAYSCALE;
+			}
 		}
 		previewUrls = urls;
 	}
@@ -64,19 +77,41 @@
 		if (selectedStartIndex === null) {
 			selectedStartIndex = index;
 		} else {
-			start_period = selectedStartIndex;
-			channel_period = index + 1;
+			videoConfig.start_period = selectedStartIndex;
+			videoConfig.channel_period = index + 1;
 			selectedStartIndex = null;
 		}
 	}
 
 	function isPrimaryFrame(index: number): boolean {
-		if (channel_period <= 0) return false;
-		return index >= start_period && (index - start_period) % channel_period === 0;
+		if (videoConfig.channel_period <= 0) return false;
+		return (
+			index >= videoConfig.start_period &&
+			(index - videoConfig.start_period) % videoConfig.channel_period === 0
+		);
 	}
 </script>
 
-<div class="flex w-full min-w-0 flex-col gap-1">
+<div class="flex w-full min-w-0 flex-col">
+	<div class="mb-4 flex items-center gap-2 select-none">
+		<Checkbox
+			id="{uid}-grayscale"
+			checked={videoConfig.color === VideoColor.GRAYSCALE}
+			onCheckedChange={(checked) =>
+				(videoConfig.color = checked ? VideoColor.GRAYSCALE : VideoColor.RGB)}
+		/>
+		<Label for="{uid}-grayscale">Grayscale</Label>
+
+		{#if suggestedColor && videoConfig.color !== suggestedColor}
+			<span
+				class="text-destructive flex transform-gpu items-center gap-1 leading-none"
+				transition:fly={{ x: 6 }}
+			>
+				<TriangleAlertIcon class="size-4" /> Please double-check this choice.
+			</span>
+		{/if}
+	</div>
+
 	{#if isDecoding}
 		<div
 			class="border-muted-foreground/10 flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-8"
@@ -108,7 +143,8 @@
 							'm-0 flex aspect-square h-20 cursor-pointer items-center justify-center overflow-hidden bg-transparent p-0 outline-none first:rounded-tl-lg first:rounded-bl-lg',
 							isPrimaryFrame(index) ? 'border-accent border' : ''
 						)}
-						class:mr-2={index % channel_period === channel_period - 1}
+						class:mr-2={index % videoConfig.channel_period ===
+							videoConfig.channel_period - 1}
 						onclick={() => handleClick(index)}
 					>
 						<img
@@ -120,7 +156,8 @@
 				{/each}
 			</div>
 		</ScrollArea>
-		<span class="text-muted-foreground text-left text-sm italic">
+
+		<span class="text-muted-foreground mt-1 text-left text-sm italic">
 			{#if !isSelecting}
 				Click to change the first primary frame...
 			{:else}
