@@ -16,14 +16,15 @@
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { accountState } from '$lib/states/AccountState.svelte';
-	import Spinner from '../common/Spinner.svelte';
+	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { resolve } from '$app/paths';
 
 	type Props = {
 		extraCrumbs?: Snippet;
+		extraFileMenuItems?: Snippet;
 		extraMenus?: Snippet;
 	};
-	const { extraCrumbs, extraMenus }: Props = $props();
+	const { extraCrumbs, extraFileMenuItems, extraMenus }: Props = $props();
 
 	// import {
 	// 	getFramesDifference,
@@ -125,6 +126,16 @@
 		</Breadcrumb.Root>
 
 		<Menubar.Root class="h-auto border-none p-0">
+			<Menubar.Menu>
+				<Menubar.Trigger>File</Menubar.Trigger>
+				<Menubar.Content>
+					<Menubar.Item onSelect={() => window.open('/', '_blank')}>
+						New Tab <Menubar.Shortcut>⌘T</Menubar.Shortcut>
+					</Menubar.Item>
+					<Menubar.Separator />
+					{@render extraFileMenuItems?.()}
+				</Menubar.Content>
+			</Menubar.Menu>
 			{@render extraMenus?.()}
 			<Menubar.Menu>
 				<Menubar.Trigger>Help</Menubar.Trigger>

@@ -170,7 +170,7 @@
 				</Breadcrumb.Item>
 			{/if}
 
-			<Breadcrumb.Item class="[&_svg]:mt-0.5 [&_svg]:size-4.5">
+			<Breadcrumb.Item class="ml-4 [&_svg]:mt-0.5 [&_svg]:size-4.5">
 				<Tooltip.Provider delayDuration={200}>
 					<Tooltip.Root>
 						{#if projectState.cloudProject && projectState.isSaving}
@@ -203,28 +203,17 @@
 			</Breadcrumb.Item>
 		{/snippet}
 
+		{#snippet extraFileMenuItems()}
+			<Menubar.Separator />
+			<Menubar.Item onSelect={exportAsJSON} disabled={!annotationState.data}>
+				Export as JSON
+			</Menubar.Item>
+			<Menubar.Item onSelect={exportAsTXT} disabled={!annotationState.data}>
+				Export as TXT
+			</Menubar.Item>
+		{/snippet}
+
 		{#snippet extraMenus()}
-			<Menubar.Menu>
-				<Menubar.Trigger>File</Menubar.Trigger>
-				<Menubar.Content>
-					<Menubar.Item onSelect={() => window.open('/', '_blank')}>
-						New Tab <Menubar.Shortcut>⌘T</Menubar.Shortcut>
-					</Menubar.Item>
-					<Menubar.Separator />
-					<Menubar.Item>Open project...</Menubar.Item>
-					<Menubar.Item>Open offline...</Menubar.Item>
-					<Menubar.Separator />
-					<Menubar.Item>Save</Menubar.Item>
-					<Menubar.Item>Save as...</Menubar.Item>
-					<Menubar.Separator />
-					<Menubar.Item onSelect={exportAsJSON} disabled={!annotationState.data}>
-						Export as JSON
-					</Menubar.Item>
-					<Menubar.Item onSelect={exportAsTXT} disabled={!annotationState.data}>
-						Export as TXT
-					</Menubar.Item>
-				</Menubar.Content>
-			</Menubar.Menu>
 			<Menubar.Menu>
 				<Menubar.Trigger>Edit</Menubar.Trigger>
 				<Menubar.Content>
