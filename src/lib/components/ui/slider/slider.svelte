@@ -5,6 +5,7 @@
 	let {
 		ref = $bindable(null),
 		value = $bindable(),
+		orientation = 'horizontal',
 		class: className,
 		...restProps
 	}: WithoutChildrenOrChild<SliderPrimitive.RootProps> = $props();
@@ -18,7 +19,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 	bind:ref
 	bind:value={value as never}
 	data-slot="slider"
-	orientation="horizontal"
+	{orientation}
 	class={cn(
 		'relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col',
 		className
@@ -28,9 +29,9 @@ get along, so we shut typescript up by casting `value` to `never`.
 	{#snippet children({ thumbItems })}
 		<span
 			data-slot="slider-track"
-			data-horizontal
+			data-orientation={orientation}
 			class={cn(
-				'bg-muted relative grow overflow-hidden rounded-full data-horizontal:h-1.5 data-horizontal:w-full data-vertical:h-full data-vertical:w-1.5'
+				'bg-muted relative grow overflow-hidden rounded-full data-horizontal:h-1 data-horizontal:w-full data-vertical:h-full data-vertical:w-1'
 			)}
 		>
 			<SliderPrimitive.Range
@@ -44,7 +45,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 			<SliderPrimitive.Thumb
 				data-slot="slider-thumb"
 				index={thumb.index}
-				class="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] select-none hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+				class="border-ring ring-ring/50 relative block size-3 shrink-0 rounded-full border bg-white transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
 			/>
 		{/each}
 	{/snippet}
