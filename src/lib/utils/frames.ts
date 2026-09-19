@@ -1,4 +1,4 @@
-import type { VideoConfig, VideoMetadata } from '$lib/types/api.type';
+import { VideoColor, type VideoConfig, type VideoMetadata } from '$lib/types/api.type';
 
 /**
  * A legacy backend component's naming scheme stuck around in `VideoConfig`:
@@ -14,10 +14,7 @@ import type { VideoConfig, VideoMetadata } from '$lib/types/api.type';
 
 const SINGLE_CHANNEL_CONFIG = { channel_period: 1, start_period: 0 };
 
-export function getFrameCount(
-	config: VideoConfig | null | undefined,
-	metadata: VideoMetadata | null | undefined
-): number {
+export function getFrameCount(config?: VideoConfig, metadata?: VideoMetadata): number {
 	const { channel_period, start_period } = config ?? SINGLE_CHANNEL_CONFIG;
 	if (channel_period <= 0) return 0;
 	const imageCount = metadata?.frame_count ?? 0;
@@ -25,8 +22,18 @@ export function getFrameCount(
 	return Math.ceil((imageCount - start_period) / channel_period);
 }
 
+const colorNames: Record<VideoColor, string> = {
+	[VideoColor.GRAYSCALE]: 'Grayscale',
+	[VideoColor.RGB]: 'RGB'
+};
+
+/** One-line description for project lists, e.g. "Grayscale, 25 frames". */
+export function videoSummary(config: VideoConfig, metadata?: VideoMetadata) {
+	return `${colorNames[config.color]}, ${getFrameCount(config, metadata)} frames`;
+}
+
 export function getImageIndex(
-	config: VideoConfig | null | undefined,
+	config: VideoConfig | undefined,
 	frameIndex: number,
 	channelIndex: number
 ): number {

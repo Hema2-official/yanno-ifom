@@ -21,16 +21,28 @@ function fixDates<T extends { created_at?: string | Date; updated_at?: string | 
 
 export async function getProjects(options?: Options) {
 	try {
-		const data = await http.get<Project[]>(`api/v0/projects`, options);
+		const data = await http.get<Project[]>(`api/v0/projects/`, options);
 		return data.map(fixDates);
 	} catch (error) {
 		throw await handleError(error);
 	}
 }
 
-export async function createProject(name: string, options?: Options) {
+/** Creates a project with a video. */
+export async function createProject(
+	name: string,
+	file: File,
+	videoConfig: VideoConfig,
+	options?: Options
+) {
 	try {
-		const data = await http.post<Project>(`api/v0/projects`, { ...options, json: { name } });
+		const formData = new FormData();
+		formData.append('name', name);
+		formData.append('file', file);
+		formData.append('color', videoConfig.color);
+		formData.append('start_period', String(videoConfig.start_period));
+		formData.append('channel_period', String(videoConfig.channel_period));
+		const data = await http.post<Project>(`api/v0/projects/`, { ...options, body: formData });
 		return fixDates(data);
 	} catch (error) {
 		throw await handleError(error);
@@ -46,11 +58,7 @@ export async function getProject(project_id: string, options?: Options) {
 	}
 }
 
-export async function updateProject(
-	projectId: string,
-	body: { name?: string; video_config?: VideoConfig | null },
-	options?: Options
-) {
+export async function updateProject(projectId: string, body: { name: string }, options?: Options) {
 	try {
 		const data = await http.patch<Project>(`api/v0/projects/${projectId}`, {
 			...options,
@@ -65,27 +73,6 @@ export async function updateProject(
 export async function deleteProject(project_id: string, options?: Options) {
 	try {
 		await http.delete(`api/v0/projects/${project_id}`, options);
-	} catch (error) {
-		throw await handleError(error);
-	}
-}
-
-export async function uploadVideo(
-	projectId: string,
-	file: File,
-	videoConfig: VideoConfig,
-	options?: Options
-) {
-	try {
-		const formData = new FormData();
-		formData.append('file', file);
-		formData.append('color', videoConfig.color);
-		formData.append('start_period', String(videoConfig.start_period));
-		formData.append('channel_period', String(videoConfig.channel_period));
-		await http.put(`api/v0/projects/${projectId}/video`, {
-			...options,
-			body: formData
-		});
 	} catch (error) {
 		throw await handleError(error);
 	}

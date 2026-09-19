@@ -1,23 +1,22 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { getProject } from '$lib/api/projects';
+	import { getProject, updateProject } from '$lib/api/projects';
 	import { versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
 	import { resource } from 'runed';
 	import { getFrameCount } from '$lib/utils/frames';
 
 	import { Button } from '$lib/components/ui/button';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
-	import VersionItem from '../../version/VersionItem.svelte';
-	import ProjectEditDialog from './ProjectEditDialog.svelte';
-	import CreateVersionDialog from '../../version/CreateVersionDialog.svelte';
+	import VersionItem from '../version/VersionItem.svelte';
+	import RenameDialog from './RenameDialog.svelte';
+	import CreateVersionDialog from '../version/CreateVersionDialog.svelte';
 
 	import {
 		ArrowLeftIcon,
 		PencilIcon,
 		PlusIcon,
 		LayersIcon,
-		CircleDashedIcon,
 		type LucideIcon,
 		SparklesIcon
 	} from '@lucide/svelte';
@@ -32,7 +31,7 @@
 
 	let project = $derived(projectResource.current);
 
-	let showEditDialog = $state(false);
+	let showRenameDialog = $state(false);
 	let showCreateVersionDialog = $state(false);
 	let copyFromVersion: ProjectVersion | undefined = $state(undefined);
 
@@ -86,8 +85,8 @@
 				</div>
 
 				<div class="flex gap-2">
-					<Button variant="secondary" onclick={() => (showEditDialog = true)}>
-						<PencilIcon data-icon="inline-start" /> Edit
+					<Button variant="secondary" onclick={() => (showRenameDialog = true)}>
+						<PencilIcon data-icon="inline-start" /> Rename
 					</Button>
 					<Button onclick={handleCreateVersion}>
 						<PlusIcon data-icon="inline-start" /> New Version
@@ -96,48 +95,38 @@
 			</div>
 		</div>
 
-		{#if project.video_config}
-			<p class="text-muted-foreground -mt-2 text-sm">
-				{getFrameCount(project.video_config, project.video_metadata)} primary frames · {project
-					.video_metadata?.frame_count ?? 0}
-				total frames
-			</p>
+		<p class="text-muted-foreground -mt-2 text-sm">
+			{getFrameCount(project.video_config, project.video_metadata)} primary frames · {project
+				.video_metadata.frame_count} total frames
+		</p>
 
-			<!-- Newly created versions -->
-			{@render VersionGroup(
-				'newly created',
-				project.versions.filter((v) => v.step === null),
-				SparklesIcon
-			)}
+		<!-- Newly created versions -->
+		{@render VersionGroup(
+			'newly created',
+			project.versions.filter((v) => v.step === null),
+			SparklesIcon
+		)}
 
-			<!-- Versions by step -->
-			{#each versionStepOrder as step (step)}
-				{@const versions = project.versions.filter((v) => v.step === step)}
-				{@render VersionGroup(step, versions, LayersIcon)}
-			{/each}
+		<!-- Versions by step -->
+		{#each versionStepOrder as step (step)}
+			{@const versions = project.versions.filter((v) => v.step === step)}
+			{@render VersionGroup(step, versions, LayersIcon)}
+		{/each}
 
-			{#if project.versions.length === 0}
-				<div class="text-muted-foreground flex flex-col items-center gap-2 py-12">
-					<LayersIcon class="size-8" />
-					<p class="text-sm">No versions yet. Create one to get started.</p>
-				</div>
-			{/if}
-		{:else}
-			<div
-				class="text-muted-foreground flex flex-col items-center justify-center gap-2 py-12"
-			>
-				<CircleDashedIcon class="size-8" />
-				<p class="text-sm">This project is not ready yet. Upload source data first.</p>
+		{#if project.versions.length === 0}
+			<div class="text-muted-foreground flex flex-col items-center gap-2 py-12">
+				<LayersIcon class="size-8" />
+				<p class="text-sm">No versions yet. Create one to get started.</p>
 			</div>
 		{/if}
 	{/if}
 </div>
 
 {#if project}
-	<ProjectEditDialog
-		bind:isOpen={showEditDialog}
-		{project}
-		onRefresh={() => projectResource.refetch()}
+	<RenameDialog
+		bind:open={showRenameDialog}
+		name={project.name}
+		rename={(name) => updateProject(project.id, { name }).then(() => projectResource.refetch())}
 	/>
 
 	<CreateVersionDialog

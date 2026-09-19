@@ -18,6 +18,7 @@
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { resolve } from '$app/paths';
+	import CreateProjectDialog from '$lib/ui/menus/projects/CreateProjectDialog.svelte';
 
 	type Props = {
 		extraCrumbs?: Snippet;
@@ -25,6 +26,14 @@
 		extraMenus?: Snippet;
 	};
 	const { extraCrumbs, extraFileMenuItems, extraMenus }: Props = $props();
+
+	let createLocal = $state(false);
+	let showCreate = $state(false);
+
+	function handleCreateProject(local: boolean) {
+		createLocal = local;
+		showCreate = true;
+	}
 
 	// import {
 	// 	getFramesDifference,
@@ -133,6 +142,12 @@
 						New Tab <Menubar.Shortcut>⌘T</Menubar.Shortcut>
 					</Menubar.Item>
 					<Menubar.Separator />
+					<Menubar.Item onSelect={() => handleCreateProject(false)}>
+						New cloud project...
+					</Menubar.Item>
+					<Menubar.Item onSelect={() => handleCreateProject(true)}>
+						New local project...
+					</Menubar.Item>
 					{@render extraFileMenuItems?.()}
 				</Menubar.Content>
 			</Menubar.Menu>
@@ -185,3 +200,5 @@
 		</DropdownMenu.Root>
 	</div>
 </div>
+
+<CreateProjectDialog local={createLocal} bind:open={showCreate} />

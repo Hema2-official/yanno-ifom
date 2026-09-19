@@ -34,10 +34,16 @@
 		if (accountState.currentAccount === undefined) return;
 
 		const path = window.location.pathname;
+		const search = new URLSearchParams(window.location.search);
 		const isAuthenticating = path === '/login' || path === '/register';
 
+		// Guests can list and edit local projects, which live in this browser
+		const isPublic =
+			path === '/projects' ||
+			(path === '/editor' && search.get('project')?.startsWith('local_'));
+
 		if (accountState.currentAccount === null) {
-			if (isAuthenticating) return;
+			if (isAuthenticating || isPublic) return;
 			if (path === '/logout') {
 				goto(resolve('/login'));
 			} else {

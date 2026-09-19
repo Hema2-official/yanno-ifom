@@ -1,4 +1,11 @@
-import { getProject, getVersionData, getWebFrameUrl, updateVersionData } from '$lib/api/projects';
+import {
+	createProject,
+	createProjectVersion,
+	getProject,
+	getVersionData,
+	getWebFrameUrl,
+	updateVersionData
+} from '$lib/api/projects';
 import {
 	annotationDataSchema,
 	type TrackType,
@@ -23,6 +30,7 @@ import { annotationState, stateBefore } from './AnnotationState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
 import { extractError } from '$lib/api/errors';
+import { toast } from 'svelte-sonner';
 import * as geotiff from 'geotiff';
 
 class ProjectState {
@@ -138,7 +146,27 @@ class ProjectState {
 		annotationState.load(await decompressJson(project.annotation));
 	}
 
-	async prepareLocalProject(
+	async createCloudProject(
+		name: string,
+		video_config: VideoConfig,
+		videoFile: File,
+		annotationFile: File | null,
+		onProgress?: (message: string) => void
+	) {
+		onProgress?.('Uploading video...');
+		const project = await createProject(name, videoFile, video_config);
+
+		if (annotationFile) {
+			onProgress?.('Importing annotation...');
+			// The project exists already: report the failed import, but keep the project
+			await importAnnotation(project.id, annotationFile).catch((error: unknown) => {
+				toast.error('Annotation import failed', { description: extractError(error) });
+			});
+		}
+		return project.id;
+	}
+
+	async createLocalProject(
 		name: string,
 		video_config: VideoConfig,
 		videoFile: File,
@@ -160,6 +188,7 @@ class ProjectState {
 			await localProjectsDb.deleteProject(projectId);
 			throw error;
 		}
+		return projectId;
 	}
 
 	async #storeLocalFrames(
@@ -225,9 +254,20 @@ class ProjectState {
 		return await localProjectsDb.projects.toArray();
 	}
 
+	async renameLocalProject(localProjectId: number, name: string) {
+		await localProjectsDb.projects.update(localProjectId, { name });
+	}
+
 	async deleteLocalProject(localProjectId: number) {
 		await localProjectsDb.deleteProject(localProjectId);
 	}
+}
+
+/** Creates a version named after the file and fills it with the file's annotation. */
+async function importAnnotation(projectId: string, file: File) {
+	const name = file.name.replace(/\.json$/i, '') + ' (imported)';
+	const version = await createProjectVersion(projectId, { name });
+	await updateVersionData(version, await readAnnotationFile(file));
 }
 
 async function readAnnotationFile(file: File): Promise<VersionManaged<TrackType[]>> {

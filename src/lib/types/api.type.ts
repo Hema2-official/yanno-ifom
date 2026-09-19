@@ -71,8 +71,8 @@ export type VideoMetadata = {
 export type Project = {
 	id: string; // UUID
 	name: string;
-	video_config: VideoConfig | null;
-	video_metadata: VideoMetadata | null;
+	video_config: VideoConfig;
+	video_metadata: VideoMetadata;
 	versions: ProjectVersion[];
 	created_at: Date;
 	updated_at: Date;
