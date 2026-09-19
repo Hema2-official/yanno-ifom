@@ -33,6 +33,8 @@ import { extractError } from '$lib/api/errors';
 import { toast } from 'svelte-sonner';
 import * as geotiff from 'geotiff';
 
+export type ProgressCallback = (message: string, fraction?: number) => void;
+
 class ProjectState {
 	cloudProject: Project | null = $state(null);
 	cloudVersion: ProjectVersion | null = $state(null);
@@ -151,10 +153,15 @@ class ProjectState {
 		video_config: VideoConfig,
 		videoFile: File,
 		annotationFile: File | null,
-		onProgress?: (message: string) => void
+		onProgress?: ProgressCallback
 	) {
 		onProgress?.('Uploading video...');
-		const project = await createProject(name, videoFile, video_config);
+		const project = await createProject(name, videoFile, video_config, {
+			onUploadProgress: ({ percent }) =>
+				percent < 1
+					? onProgress?.('Uploading video...', percent)
+					: onProgress?.('Processing video...')
+		});
 
 		if (annotationFile) {
 			onProgress?.('Importing annotation...');
@@ -171,7 +178,7 @@ class ProjectState {
 		video_config: VideoConfig,
 		videoFile: File,
 		annotationFile: File | null,
-		onProgress?: (message: string) => void
+		onProgress?: ProgressCallback
 	) {
 		onProgress?.('Saving annotation...');
 		const annotation = await compressJson(
@@ -195,14 +202,14 @@ class ProjectState {
 		projectId: number,
 		video_config: VideoConfig,
 		videoFile: File,
-		onProgress?: (message: string) => void
+		onProgress?: ProgressCallback
 	) {
 		// Open TIFF and get image count
 		const tiff = await geotiff.fromBlob(videoFile);
 		const count = await tiff.getImageCount();
 
 		// Report 0 progress
-		onProgress?.(`Converting video...`);
+		onProgress?.('Converting video...', 0);
 
 		const webpConverter = new WebPConverter();
 
@@ -243,7 +250,7 @@ class ProjectState {
 			await localProjectsDb.frames.add(dbFrame);
 
 			// Update progress
-			onProgress?.(`Converting video... (${i + 1}/${count})`);
+			onProgress?.(`Converting video... (${i + 1}/${count})`, (i + 1) / count);
 		}
 
 		// Save the computed video metadata

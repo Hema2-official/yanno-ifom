@@ -4,6 +4,7 @@
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { Progress } from '$lib/components/ui/progress';
 	import { Separator } from '$lib/components/ui/separator';
 	import FileUploadInput from '$lib/ui/common/FileUploadInput.svelte';
 	import PeriodChanger from '../PeriodChanger.svelte';
@@ -12,6 +13,7 @@
 	import { VideoColor } from '$lib/types/api.type';
 	import { LoaderCircleIcon } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
+	import { slide } from 'svelte/transition';
 
 	type Props = {
 		open: boolean;
@@ -33,6 +35,7 @@
 
 	// Progress message while creating, null when idle
 	let progress: string | null = $state(null);
+	let progressValue: number | null = $state(null);
 	let busy = $derived(progress !== null);
 	let canSubmit = $derived(
 		!!videoFile && !!name.trim() && (!importAnnotation || !!annotationFile) && !busy
@@ -55,13 +58,17 @@
 		if (!canSubmit || !videoFile) return;
 
 		progress = 'Preparing...';
+		progressValue = null;
 		try {
 			const id = await projectState[local ? 'createLocalProject' : 'createCloudProject'](
 				name.trim(),
 				{ color, start_period, channel_period },
 				videoFile,
 				importAnnotation ? annotationFile : null,
-				(message: string) => (progress = message)
+				(message, fraction) => {
+					progress = message;
+					progressValue = fraction ?? null;
+				}
 			);
 			toast.success('Project created');
 			open = false;
@@ -70,6 +77,7 @@
 			toast.error("Couldn't create the project", { description: extractError(error) });
 		} finally {
 			progress = null;
+			progressValue = null;
 		}
 	}
 </script>
@@ -139,7 +147,16 @@
 
 			<Dialog.Footer class="items-center">
 				{#if busy}
-					<span class="text-muted-foreground mr-auto text-sm">{progress}</span>
+					<div class="mr-auto flex min-w-0 flex-1 flex-col items-start">
+						<span class="text-muted-foreground text-left text-sm">
+							{progress}
+						</span>
+						{#if progressValue !== null}
+							<div class="mt-1.5 w-full" transition:slide={{ duration: 400 }}>
+								<Progress value={progressValue * 100} class="max-w-36" />
+							</div>
+						{/if}
+					</div>
 				{/if}
 				<Dialog.Close class={buttonVariants({ variant: 'secondary' })} disabled={busy}>
 					Cancel

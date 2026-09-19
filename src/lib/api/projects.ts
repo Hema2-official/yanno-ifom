@@ -9,6 +9,7 @@ import type {
 	VideoConfig
 } from '$lib/types/api.type';
 import { handleError } from './errors';
+import { postFormData, type UploadOptions } from './upload';
 import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
 
 function fixDates<T extends { created_at?: string | Date; updated_at?: string | Date }>(raw: T): T {
@@ -33,7 +34,7 @@ export async function createProject(
 	name: string,
 	file: File,
 	videoConfig: VideoConfig,
-	options?: Options
+	options?: UploadOptions
 ) {
 	try {
 		const formData = new FormData();
@@ -42,7 +43,8 @@ export async function createProject(
 		formData.append('color', videoConfig.color);
 		formData.append('start_period', String(videoConfig.start_period));
 		formData.append('channel_period', String(videoConfig.channel_period));
-		const data = await http.post<Project>(`api/v0/projects/`, { ...options, body: formData });
+		// Posted with XHR instead of ky so the upload can report progress
+		const data = await postFormData<Project>(`api/v0/projects/`, formData, options);
 		return fixDates(data);
 	} catch (error) {
 		throw await handleError(error);
