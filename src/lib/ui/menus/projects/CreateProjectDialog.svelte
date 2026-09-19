@@ -27,7 +27,7 @@
 
 	let name = $state('');
 	let videoFile: File | null = $state(null);
-	let videoConfig = $state(defaultVideoConfig);
+	let videoConfig = $state({ ...defaultVideoConfig });
 	let importAnnotation = $state(false);
 	let annotationFile: File | null = $state(null);
 
@@ -44,7 +44,7 @@
 		if (open) return;
 		name = '';
 		videoFile = null;
-		videoConfig = defaultVideoConfig;
+		videoConfig = { ...defaultVideoConfig };
 		importAnnotation = false;
 		annotationFile = null;
 	});
