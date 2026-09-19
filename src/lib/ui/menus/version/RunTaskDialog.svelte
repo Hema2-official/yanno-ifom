@@ -1,7 +1,6 @@
 <script lang="ts">
 	import * as Select from '$lib/components/ui/select';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { enqueueTask } from '$lib/api/projects';
 	import {
@@ -17,6 +16,7 @@
 	} from '$lib/types/api.type';
 	import { watch } from 'runed';
 	import { toState } from '$lib/utils/runes.svelte';
+	import { LoaderCircleIcon } from '@lucide/svelte';
 
 	type Props = {
 		isOpen: boolean;
@@ -26,7 +26,7 @@
 
 	let { isOpen = $bindable(false), version, onRefresh }: Props = $props();
 
-	let loading = $state(false);
+	let busy = $state(false);
 	let error_message: string | undefined = $state(undefined);
 
 	let selectedStep = $derived(getNextStep(version?.step) ?? 'inheritance');
@@ -51,7 +51,7 @@
 	const handleRun = (e: SubmitEvent) => {
 		e.preventDefault();
 		if (!version || !selectedStep || !parameters) return;
-		loading = true;
+		busy = true;
 		error_message = undefined;
 
 		console.debug('Running task:', version.id, selectedStep, parameters);
@@ -65,7 +65,7 @@
 				error_message = error.message;
 			})
 			.finally(() => {
-				loading = false;
+				busy = false;
 			});
 	};
 </script>
@@ -96,16 +96,19 @@
 			{#if error_message}
 				<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{error_message}</p>
 			{/if}
-			{#if loading}
-				<Spinner />
-			{:else}
+			<Dialog.Footer>
 				<div class="flex w-full items-center justify-end gap-2">
-					<Dialog.Close type="button" class={buttonVariants({ variant: 'secondary' })}>
+					<Dialog.Close class={buttonVariants({ variant: 'secondary' })} disabled={busy}>
 						Cancel
 					</Dialog.Close>
-					<Button type="submit" disabled={!allowSubmit}>Run</Button>
+					<Button type="submit" disabled={!allowSubmit || busy}>
+						{#if busy}
+							<LoaderCircleIcon data-icon="inline-start" class="animate-spin" />
+						{/if}
+						Run
+					</Button>
 				</div>
-			{/if}
+			</Dialog.Footer>
 		</form>
 	</Dialog.Content>
 </Dialog.Root>

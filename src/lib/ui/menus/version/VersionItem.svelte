@@ -81,7 +81,7 @@
 				</Item.Description>
 			</Item.Content>
 
-			<Item.Actions onclick={(e) => e.preventDefault()}>
+			<Item.Actions onclick={(e) => [e.preventDefault(), e.stopPropagation()]}>
 				{#if version.ready}
 					<Button variant="ghost" size="icon" onclick={() => (showRunDialog = true)}>
 						<PlayIcon />
