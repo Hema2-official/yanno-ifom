@@ -4,8 +4,9 @@
 	import { cn } from '$lib/utils/shadcn';
 	import * as geotiff from 'geotiff';
 	import { WebPConverter } from '$lib/utils/webp';
+	import { predictChannelPeriod, type ChannelPeriod } from '$lib/utils/frames';
 	import { TriangleAlertIcon } from '@lucide/svelte';
-	import { VideoColor, type VideoConfig } from '$lib/types/api.type';
+	import { defaultVideoConfig, VideoColor, type VideoConfig } from '$lib/types/api.type';
 	import { Label } from '$lib/components/ui/label';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { fly } from 'svelte/transition';
@@ -24,6 +25,7 @@
 	let decodeError = $state<string | null>(null);
 
 	let suggestedColor = $state<VideoColor | null>(null);
+	let suggestedPeriod = $state<ChannelPeriod | null>(null);
 
 	let selectedStartIndex: number | null = $state(null);
 	let isSelecting = $derived(selectedStartIndex !== null);
@@ -58,10 +60,14 @@
 		const previewCount = Math.min(count, 10);
 		const webpConverter = new WebPConverter();
 		const urls: string[] = [];
+		const histograms: Uint32Array[] = [];
 
 		for (let i = 0; i < previewCount; i++) {
 			const image = await tiff.getImage(i);
-			const webpBlob = await webpConverter.tiffImageToWebP(image, { normalizeRgb: true });
+			const webpBlob = await webpConverter.tiffImageToWebP(image, {
+				normalizeRgb: true,
+				histogramCallback: (histogram) => histograms.push(histogram)
+			});
 			urls.push(URL.createObjectURL(webpBlob));
 
 			// Auto-set video color on first frame
@@ -70,6 +76,13 @@
 					image.getSamplesPerPixel() > 1 ? VideoColor.RGB : VideoColor.GRAYSCALE;
 			}
 		}
+
+		// Auto-set the channel layout
+		suggestedPeriod = predictChannelPeriod(histograms);
+		videoConfig.start_period = suggestedPeriod?.start_period ?? defaultVideoConfig.start_period;
+		videoConfig.channel_period =
+			suggestedPeriod?.channel_period ?? defaultVideoConfig.channel_period;
+
 		previewUrls = urls;
 	}
 
@@ -157,12 +170,20 @@
 			</div>
 		</ScrollArea>
 
-		<span class="text-muted-foreground mt-1 text-left text-sm italic">
-			{#if !isSelecting}
-				Click to change the first primary frame...
-			{:else}
-				Click to select the end of the period...
+		<div class="text-muted-foreground mt-1 flex items-center gap-4 text-sm">
+			<span class="text-left italic">
+				{#if !isSelecting}
+					Click to change the first primary frame...
+				{:else}
+					Click to select the end of the period...
+				{/if}
+			</span>
+
+			{#if suggestedPeriod}
+				<span class="ml-auto shrink-0 transform-gpu" transition:fly={{ x: 6 }}>
+					Auto-detected {suggestedPeriod.channel_period} channels
+				</span>
 			{/if}
-		</span>
+		</div>
 	{/if}
 </div>

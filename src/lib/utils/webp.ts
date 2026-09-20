@@ -3,6 +3,7 @@ import type { GeoTIFFImage } from 'geotiff';
 
 type WebpConversionOptions = {
 	statisticsCallback?: (stats: VideoChannelMetadata) => void;
+	histogramCallback?: (histogram: Uint32Array) => void;
 	normalizeRgb?: boolean;
 };
 
@@ -56,6 +57,8 @@ export class WebPConverter {
 			stats = this.#calculateStats(rgbaData);
 			options.statisticsCallback(stats);
 		}
+		if (options?.histogramCallback)
+			options.histogramCallback(this.#calculateHistogram(rgbaData));
 		if (options?.normalizeRgb) this.#normalizeRgb(rgbaData, stats);
 
 		this.#ctx.putImageData(new ImageData(rgbaData, width, height), 0, 0);
@@ -91,6 +94,20 @@ export class WebPConverter {
 			g: { min_value: minG, max_value: maxG },
 			b: { min_value: minB, max_value: maxB }
 		};
+	}
+
+	#calculateHistogram(data: Uint8ClampedArray): Uint32Array {
+		const histogram = new Uint32Array(256);
+		const len = data.length;
+
+		for (let i = 0; i < len; i += 4) {
+			let value = data[i];
+			if (data[i + 1] > value) value = data[i + 1];
+			if (data[i + 2] > value) value = data[i + 2];
+			histogram[value]++;
+		}
+
+		return histogram;
 	}
 
 	#normalizeRgb(data: Uint8ClampedArray, stats?: VideoChannelMetadata) {
