@@ -128,19 +128,10 @@ export function textToTracks(input: string): TrackType[] {
 		// Convert polygon outline to RLE-encoded segmentation mask
 		const rle = polygonsToRle([points], defaultSize);
 
-		// Compute centroid and bounding box
-		// const { centroid, bbox } = getPolygonsInfo([points]);
-
 		tracks.push({
 			Frame: group.frame,
 			ObjectID: String(group.cellId).padStart(8, '0'),
 			SegmentationRLE: rle,
-			LocalTrackRLE: null,
-			Centroid: null,
-			SegBbox: null,
-			TrackBbox: null,
-			PrevID: null,
-			NextID: null,
 			TrackID: trackId++,
 			Interpolated: false
 		});
