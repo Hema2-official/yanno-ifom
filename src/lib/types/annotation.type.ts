@@ -19,7 +19,9 @@ export const trackSchema = z.object({
 	PrevID: z.string().nullable(),
 	NextID: z.string().nullable(),
 	TrackID: z.int().nullable(),
-	Interpolated: z.boolean()
+	Interpolated: z.boolean(),
+	Class: z.unknown().optional(),
+	AncestorID: z.int().nullable().optional()
 });
 
 export const changeSchema = z.object({
@@ -30,7 +32,7 @@ export const changeSchema = z.object({
 	)
 });
 
-// The backend adds fields we don't use (Class, AncestorID); keep them intact
+// Unknown fields the backend may add are kept intact
 export const annotationDataSchema = z.object({
 	current: z.array(trackSchema.loose()),
 	changes: z.array(changeSchema).default([])
