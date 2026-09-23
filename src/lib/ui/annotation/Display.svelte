@@ -98,17 +98,19 @@
 	// A grid change can leave the translation out of range
 	watch([() => gridCols, () => gridRows], () => movePixels(0, 0));
 
+	const MAX_ZOOM_DELTA = 10;
+
 	const imageWheel = (e: WheelEvent) => {
 		e.preventDefault();
 		if (!e.ctrlKey) return; // plain wheel is left to the tools
 
+		const delta = clamp(e.deltaY, MAX_ZOOM_DELTA);
+		const rate = zoomState.scrollMultiplier * 0.01;
+
 		const oldScale = scalePercent;
 		const newScale = Math.max(
 			zoomState.minScale,
-			Math.min(
-				zoomState.maxScale,
-				oldScale * (1 - zoomState.scrollMultiplier * e.deltaY * 0.001)
-			)
+			Math.min(zoomState.maxScale, oldScale * Math.exp(-delta * rate))
 		);
 		if (newScale === oldScale) return;
 		contextMenu = null;
