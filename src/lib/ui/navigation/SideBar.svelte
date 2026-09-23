@@ -2,6 +2,7 @@
 	import { svgState } from '$lib/states/svg.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
 	import { Slider } from '$lib/components/ui/slider';
@@ -12,6 +13,7 @@
 	import ColorMapSelect from '$lib/ui/common/ColorMapSelect.svelte';
 	import HistoryList from '$lib/ui/common/HistoryList.svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { RotateCcwIcon } from '@lucide/svelte';
 
 	const primaryChannelIndex = $derived(projectState.videoConfig?.start_period ?? 0);
 	const maxConcurrentFrames = $derived(Math.max(1, Math.min(6, projectState.frameCount)));
@@ -21,6 +23,21 @@
 	const lastShownFrameIndex = $derived(
 		annotationState.currentFrameIndex + videoDisplayState.concurrentFrames - 1
 	);
+
+	type ChannelSlider = {
+		key: 'opacity' | 'brightness' | 'contrast' | 'gamma';
+		format: (value: number) => string;
+		min: number;
+		max: number;
+		step: number;
+	};
+	const percent = (value: number) => (value * 100).toFixed(0) + '%';
+	const channelSliders: ChannelSlider[] = [
+		{ key: 'opacity', format: percent, min: 0, max: 1, step: 0.01 },
+		{ key: 'brightness', format: percent, min: -1, max: 1, step: 0.01 },
+		{ key: 'contrast', format: percent, min: 0, max: 3, step: 0.01 },
+		{ key: 'gamma', format: (v) => v.toFixed(2), min: 0.2, max: 4, step: 0.05 }
+	];
 
 	// Keep the frame window in range when the grid grows
 	$effect(() => {
@@ -68,22 +85,41 @@
 		<div class="flex flex-col gap-4 pb-6">
 			{#each videoDisplayState.channels as channel, channelIndex (channelIndex)}
 				<div class="flex flex-col gap-2">
-					<Label for="channel-{channelIndex}-visible" class="cursor-pointer">
-						<Switch
-							id="channel-{channelIndex}-visible"
-							bind:checked={channel.visible}
-						/>
-						Channel {channelIndex}
-						{#if channelIndex === primaryChannelIndex}(primary){/if}
-					</Label>
-					<Slider
-						type="single"
-						bind:value={channel.opacity}
-						min={0}
-						max={100}
-						step={1}
-						disabled={!channel.visible}
-					/>
+					<div class="flex h-6 items-center justify-between">
+						<Label for="channel-{channelIndex}-visible" class="cursor-pointer">
+							<Switch
+								id="channel-{channelIndex}-visible"
+								bind:checked={channel.visible}
+							/>
+							Channel {channelIndex}
+							{#if channelIndex === primaryChannelIndex}(primary){/if}
+						</Label>
+						{#if channel.isAdjusted}
+							<Button
+								variant="ghost"
+								size="icon-xs"
+								title="Reset brightness, contrast and gamma"
+								onclick={() => channel.resetAdjustments()}
+							>
+								<RotateCcwIcon />
+							</Button>
+						{/if}
+					</div>
+					{#if channel.visible}
+						{#each channelSliders as { key, format, ...range } (key)}
+							<div class="grid grid-cols-[6.5rem_1fr] items-center gap-2">
+								<span class="text-muted-foreground text-sm capitalize tabular-nums">
+									{key}: {format(channel[key])}
+								</span>
+								<Slider
+									type="single"
+									bind:value={channel[key]}
+									{...range}
+									disabled={!channel.visible}
+								/>
+							</div>
+						{/each}
+					{/if}
 				</div>
 			{/each}
 

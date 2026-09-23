@@ -12,7 +12,14 @@ type TableLUT = {
 	tableValues: string;
 };
 
-type SVGComponentTransferLUT = LinearLUT | TableLUT;
+type GammaLUT = {
+	type: 'gamma';
+	amplitude: number;
+	exponent: number;
+	offset: number;
+};
+
+type SVGComponentTransferLUT = LinearLUT | TableLUT | GammaLUT;
 
 export type RGBFuntions = {
 	r: SVGComponentTransferLUT;
@@ -77,6 +84,24 @@ export function getNormalizeFunctions(
 		g: getLinearLUT(channelMetadata.g),
 		b: getLinearLUT(channelMetadata.b)
 	};
+}
+
+/**
+ * Brightness (-1 to 1), contrast (a multiplier centered on middle gray) and
+ * gamma as one transfer function: C' = contrast * C^gamma + offset.
+ */
+export function getAdjustFunctions(
+	brightness: number,
+	contrast: number,
+	gamma: number
+): RGBFuntions {
+	const lut: GammaLUT = {
+		type: 'gamma',
+		amplitude: contrast,
+		exponent: gamma,
+		offset: brightness + 0.5 * (1 - contrast)
+	};
+	return { r: lut, g: lut, b: lut };
 }
 
 export type ColorMapType = (typeof AVAILABLE_COLORMAPS)[number];

@@ -7,11 +7,15 @@
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
-	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
+	import {
+		videoDisplayState,
+		type ChannelDisplaySettings
+	} from '$lib/states/VideoDisplayState.svelte';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import { getPointerViewBoxCoords, toMeasurable, type Measurable } from '$lib/utils/display';
 	import {
 		colormapToRgbFunctions,
+		getAdjustFunctions,
 		getNormalizeFunctions,
 		type RGBFuntions
 	} from '$lib/utils/imaging';
@@ -56,6 +60,16 @@
 		if (!metadata) return [];
 		return metadata.channels.map((_, i) => getNormalizeFunctions(metadata, i));
 	});
+
+	/** A channel's image goes through the normalization, its adjustments, then the colormap. */
+	const channelFilter = (channel: ChannelDisplaySettings, channelIndex: number) => {
+		let filter = '';
+		if (svgState.normalizeSwitch && normalizeFilters[channelIndex])
+			filter += `url(#normalize-f-${channelIndex}) `;
+		if (channel.isAdjusted) filter += `url(#adjust-f-${channelIndex}) `;
+		if (svgState.colormapSwitch) filter += 'url(#colormap-f) ';
+		return filter.trim();
+	};
 
 	const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
@@ -334,6 +348,14 @@
 			{#each normalizeFilters as functions, channelIndex (channelIndex)}
 				{@render SVGFilter(`normalize-f-${channelIndex}`, functions)}
 			{/each}
+			{#each videoDisplayState.channels as channel, channelIndex (channelIndex)}
+				{#if channel.isAdjusted}
+					{@render SVGFilter(
+						`adjust-f-${channelIndex}`,
+						getAdjustFunctions(channel.brightness, channel.contrast, channel.gamma)
+					)}
+				{/if}
+			{/each}
 
 			{#each { length: videoDisplayState.concurrentFrames }, gridIndex (gridIndex)}
 				{@const frameIndex = annotationState.currentFrameIndex + gridIndex}
@@ -355,10 +377,8 @@
 								{href}
 								width={vb.width}
 								height={vb.height}
-								opacity={channel.opacity / 100}
-								filter="{svgState.normalizeSwitch && normalizeFilters[channelIndex]
-									? `url(#normalize-f-${channelIndex})`
-									: ''} {svgState.colormapSwitch ? 'url(#colormap-f)' : ''}"
+								opacity={channel.opacity}
+								filter={channelFilter(channel, channelIndex)}
 							/>
 						{/if}
 					{/each}
