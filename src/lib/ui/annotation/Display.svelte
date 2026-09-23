@@ -324,7 +324,7 @@
 {/snippet}
 
 <div
-	class="display-container"
+	class="bg-empty-background relative flex size-full max-h-full max-w-full items-center overflow-hidden"
 	role="presentation"
 	oncontextmenu={handleContextMenu}
 	onpointerleave={() => (inputState.pointer = null)}
@@ -335,7 +335,7 @@
 	onwheel={imageWheel}
 >
 	<div
-		class="image-wrapper"
+		class="absolute flex size-full max-h-full max-w-full flex-col items-center"
 		role="presentation"
 		style:cursor={isPanning ? 'grabbing' : 'grab'}
 		bind:this={imageWrapperElement}
@@ -344,7 +344,7 @@
 			viewBox="{vb.minX} {vb.minY} {vb.width * gridCols} {vb.height * gridRows}"
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
-			class="zoomable annotation-svg"
+			class="absolute origin-center select-none"
 			style:top="{imageTop}px"
 			style:width="{scalePercent}%"
 			style:height="{scalePercent}%"
@@ -422,39 +422,3 @@
 
 	<EditorToolbar />
 </div>
-
-<style lang="scss">
-	.display-container {
-		position: relative;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		width: 100%;
-		height: 100%;
-		max-width: 100%;
-		max-height: 100%;
-		background-color: var(--empty-background-color);
-		overflow: hidden;
-	}
-
-	:global(.image-wrapper) {
-		position: absolute;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		width: 100%;
-		height: 100%;
-		max-width: 100%;
-		max-height: 100%;
-	}
-
-	// The display scaled by the zoom; the frame grid is letterboxed inside it
-	.zoomable {
-		position: absolute;
-		transform-origin: center;
-	}
-
-	.annotation-svg {
-		user-select: none;
-	}
-</style>
