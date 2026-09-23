@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getAbortSignal } from 'svelte';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 	import { cn } from '$lib/utils/shadcn';
@@ -33,17 +34,20 @@
 	// Decode preview frames when file is selected/changed
 	$effect(() => {
 		if (!file) return;
+		// Aborted when another file replaces this one or the component unmounts
+		const signal = getAbortSignal();
 
 		isDecoding = true;
 		decodeError = null;
 
-		extractPreview(file)
+		extractPreview(file, signal)
 			.catch((err) => {
+				if (signal.aborted) return;
 				console.error(err);
 				decodeError = 'Failed to decode preview frames from TIFF video file.';
 			})
 			.finally(() => {
-				isDecoding = false;
+				if (!signal.aborted) isDecoding = false;
 			});
 
 		return () => {
@@ -52,14 +56,14 @@
 		};
 	});
 
-	async function extractPreview(videoFile: File) {
-		const tiff = await geotiff.fromBlob(videoFile);
+	async function extractPreview(videoFile: File, signal: AbortSignal) {
+		const tiff = await geotiff.fromBlob(videoFile, signal);
 		const count = await tiff.getImageCount();
 
 		// Only decode up to 10 frames to spare memory
 		const previewCount = Math.min(count, 10);
 		const webpConverter = new WebPConverter();
-		const urls: string[] = [];
+		const blobs: Blob[] = [];
 		const histograms: Uint32Array[] = [];
 
 		for (let i = 0; i < previewCount; i++) {
@@ -68,7 +72,8 @@
 				normalizeRgb: true,
 				histogramCallback: (histogram) => histograms.push(histogram)
 			});
-			urls.push(URL.createObjectURL(webpBlob));
+			signal.throwIfAborted();
+			blobs.push(webpBlob);
 
 			// Auto-set video color on first frame
 			if (i === 0) {
@@ -76,6 +81,7 @@
 					image.getSamplesPerPixel() > 1 ? VideoColor.RGB : VideoColor.GRAYSCALE;
 			}
 		}
+		signal.throwIfAborted();
 
 		// Auto-set the channel layout
 		suggestedPeriod = predictChannelPeriod(histograms);
@@ -83,7 +89,7 @@
 		videoConfig.channel_period =
 			suggestedPeriod?.channel_period ?? defaultVideoConfig.channel_period;
 
-		previewUrls = urls;
+		previewUrls = blobs.map((blob) => URL.createObjectURL(blob));
 	}
 
 	function handleClick(index: number) {

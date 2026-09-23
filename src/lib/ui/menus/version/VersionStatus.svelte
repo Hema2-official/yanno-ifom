@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getAbortSignal } from 'svelte';
 	import { streamTask } from '$lib/api/realtime';
 	import { getTaskStatus } from '$lib/api/projects';
 	import type { ProjectVersion, ServerTask } from '$lib/types/api.type';
@@ -12,30 +13,24 @@
 	let message = $state('');
 	let errorMessage: string | null = $state(null);
 
-	let abortController: AbortController | undefined;
-
 	function updateStatus(task: ServerTask) {
 		if (task.finished) errorMessage = task.error ?? null;
 		else if (task.cancelled) message = 'Cancelling...';
 		else message = task.status_message;
 	}
 
-	async function updateStream() {
-		abortController?.abort();
-		abortController = new AbortController();
-
+	async function updateStream(signal: AbortSignal) {
 		try {
-			for await (const task of streamTask(version, abortController.signal)) {
+			for await (const task of streamTask(version, signal)) {
 				updateStatus(task);
 				if (task.finished) {
-					abortController = undefined;
 					onReady?.();
 					break;
 				}
 			}
 		} catch (error) {
-			if (error instanceof DOMException && error.name === 'AbortError') return;
-			throw error;
+			// Aborted when the effect re-runs or the component unmounts
+			if (!signal.aborted) throw error;
 		}
 	}
 
@@ -44,10 +39,8 @@
 			.then(updateStatus)
 			.catch((err) => console.debug('Failed to fetch task: ', err));
 
-		if (!version.ready) updateStream();
+		if (!version.ready) updateStream(getAbortSignal());
 		else message = 'Ready';
-
-		return () => abortController?.abort();
 	});
 </script>
 
