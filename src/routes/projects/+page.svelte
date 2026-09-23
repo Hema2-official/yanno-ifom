@@ -6,7 +6,6 @@
 	import { deleteProject, getProjects, updateProject } from '$lib/api/projects';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
-	import { videoSummary } from '$lib/utils/frames';
 	import { Button } from '$lib/components/ui/button';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import ProjectList from '$lib/ui/menus/projects/ProjectList.svelte';
@@ -41,17 +40,15 @@
 				<ProjectItem
 					href={resolve(`/projects?project=${project.id}`)}
 					icon={CloudIcon}
-					name={project.name}
-					details={[
-						videoSummary(project.video_config, project.video_metadata),
-						project.versions.length
-							? `Versions: ${project.versions.map((v) => v.name).join(', ')}`
-							: 'No versions yet'
-					]}
+					{project}
 					onRename={(name) => updateProject(project.id, { name }).then(refetch)}
 					deleteDescription={`"${project.name}" and all of its versions will be deleted permanently.`}
 					onDelete={() => deleteProject(project.id).finally(refetch)}
-				/>
+				>
+					{#if project.versions.length}
+						Versions: {project.versions.map((v) => v.name).join(', ')}
+					{:else}No versions yet{/if}
+				</ProjectItem>
 			{/snippet}
 		</ProjectList>
 	{/if}
@@ -67,8 +64,7 @@
 				<ProjectItem
 					href={resolve(`/editor?project=local_${project.id}`)}
 					icon={HardDriveIcon}
-					name={project.name}
-					details={[videoSummary(project.video_config, project.video_metadata)]}
+					{project}
 					onRename={(name) =>
 						projectState.renameLocalProject(project.id!, name).then(refetch)}
 					deleteDescription={`"${project.name}" will be removed from this browser.`}

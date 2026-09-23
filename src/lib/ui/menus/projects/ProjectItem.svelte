@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { PencilIcon, TrashIcon, type LucideIcon } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import * as Item from '$lib/components/ui/item';
@@ -6,23 +7,26 @@
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
 	import RenameDialog from './RenameDialog.svelte';
 	import { cn } from '$lib/utils/shadcn';
+	import { videoSummary } from '$lib/utils/frames';
 	import { extractError } from '$lib/api/errors';
+	import type { Project } from '$lib/types/api.type';
+	import type { DBProject } from '$lib/utils/indexeddb';
 
 	type Props = {
 		href: string;
 		icon: LucideIcon;
-		name: string;
-		details: string[];
-		onRename: (name: string) => Promise<unknown>;
-		deleteDescription: string;
-		onDelete: () => Promise<unknown>;
+		project: Project | DBProject;
+		children?: Snippet;
+		onRename?: (name: string) => Promise<unknown>;
+		deleteDescription?: string;
+		onDelete?: () => Promise<unknown>;
 	};
 
 	let {
 		href,
 		icon: Icon,
-		name,
-		details,
+		project,
+		children,
 		onRename,
 		deleteDescription,
 		onDelete
@@ -32,7 +36,7 @@
 	let showDeleteDialog = $state(false);
 
 	const handleDelete = () =>
-		onDelete().catch((error: unknown) => {
+		onDelete?.().catch((error: unknown) => {
 			toast.error('Failed to delete project', { description: extractError(error) });
 		});
 </script>
@@ -48,35 +52,52 @@
 			<Item.Media variant="icon"><Icon /></Item.Media>
 
 			<Item.Content>
-				<Item.Title class="line-clamp-1">{name}</Item.Title>
-				{#each details as detail, i (i)}
-					<Item.Description>{detail}</Item.Description>
-				{/each}
+				<Item.Title class="line-clamp-1">{project.name}</Item.Title>
+				<Item.Description>
+					{videoSummary(project.video_config, project.video_metadata)}
+				</Item.Description>
+				{#if children}
+					<Item.Description>{@render children()}</Item.Description>
+				{/if}
 			</Item.Content>
 
-			<Item.Actions onclick={(e) => e.preventDefault()}>
-				<Button variant="ghost" size="icon" onclick={() => (showRenameDialog = true)}>
-					<PencilIcon />
-				</Button>
-				<Button
-					variant="ghost"
-					size="icon"
-					class="hover:bg-destructive/40!"
-					onclick={() => (showDeleteDialog = true)}
-				>
-					<TrashIcon />
-				</Button>
-			</Item.Actions>
+			{#if onRename || onDelete}
+				<Item.Actions onclick={(e) => e.preventDefault()}>
+					{#if onRename}
+						<Button
+							variant="ghost"
+							size="icon"
+							onclick={() => (showRenameDialog = true)}
+						>
+							<PencilIcon />
+						</Button>
+					{/if}
+					{#if onDelete}
+						<Button
+							variant="ghost"
+							size="icon"
+							class="hover:bg-destructive/40!"
+							onclick={() => (showDeleteDialog = true)}
+						>
+							<TrashIcon />
+						</Button>
+					{/if}
+				</Item.Actions>
+			{/if}
 		</Button>
 	{/snippet}
 </Item.Root>
 
-<RenameDialog bind:open={showRenameDialog} {name} rename={onRename} />
+{#if onRename}
+	<RenameDialog bind:open={showRenameDialog} name={project.name} rename={onRename} />
+{/if}
 
-<ConfirmDialog
-	bind:open={showDeleteDialog}
-	title="Delete project?"
-	description={deleteDescription}
-	confirmLabel="Delete"
-	onConfirm={handleDelete}
-/>
+{#if onDelete}
+	<ConfirmDialog
+		bind:open={showDeleteDialog}
+		title="Delete project?"
+		description={deleteDescription}
+		confirmLabel="Delete"
+		onConfirm={handleDelete}
+	/>
+{/if}
