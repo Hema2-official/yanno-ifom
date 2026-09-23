@@ -5,8 +5,26 @@ export type AuthResponse = {
 export type MeResponse = {
 	id: number;
 	email: string;
+	name: string;
 	created_at: string;
 	updated_at: string;
+};
+
+/** Another user, as the API lists them. */
+export type UserSummary = {
+	id: number;
+	email: string;
+	name: string;
+};
+
+export type ProjectRole = 'viewer' | 'editor' | 'owner';
+/** Projects are shared with viewers and editors; the owner is never a member. */
+export type MemberRole = Exclude<ProjectRole, 'owner'>;
+
+export type ProjectMember = {
+	account: UserSummary;
+	role: MemberRole;
+	created_at: Date;
 };
 
 export const versionStepOrder = ['segmentation', 'tracking', 'inheritance'] as const;
@@ -77,6 +95,9 @@ export type VideoMetadata = {
 export type Project = {
 	id: string; // UUID
 	name: string;
+	owner: UserSummary;
+	/** The current user's role in the project. */
+	role: ProjectRole;
 	video_config: VideoConfig;
 	video_metadata: VideoMetadata;
 	versions: ProjectVersion[];

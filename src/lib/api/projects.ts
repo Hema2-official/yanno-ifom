@@ -3,7 +3,9 @@ import type { Options } from 'ky';
 import type {
 	CreateProjectVersionBody,
 	EnqueueTaskBody,
+	MemberRole,
 	Project,
+	ProjectMember,
 	ProjectVersion,
 	ServerTask,
 	VideoConfig
@@ -23,6 +25,16 @@ function fixDates<T extends { created_at?: string | Date; updated_at?: string | 
 export async function getProjects(options?: Options) {
 	try {
 		const data = await http.get<Project[]>(`api/v0/projects/`, options);
+		return data.map(fixDates);
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
+/** Other users' projects shared with the current one. */
+export async function getSharedProjects(options?: Options) {
+	try {
+		const data = await http.get<Project[]>(`api/v0/projects/shared`, options);
 		return data.map(fixDates);
 	} catch (error) {
 		throw await handleError(error);
@@ -202,6 +214,61 @@ export async function cancelTask(version: ProjectVersion, options?: Options) {
 			`api/v0/projects/${version.project_id}/versions/${version.id}/cancel`,
 			options
 		);
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
+/** The users a project is shared with (without its owner). */
+export async function getMembers(projectId: string, options?: Options) {
+	try {
+		const data = await http.get<ProjectMember[]>(
+			`api/v0/projects/${projectId}/members`,
+			options
+		);
+		return data.map(fixDates);
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
+export async function addMember(
+	projectId: string,
+	body: { account_id: number; role: MemberRole },
+	options?: Options
+) {
+	try {
+		const data = await http.post<ProjectMember>(`api/v0/projects/${projectId}/members`, {
+			...options,
+			json: body
+		});
+		return fixDates(data);
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
+export async function updateMember(
+	projectId: string,
+	accountId: number,
+	role: MemberRole,
+	options?: Options
+) {
+	try {
+		const data = await http.patch<ProjectMember>(
+			`api/v0/projects/${projectId}/members/${accountId}`,
+			{ ...options, json: { role } }
+		);
+		return fixDates(data);
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
+/** Stops sharing a project with a user; members can remove themselves to leave. */
+export async function removeMember(projectId: string, accountId: number, options?: Options) {
+	try {
+		await http.delete(`api/v0/projects/${projectId}/members/${accountId}`, options);
 	} catch (error) {
 		throw await handleError(error);
 	}

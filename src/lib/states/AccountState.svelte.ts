@@ -1,4 +1,4 @@
-import { getMe } from '$lib/api/users';
+import { getMe, updateMe } from '$lib/api/users';
 import type { MeResponse } from '$lib/types/api.type';
 
 class AccountState {
@@ -9,6 +9,10 @@ class AccountState {
 
 	async refresh() {
 		this.currentAccount = await getMe().catch(() => null);
+	}
+
+	async setName(name: string) {
+		this.currentAccount = await updateMe({ name });
 	}
 }
 
