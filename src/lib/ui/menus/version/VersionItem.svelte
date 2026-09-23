@@ -100,6 +100,7 @@
 					variant="ghost"
 					size="icon"
 					class="hover:bg-destructive/40!"
+					disabled={!version.ready}
 					onclick={() => (showDeleteDialog = true)}
 					><TrashIcon />
 				</Button>
