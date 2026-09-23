@@ -99,12 +99,19 @@
 			}
 		};
 
+		// Disable accidental UI zooming on touchpads
+		const preventPageZoom = (e: WheelEvent) => {
+			if (e.ctrlKey) e.preventDefault();
+		};
+
 		document.body.addEventListener('keydown', handleKeyDown);
 		document.body.addEventListener('keyup', handleKeyUp);
+		window.addEventListener('wheel', preventPageZoom, { passive: false });
 
 		return () => {
 			document.body.removeEventListener('keydown', handleKeyDown);
 			document.body.removeEventListener('keyup', handleKeyUp);
+			window.removeEventListener('wheel', preventPageZoom);
 		};
 	});
 
