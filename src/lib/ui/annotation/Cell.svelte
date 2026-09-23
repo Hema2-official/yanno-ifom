@@ -8,10 +8,11 @@
 	type Props = {
 		cellPolygons: Polygon[];
 		cellId: string;
+		label: string | null;
 		selected?: boolean;
 	};
 
-	let { cellPolygons, cellId, selected = false }: Props = $props();
+	let { cellPolygons, cellId, label, selected = false }: Props = $props();
 
 	const center = $derived(getCenterOfPolygonsCached(cellPolygons));
 </script>
@@ -31,8 +32,8 @@
 	{/each}
 </g>
 
-<!-- Hold Shift to hide the labels -->
-{#if !inputState.pressedKeys.has('Shift')}
+<!-- TODO: centralize this too | Hold Shift to hide the labels -->
+{#if label !== null && !inputState.pressedKeys.has('Shift')}
 	<text
 		x={center.x}
 		y={center.y}
@@ -40,7 +41,7 @@
 		dominant-baseline="middle"
 		fill="black"
 		font-size="12px"
-		font-weight="bold">{cellId}</text
+		font-weight="bold">{label}</text
 	>
 {/if}
 

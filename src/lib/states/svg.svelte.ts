@@ -1,3 +1,4 @@
+import type { TrackType } from '$lib/types/annotation.type';
 import type { ColorMapType } from '$lib/utils/imaging';
 import { projectState } from './ProjectState.svelte';
 
@@ -8,8 +9,14 @@ export type SvgViewBoxType = {
 	height: number;
 };
 
+export const labelKeys = ['ObjectID', 'TrackID', 'Class'] as const;
+export type LabelKey = Extract<keyof TrackType, (typeof labelKeys)[number]>;
+
 class SvgState {
 	isSvgShown = $state(true);
+
+	labelSwitch = $state(true);
+	labelKey: LabelKey = $state('ObjectID');
 
 	svgFill = $state('#ffffff');
 	svgStroke = $state('#000000');

@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { svgState } from '$lib/states/svg.svelte';
+	import { labelKeys, svgState, type LabelKey } from '$lib/states/svg.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
+	import * as Select from '$lib/components/ui/select';
 	import { Slider } from '$lib/components/ui/slider';
 	import { Switch } from '$lib/components/ui/switch';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
@@ -23,6 +24,10 @@
 	const lastShownFrameIndex = $derived(
 		annotationState.currentFrameIndex + videoDisplayState.concurrentFrames - 1
 	);
+
+	function readableLabelKey(key: LabelKey): string {
+		return key.replace(/([a-z])([A-Z])/g, '$1 $2');
+	}
 
 	type ChannelSlider = {
 		key: 'opacity' | 'brightness' | 'contrast' | 'gamma';
@@ -78,6 +83,21 @@
 					max={256}
 					step={1}
 				/>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<Switch id="labels-switch" bind:checked={svgState.labelSwitch} />
+				<Label for="labels-switch">Labels:</Label>
+				<Select.Root type="single" bind:value={svgState.labelKey}>
+					<Select.Trigger class="flex-1 font-normal" size="sm">
+						{readableLabelKey(svgState.labelKey)}
+					</Select.Trigger>
+					<Select.Content>
+						{#each labelKeys as value (value)}
+							<Select.Item {value} label={readableLabelKey(value)} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
 			</div>
 		</div>
 

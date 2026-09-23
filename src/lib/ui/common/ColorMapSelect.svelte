@@ -44,7 +44,7 @@
 				{...props}
 				variant="outline"
 				size="sm"
-				class="w-48 justify-between text-left font-normal"
+				class="w-48 justify-between text-left text-sm font-normal"
 				role="combobox"
 				aria-expanded={open}
 			>

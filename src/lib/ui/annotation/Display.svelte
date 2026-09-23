@@ -20,6 +20,7 @@
 		type RGBFuntions
 	} from '$lib/utils/imaging';
 	import { rleToPolygons } from '$lib/utils/rle';
+	import type { TrackType } from '$lib/types/annotation.type';
 	import { toolRegistry } from '$lib/ui/editor-tools/registry';
 	import Cell from './Cell.svelte';
 	import DisplayContextMenu, { type DisplayTarget } from './DisplayContextMenu.svelte';
@@ -69,6 +70,11 @@
 		if (channel.isAdjusted) filter += `url(#adjust-f-${channelIndex}) `;
 		if (svgState.colormapSwitch) filter += 'url(#colormap-f) ';
 		return filter.trim();
+	};
+
+	const cellLabel = (cell: TrackType): string | null => {
+		if (!svgState.labelSwitch) return null;
+		return String(cell[svgState.labelKey] ?? '');
 	};
 
 	const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
@@ -388,6 +394,7 @@
 							<Cell
 								cellPolygons={rleToPolygons(object.SegmentationRLE)}
 								cellId={object.ObjectID}
+								label={cellLabel(object)}
 								selected={editorState.isSelected(object)}
 							/>
 						{/each}
