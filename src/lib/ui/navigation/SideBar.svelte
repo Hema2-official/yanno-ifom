@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { svgState } from '$lib/states/svg.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
-	import { editorState } from '$lib/states/EditorState.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
@@ -93,7 +92,7 @@
 				min={1}
 				max={maxConcurrentFrames}
 				step={1}
-				disabled={editorState.isEditing || maxConcurrentFrames < 2}
+				disabled={maxConcurrentFrames < 2}
 			/>
 		</div>
 
@@ -112,7 +111,7 @@
 				min={0}
 				max={maxFrameIndex}
 				step={1}
-				disabled={editorState.isEditing || projectState.frameCount === 0}
+				disabled={projectState.frameCount === 0}
 			/>
 		</div>
 	</div>
@@ -143,10 +142,6 @@
 			<Label for="svg-alpha" class="text-nowrap">SVG opacity</Label>
 			<Slider id="svg-alpha" type="single" bind:value={svgState.svgAlpha} max={255} />
 		</div>
-
-		<Label for="is-editing" class="cursor-pointer">
-			<Switch id="is-editing" bind:checked={editorState.isEditing} /> Edit mode
-		</Label>
 
 		<Label for="pointer-lock-enabled" class="cursor-pointer">
 			<Switch id="pointer-lock-enabled" bind:checked={optionsState.pointerLockEnabled} />

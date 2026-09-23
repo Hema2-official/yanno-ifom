@@ -1,6 +1,6 @@
-import type { Polygon } from '$lib/types/geometry.type';
+import type { TrackType } from '$lib/types/annotation.type';
 
 export type EditorToolProps = {
-	bodies: Polygon[];
-	pushLocalState: () => void;
+	frameIndex: number;
+	cells: TrackType[];
 };

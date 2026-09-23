@@ -1,42 +1,7 @@
-import type { BoundingBoxType } from '$lib/types/annotation.type';
 import type { Point, Polygon } from '$lib/types/geometry.type';
 
 function distance(x1: number, y1: number, x2: number, y2: number): number {
 	return Math.hypot(x2 - x1, y2 - y1);
-}
-
-/**
- * Compute the centroid and bounding box over all points of all polygons.
- *
- * @param polygons Array of polygons ({x, y} vertex lists).
- * @returns The centroid `[y, x]` and bounding box `[minX, minY, maxX, maxY]`.
- */
-export function getPolygonsInfo(polygons: Polygon[]): {
-	centroid: [number, number];
-	bbox: BoundingBoxType;
-} {
-	const { minX, minY, maxX, maxY } = getPolygonsBounds(polygons);
-
-	let sumX = 0;
-	let sumY = 0;
-	let count = 0;
-
-	for (const polygon of polygons) {
-		for (const point of polygon) {
-			sumX += point.x;
-			sumY += point.y;
-			count++;
-		}
-	}
-
-	if (count === 0) {
-		return { centroid: [0, 0], bbox: [0, 0, 0, 0] };
-	}
-
-	return {
-		centroid: [Math.round(sumY / count), Math.round(sumX / count)],
-		bbox: [Math.round(minX), Math.round(minY), Math.round(maxX), Math.round(maxY)]
-	};
 }
 
 export function resampleCellBody(body: Polygon, segmentLength: number): Polygon {
@@ -125,12 +90,18 @@ export function getCenterOfPolygon(polygon: Polygon): Point {
 	return getCenterOfPolygons([polygon]);
 }
 
-const centerCache = new WeakMap<Polygon[], Point>();
-export function getCenterOfPolygonsCached(polygons: Polygon[]): Point {
-	let center = centerCache.get(polygons);
-	if (center === undefined) {
-		center = getCenterOfPolygons(polygons);
-		centerCache.set(polygons, center);
+const boundsCache = new WeakMap<Polygon[], Bounds>();
+/** `getPolygonsBounds` memoized on the array's identity: only for polygons that are never mutated. */
+export function getPolygonsBoundsCached(polygons: Polygon[]): Bounds {
+	let bounds = boundsCache.get(polygons);
+	if (bounds === undefined) {
+		bounds = getPolygonsBounds(polygons);
+		boundsCache.set(polygons, bounds);
 	}
-	return center;
+	return bounds;
+}
+
+export function getCenterOfPolygonsCached(polygons: Polygon[]): Point {
+	const { midX, midY } = getPolygonsBoundsCached(polygons);
+	return { x: midX, y: midY };
 }

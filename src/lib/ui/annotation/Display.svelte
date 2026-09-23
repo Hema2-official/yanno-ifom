@@ -1,242 +1,265 @@
 <script lang="ts">
+	import { watch } from 'runed';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
-	import type { TrackType } from '$lib/types/annotation.type';
-	import { Mouse, isDown, isUp } from '$lib/utils/mouse';
-	import {
-		getPointerCoords,
-		getPointerViewBoxCoords,
-		toMeasurable,
-		type Measurable
-	} from '$lib/utils/display';
-	import Cell from './Cell.svelte';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
-	import EditorControls from './EditorControls.svelte';
-	import NewEditor from './NewEditor.svelte';
-	import { rleToPolygons } from '$lib/utils/rle';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
+	import { getPointerViewBoxCoords, toMeasurable, type Measurable } from '$lib/utils/display';
 	import {
 		colormapToRgbFunctions,
 		getNormalizeFunctions,
 		type RGBFuntions
 	} from '$lib/utils/imaging';
-	import { toast } from 'svelte-sonner';
+	import { rleToPolygons } from '$lib/utils/rle';
+	import { toolRegistry } from '$lib/ui/editor-tools/registry';
+	import Cell from './Cell.svelte';
+	import DisplayContextMenu, { type DisplayTarget } from './DisplayContextMenu.svelte';
+	import EditorToolbar from './EditorToolbar.svelte';
 
-	let colormapFilter = $derived(
-		colormapToRgbFunctions(svgState.videoColormap, svgState.videoColormapShades)
-	);
+	// The current tool is mounted in every frame tile, always
+	const Tool = $derived(toolRegistry[editorState.tool].component);
 
-	let contextMenuOpen = $state(false);
-	let contextMenuAnchor: Measurable | null = $state(null);
-	let contextMenuCell: TrackType | null = $state.raw(null);
+	let contextMenu = $state.raw<{ anchor: Measurable; target: DisplayTarget } | null>(null);
+
+	// Switching tools or changing the data (by shortcut, toolbar or keyboard) closes the menu
+	watch([() => editorState.tool, () => annotationState.data], () => {
+		contextMenu = null;
+	});
 
 	let imageWrapperElement: HTMLDivElement | null = $state(null);
 	let svgElement: SVGSVGElement;
 
-	let styles = $state({
-		'scale-percent': 100,
-		'translate-x': 0,
-		'translate-y': 0,
-		'image-top': 0,
-		cursor: 'grab'
-	});
+	// Zoom and pan of the frame grid
+	let scalePercent = $state(100);
+	let translateX = $state(0);
+	let translateY = $state(0);
+	let imageTop = $state(0);
 
 	$effect(() => {
-		svgState.svgScalePercent = styles['scale-percent'];
+		svgState.svgScalePercent = scalePercent;
 	});
 
-	const stylesUnits: { [key: string]: number | string } = {
-		'scale-percent': '%',
-		'translate-x': 'px',
-		'translate-y': 'px',
-		'image-top': 'px',
-		cursor: ''
-	};
+	const vb = $derived(svgState.svgViewBox);
+	const gridCols = $derived(Math.ceil(Math.sqrt(videoDisplayState.concurrentFrames)));
+	const gridRows = $derived(Math.ceil(videoDisplayState.concurrentFrames / gridCols));
 
-	let cssVarStyles = $derived(
-		Object.entries(styles)
-			.map(([key, value]) => `--${key}:${value}${stylesUnits[key]}`)
-			.join(';')
+	const colormapFilter = $derived(
+		colormapToRgbFunctions(svgState.videoColormap, svgState.videoColormapShades)
 	);
-
-	const movePixels = (x: number, y: number) => {
-		if (!imageWrapperElement) return;
-		const scale = styles['scale-percent'] / 100;
-		const scaledWidth = imageWrapperElement.clientWidth * scale;
-		const scaledHeight = imageWrapperElement.clientHeight * scale;
-		const offsetX = (Math.min(scaledHeight, scaledWidth) - imageWrapperElement.clientWidth) / 2;
-		const offsetY =
-			(Math.min(scaledHeight, scaledWidth) - imageWrapperElement.clientHeight) / 2;
-		styles['translate-x'] =
-			scaledHeight >= imageWrapperElement.clientWidth
-				? Math.max(-offsetX, Math.min(offsetX, x + styles['translate-x']))
-				: 0;
-		styles['translate-y'] =
-			scaledWidth >= imageWrapperElement.clientHeight
-				? Math.max(-offsetY, Math.min(offsetY, y + styles['translate-y']))
-				: 0;
-		styles['image-top'] = -(scaledHeight - imageWrapperElement.clientHeight) / 2;
-	};
-
-	const imageWheel = (e: WheelEvent) => {
-		e.preventDefault();
-
-		// require ctrl key
-		if (!e.ctrlKey) return;
-
-		// check if zooming makes sense
-		if (styles['scale-percent'] === zoomState.minScale && e.deltaY > 0) return;
-		if (styles['scale-percent'] === zoomState.maxScale && e.deltaY < 0) return;
-
-		// hide context menu
-		contextMenuOpen = false;
-
-		// find mouse pos
-		const mouse = getPointerCoords(e);
-
-		// adjust zoom (the bigger the scale, the faster the zoom)
-		const oldScalePercent = styles['scale-percent'];
-		styles['scale-percent'] = Math.max(
-			zoomState.minScale,
-			Math.min(
-				zoomState.maxScale,
-				zoomState.scrollMultiplier * e.deltaY * -0.001 * styles['scale-percent'] +
-					styles['scale-percent']
-			)
-		);
-
-		// adjust translate
-		const { width, height, top, left } = svgElement.getBoundingClientRect();
-		const scaleDiff = styles['scale-percent'] / 100 / (oldScalePercent / 100) - 1;
-		const distanceX = (width / 2 - mouse.x + left) * scaleDiff;
-		const distanceY = (height / 2 - mouse.y + top) * scaleDiff;
-		movePixels(distanceX, distanceY);
-	};
-
-	const imageMouse = {
-		prevX: 0,
-		prevY: 0,
-		down: false,
-		first: true,
-		setPos: (pos: { x: number; y: number }) => {
-			imageMouse.prevX = pos.x;
-			imageMouse.prevY = pos.y;
-		},
-		mouseDown: (e: MouseEvent) => {
-			if (!imageWrapperElement || !isDown(Mouse.Primary, e.buttons)) return;
-			if (optionsState.pointerLockEnabled) {
-				imageWrapperElement.requestPointerLock();
-				imageMouse.first = true;
-			} else imageMouse.setPos(getPointerCoords(e));
-			imageMouse.down = true;
-			styles['cursor'] = 'grabbing';
-		},
-		mouseUp: (e: MouseEvent) => {
-			// if an editor tool owns the gesture, pass the event to it
-			if (inputState.displayMouseUp !== null) return inputState.displayMouseUp(e);
-
-			if (!isUp(Mouse.Primary, e.buttons)) return;
-			if (optionsState.pointerLockEnabled) document.exitPointerLock();
-			imageMouse.down = false;
-			styles['cursor'] = 'grab';
-		},
-		mouseMove: (e: MouseEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
-
-			// Update viewbox coord values
-			getPointerViewBoxCoords(e, svgElement);
-
-			// if an editor tool owns the gesture, pass the event to it
-			if (inputState.displayMouseMove !== null) return inputState.displayMouseMove(e);
-
-			if (!imageMouse.down) return;
-			if (styles['scale-percent'] === zoomState.minScale) return;
-			if (optionsState.pointerLockEnabled) return imageMouse.mouseMoveLocked(e);
-
-			// find mouse pos
-			const mouse = getPointerCoords(e);
-
-			// adjust translate
-			movePixels(mouse.x - imageMouse.prevX, mouse.y - imageMouse.prevY);
-
-			// update prev
-			imageMouse.prevX = mouse.x;
-			imageMouse.prevY = mouse.y;
-		},
-		mouseMoveLocked: (e: MouseEvent) => {
-			// check if this is the first move (cuz then it's either noise or just 0)
-			if (imageMouse.first) {
-				// check lock
-				if (!document.pointerLockElement) return;
-				// reset
-				imageMouse.first = false;
-				return;
-			}
-			// adjust translate
-			movePixels(e.movementX, e.movementY);
-		}
-	};
-
-	const displayMouseLeave = (e: MouseEvent) => {
-		e.preventDefault();
-		imageMouse.down = false;
-		styles['cursor'] = 'grab';
-		inputState.displayMouseLeave?.(e);
-		inputState.pointerOverDisplay = false;
-	};
-
-	const displayMouseEnter = () => {
-		inputState.pointerOverDisplay = true;
-	};
-
-	const cellContextMenu = (e: MouseEvent, cell: TrackType) => {
-		e.preventDefault();
-
-		contextMenuCell = cell;
-		contextMenuAnchor = toMeasurable(e);
-		contextMenuOpen = true;
-	};
-
-	const startEditingCell = () => {
-		if (!contextMenuCell) return;
-
-		annotationState.currentFrameIndex = contextMenuCell.Frame;
-		videoDisplayState.concurrentFrames = 1; // TODO: 3D editor
-		editorState.startEditing(contextMenuCell);
-	};
-
-	const deleteCell = () => {
-		if (!contextMenuCell || !annotationState.data) return;
-
-		annotationState.commitData(
-			annotationState.data.current.filter((t) => t.ObjectID !== contextMenuCell!.ObjectID),
-			`Delete cell ${contextMenuCell!.ObjectID}`
-		);
-		toast(`Cell ${contextMenuCell.ObjectID} deleted`, {
-			action: { label: 'Undo', onClick: () => annotationState.undo() }
-		});
-	};
-
 	const normalizeFilters = $derived.by(() => {
 		const metadata = projectState.videoMetadata;
 		if (!metadata) return [];
 		return metadata.channels.map((_, i) => getNormalizeFunctions(metadata, i));
 	});
 
-	const gridCols = $derived(Math.ceil(Math.sqrt(videoDisplayState.concurrentFrames)));
-	const gridRows = $derived(Math.ceil(videoDisplayState.concurrentFrames / gridCols));
+	const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
-	// Editing is only possible in single-frame mode
-	const isEditorOpen = $derived(
-		editorState.session !== null && videoDisplayState.concurrentFrames === 1
-	);
+	/** Pans by the given screen pixels, keeping the frame grid within the display. */
+	const movePixels = (x: number, y: number) => {
+		if (!imageWrapperElement) return;
+		const { clientWidth, clientHeight } = imageWrapperElement;
+		const scale = scalePercent / 100;
+
+		// The svg's box is the display scaled, with the grid letterboxed inside it
+		const aspect = (vb.width * gridCols) / (vb.height * gridRows);
+		const gridWidth = Math.min(clientWidth, clientHeight * aspect) * scale;
+		const gridHeight = gridWidth / aspect;
+
+		translateX = clamp(x + translateX, Math.max(0, (gridWidth - clientWidth) / 2));
+		translateY = clamp(y + translateY, Math.max(0, (gridHeight - clientHeight) / 2));
+		imageTop = -(clientHeight * (scale - 1)) / 2;
+	};
+
+	// A grid change can leave the translation out of range
+	watch([() => gridCols, () => gridRows], () => movePixels(0, 0));
+
+	const imageWheel = (e: WheelEvent) => {
+		e.preventDefault();
+		if (!e.ctrlKey) return; // plain wheel is left to the tools
+
+		const oldScale = scalePercent;
+		const newScale = Math.max(
+			zoomState.minScale,
+			Math.min(
+				zoomState.maxScale,
+				oldScale * (1 - zoomState.scrollMultiplier * e.deltaY * 0.001)
+			)
+		);
+		if (newScale === oldScale) return;
+		contextMenu = null;
+		scalePercent = newScale;
+
+		// Keep the point under the pointer in place
+		const { width, height, top, left } = svgElement.getBoundingClientRect();
+		const scaleDiff = newScale / oldScale - 1;
+		movePixels(
+			(width / 2 - e.clientX + left) * scaleDiff,
+			(height / 2 - e.clientY + top) * scaleDiff
+		);
+	};
+
+	// `travel` is how far the pointer moved during the gesture: a press that
+	// stays within the slop was a click, anything more was a pan
+	const CLICK_SLOP = 4;
+	let isPanning = $state(false);
+	const pan = {
+		pointerId: -1,
+		prevX: 0,
+		prevY: 0,
+		travel: 0,
+		locked: false,
+		first: true
+	};
+
+	/** The selection change a primary press implies, applied only if it turns out to be a click. */
+	let pendingSelection: (() => void) | null = null;
+
+	/** Keeps the pointer record in sync: which frame tile is under the pointer, and where. */
+	const updatePointer = (e: PointerEvent) => {
+		const tile =
+			e.target instanceof Element
+				? e.target.closest<SVGSVGElement>('svg[data-frame-index]')
+				: null;
+		inputState.pointer = tile
+			? { frameIndex: Number(tile.dataset.frameIndex), ...getPointerViewBoxCoords(e, tile) }
+			: null;
+	};
+
+	const startPan = (e: PointerEvent) => {
+		if (!imageWrapperElement) return;
+
+		isPanning = true;
+		pan.pointerId = e.pointerId;
+		pan.travel = 0;
+		imageWrapperElement.setPointerCapture(e.pointerId);
+
+		if (optionsState.pointerLockEnabled && e.button === 0) {
+			imageWrapperElement.requestPointerLock();
+			pan.locked = true;
+			pan.first = true;
+		} else {
+			pan.locked = false;
+			pan.prevX = e.clientX;
+			pan.prevY = e.clientY;
+		}
+	};
+
+	const endPan = (e: PointerEvent) => {
+		if (!isPanning || e.pointerId !== pan.pointerId) return;
+		isPanning = false;
+		pendingSelection = null;
+		if (imageWrapperElement?.hasPointerCapture(e.pointerId)) {
+			imageWrapperElement.releasePointerCapture(e.pointerId);
+		}
+		if (pan.locked) {
+			document.exitPointerLock();
+			pan.locked = false;
+		}
+	};
+
+	// Tools claim the primary-button gestures they want and stop their
+	// propagation, so what arrives here selects and pans
+	const displayPointerDown = (e: PointerEvent) => {
+		if (e.button !== 0 && e.button !== 1) return;
+		// Cancel the default so the middle button doesn't start autoscroll
+		if (e.button === 1) e.preventDefault();
+
+		// A click with the primary button selects the cell under it (Ctrl
+		// toggles) or clears the selection on the background; a drag pans and
+		// leaves the selection alone, so the change waits for the release.
+		pendingSelection = null;
+		if (e.button === 0) {
+			const target = targetAt(e);
+			const additive = e.ctrlKey || e.metaKey;
+			if (target?.kind === 'cell') {
+				const { cell } = target;
+				pendingSelection = () =>
+					additive ? editorState.toggle(cell) : editorState.select(cell);
+			} else if (!additive) {
+				pendingSelection = () => editorState.clearSelection();
+			}
+		}
+
+		startPan(e);
+	};
+
+	const displayPointerMove = (e: PointerEvent) => {
+		updatePointer(e);
+
+		if (!isPanning || e.pointerId !== pan.pointerId) return;
+
+		let deltaX: number;
+		let deltaY: number;
+		if (pan.locked) {
+			// The first move is either noise or just 0
+			if (pan.first) {
+				if (!document.pointerLockElement) return;
+				pan.first = false;
+				return;
+			}
+			deltaX = e.movementX;
+			deltaY = e.movementY;
+		} else {
+			deltaX = e.clientX - pan.prevX;
+			deltaY = e.clientY - pan.prevY;
+			pan.prevX = e.clientX;
+			pan.prevY = e.clientY;
+		}
+
+		pan.travel += Math.abs(deltaX) + Math.abs(deltaY);
+		// There is nothing to pan while the whole grid fits
+		if (scalePercent > zoomState.minScale) movePixels(deltaX, deltaY);
+	};
+
+	const displayPointerUp = (e: PointerEvent) => {
+		updatePointer(e);
+		if (isPanning && e.pointerId === pan.pointerId && pan.travel <= CLICK_SLOP) {
+			pendingSelection?.();
+		}
+		endPan(e);
+	};
+
+	/** The cell or the frame tile under a client position, looking through the tools' own elements. */
+	const targetAt = ({
+		clientX,
+		clientY
+	}: {
+		clientX: number;
+		clientY: number;
+	}): DisplayTarget | null => {
+		const elements = document.elementsFromPoint(clientX, clientY);
+		const closest = (selector: string) =>
+			elements
+				.map((element) => element.closest(selector))
+				.find((element) => element !== null) ?? null;
+
+		const cell = annotationState.getCell(
+			closest('[data-cell-id]')?.getAttribute('data-cell-id') ?? ''
+		);
+		if (cell) return { kind: 'cell', cell };
+
+		const tile = closest('svg[data-frame-index]');
+		return tile
+			? { kind: 'background', frameIndex: Number(tile.getAttribute('data-frame-index')) }
+			: null;
+	};
+
+	const handleContextMenu = (e: MouseEvent) => {
+		e.preventDefault(); // never the browser's menu over the display
+		const target = targetAt(e);
+		if (!target) return;
+
+		// The items act on the whole selection when the clicked cell is part of it
+		if (target.kind === 'cell' && !editorState.isSelected(target.cell)) {
+			editorState.select(target.cell);
+		}
+		contextMenu = { anchor: toMeasurable(e), target };
+	};
 
 	// Prefetch frames around the displayed window: all channels of the shown
 	// frames (so channel toggles are instant), visible channels only for the
@@ -281,22 +304,29 @@
 <div
 	class="display-container"
 	role="presentation"
-	oncontextmenu={(e) => e.preventDefault()}
-	onmouseleave={displayMouseLeave}
-	onmouseenter={displayMouseEnter}
-	onmouseup={imageMouse.mouseUp}
-	onmousemove={imageMouse.mouseMove}
-	onmousedown={imageMouse.mouseDown}
+	oncontextmenu={handleContextMenu}
+	onpointerleave={() => (inputState.pointer = null)}
+	onpointerup={displayPointerUp}
+	onpointercancel={endPan}
+	onpointermove={displayPointerMove}
+	onpointerdown={displayPointerDown}
 	onwheel={imageWheel}
-	style={cssVarStyles}
 >
-	<div class="image-wrapper" role="presentation" bind:this={imageWrapperElement}>
+	<div
+		class="image-wrapper"
+		role="presentation"
+		style:cursor={isPanning ? 'grabbing' : 'grab'}
+		bind:this={imageWrapperElement}
+	>
 		<svg
-			viewBox="{svgState.svgViewBox.minX} {svgState.svgViewBox.minY} {svgState.svgViewBox
-				.width * gridCols} {svgState.svgViewBox.height * gridRows}"
+			viewBox="{vb.minX} {vb.minY} {vb.width * gridCols} {vb.height * gridRows}"
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
 			class="zoomable annotation-svg"
+			style:top="{imageTop}px"
+			style:width="{scalePercent}%"
+			style:height="{scalePercent}%"
+			style:transform="translate({translateX}px, {translateY}px)"
 			bind:this={svgElement}
 			opacity={svgState.isSvgShown ? svgState.svgAlpha / 255 : 0}
 		>
@@ -307,13 +337,13 @@
 
 			{#each { length: videoDisplayState.concurrentFrames }, gridIndex (gridIndex)}
 				{@const frameIndex = annotationState.currentFrameIndex + gridIndex}
-				{@const vb = svgState.svgViewBox}
 				<svg
 					x={(gridIndex % gridCols) * vb.width}
 					y={Math.floor(gridIndex / gridCols) * vb.height}
 					width={vb.width}
 					height={vb.height}
 					viewBox="{vb.minX} {vb.minY} {vb.width} {vb.height}"
+					data-frame-index={frameIndex}
 				>
 					{#each videoDisplayState.channels as channel, channelIndex (channelIndex)}
 						{@const url = channel.visible
@@ -333,39 +363,35 @@
 						{/if}
 					{/each}
 
-					{#if isEditorOpen && editorState.session}
-						<NewEditor session={editorState.session} />
-					{:else}
-						<g role="region">
-							{#each annotationState.getFrame(frameIndex) ?? [] as object (object.ObjectID)}
-								<Cell
-									cellPolygons={rleToPolygons(object.SegmentationRLE)}
-									cellId={object.ObjectID}
-									onContextMenu={(e) => cellContextMenu(e, object)}
-								/>
-							{/each}
-						</g>
+					<g role="region">
+						{#each annotationState.getFrame(frameIndex) ?? [] as object (object.ObjectID)}
+							<Cell
+								cellPolygons={rleToPolygons(object.SegmentationRLE)}
+								cellId={object.ObjectID}
+								selected={editorState.isSelected(object)}
+							/>
+						{/each}
+					</g>
+
+					{#if Tool}
+						<Tool
+							{frameIndex}
+							cells={editorState.selectedByFrame.get(frameIndex) ?? []}
+						/>
 					{/if}
 				</svg>
 			{/each}
 		</svg>
 	</div>
 
-	<ContextMenu.Root bind:open={contextMenuOpen}>
-		<ContextMenu.Content class="w-52" customAnchor={contextMenuAnchor} preventScroll={false}>
-			<ContextMenu.Label class="text-center font-bold">
-				Cell #{contextMenuCell?.ObjectID}
-			</ContextMenu.Label>
-			<ContextMenu.Separator />
-			<ContextMenu.Item inset onSelect={startEditingCell}>Edit</ContextMenu.Item>
-			<ContextMenu.Item inset onSelect={deleteCell}>Delete</ContextMenu.Item>
-			<ContextMenu.Item inset disabled>Rename</ContextMenu.Item>
-		</ContextMenu.Content>
-	</ContextMenu.Root>
+	<DisplayContextMenu
+		open={contextMenu !== null}
+		anchor={contextMenu?.anchor ?? null}
+		target={contextMenu?.target ?? null}
+		onClose={() => (contextMenu = null)}
+	/>
 
-	{#if isEditorOpen}
-		<EditorControls />
-	{/if}
+	<EditorToolbar />
 </div>
 
 <style lang="scss">
@@ -391,17 +417,12 @@
 		height: 100%;
 		max-width: 100%;
 		max-height: 100%;
-		cursor: var(--cursor);
 	}
 
+	// The display scaled by the zoom; the frame grid is letterboxed inside it
 	.zoomable {
 		position: absolute;
-		top: var(--image-top);
-		height: var(--scale-percent);
-		min-width: var(--scale-percent);
-		transform: translate(var(--translate-x), var(--translate-y));
 		transform-origin: center;
-		object-fit: contain;
 	}
 
 	.annotation-svg {

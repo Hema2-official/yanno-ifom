@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { svgState } from '$lib/states/svg.svelte';
-	import { annotationState, type HistoryController } from '$lib/states/AnnotationState.svelte';
+	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
+	import { toolRegistry, type ToolId } from '$lib/ui/editor-tools/registry';
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
@@ -14,60 +15,77 @@
 	import { download, tracksToText } from '$lib/utils/data.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { toast } from 'svelte-sonner';
 
 	let { children }: { children: Snippet } = $props();
 
 	beforeNavigate((navigation) => {
-		// Edits only exist in the session until saved
-		if (editorState.isEditing) {
-			navigation.cancel();
-			if (!navigation.willUnload) toast.warning('Finish or cancel editing first');
-			return;
-		}
-
-		// Ask the user to stay so pending undos can finish saving
-		if (annotationState.hasPendingUndo) {
+		// Commits save lazily and undos are local: flush them before leaving
+		if (annotationState.isDirty) {
 			annotationState.save();
 			if (navigation.willUnload) navigation.cancel();
 		}
 	});
-
-	// Undo/redo applies to the open editing session, otherwise to the committed changes
-	const history: HistoryController = $derived(editorState.session ?? annotationState);
 
 	// Shortcuts must not steal keystrokes from text fields
 	const isTypingTarget = (e: KeyboardEvent) =>
 		e.target instanceof HTMLElement &&
 		(e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName));
 
+	// Dialogs own the keyboard entirely; open menus only take Escape (any
+	// other shortcut closes the display's context menu as a side effect)
+	const isOpen = (roles: string) =>
+		document.querySelector(`[data-state="open"]:is(${roles})`) !== null;
+	const isDialogOpen = () => isOpen('[role="dialog"], [role="alertdialog"]');
+	const isMenuOpen = () => isOpen('[role="menu"]');
+
+	// Escape is the cursor tool's shortcut, handled apart from the others
+	const shortcutTools = new Map(
+		Object.entries(toolRegistry)
+			.filter(([, tool]) => tool.shortcut !== 'Escape')
+			.map(([id, tool]) => [tool.shortcut.toLowerCase(), id as ToolId])
+	);
+
 	onMount(() => {
 		// Global shortcuts
 		// TODO: centralize this and provide configuration
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (isTypingTarget(e)) return;
+			if (isTypingTarget(e) || isDialogOpen()) return;
 
-			if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
-				e.preventDefault();
-				e.stopPropagation();
+			if (e.ctrlKey || e.metaKey) {
+				if (e.key.toLowerCase() === 'z') {
+					e.preventDefault();
+					if (e.shiftKey) annotationState.redo();
+					else annotationState.undo();
+				} else if (e.key === 'y') {
+					e.preventDefault();
+					annotationState.redo();
+				}
+				return;
+			}
+			if (e.altKey) return;
 
-				if (e.shiftKey) history.redo();
-				else history.undo();
+			if (e.key === 'Escape') {
+				if (!isMenuOpen()) editorState.reset();
+				return;
 			}
 
-			if (e.ctrlKey && e.key === 'y') {
+			if (e.key === 'Delete' || e.key === 'Backspace') {
+				if (editorState.selectedCells.length === 0) return;
 				e.preventDefault();
-				e.stopPropagation();
-
-				history.redo();
+				annotationState.deleteCells(editorState.selectedCells);
+				return;
 			}
 
-			// hold space to hide annotation
+			const tool = shortcutTools.get(e.key.toLowerCase());
+			if (tool) {
+				e.preventDefault();
+				editorState.tool = tool;
+				return;
+			}
+
+			// Hold Space to hide the annotation
 			if (e.key === ' ') {
 				e.preventDefault();
-				e.stopPropagation();
-
-				// Hide annotation
 				svgState.isSvgShown = false;
 			}
 		};
@@ -77,9 +95,6 @@
 
 			if (e.key === ' ') {
 				e.preventDefault();
-				e.stopPropagation();
-
-				// Show annotation
 				svgState.isSvgShown = true;
 			}
 		};
@@ -92,30 +107,6 @@
 			document.body.removeEventListener('keyup', handleKeyUp);
 		};
 	});
-
-	const createNewCell = () => {
-		// TODO: implement
-		// // Find an ID that doesn't exist amongst the current frames' cells
-		// const existingCellIds = annotationState.currentFrame?.map((f) => f.ObjectID) ?? [];
-		// let newCellId = 1;
-		// while (existingCellIds.includes(newCellId)) newCellId++;
-		// // Create a new cell (at center)
-		// const newCell: NewCellType = {
-		// 	id: newCellId,
-		// 	bodies: [
-		// 		{
-		// 			x: [256, 258, 260, 258, 256, 254, 252, 254],
-		// 			y: [252, 254, 256, 258, 260, 258, 256, 254]
-		// 		}
-		// 	]
-		// };
-		// // Push a change with the new cell
-		// pushChange({
-		// 	time: Date.now(),
-		// 	message: `Add new cell ${newCellId}`,
-		// 	frames: [{ id: annotationState.currentFrameIndex, cells: [newCell] }]
-		// });
-	};
 
 	const exportAsJSON = () => {
 		if (!annotationState.data) return;
@@ -191,7 +182,7 @@
 						{:else if projectState.cloudProject}
 							<Tooltip.Trigger><CloudIcon /></Tooltip.Trigger>
 							<Tooltip.Content>
-								{#if annotationState.hasPendingUndo}Undid changes pending
+								{#if annotationState.isDirty}Unsaved changes
 								{:else}Synchronized with the cloud{/if}
 							</Tooltip.Content>
 						{:else}
@@ -217,14 +208,22 @@
 			<Menubar.Menu>
 				<Menubar.Trigger>Edit</Menubar.Trigger>
 				<Menubar.Content>
-					<Menubar.Item onSelect={() => history.undo()} disabled={!history.canUndo}>
+					<Menubar.Item
+						onSelect={() => annotationState.undo()}
+						disabled={!annotationState.canUndo}
+					>
 						Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
 					</Menubar.Item>
-					<Menubar.Item onSelect={() => history.redo()} disabled={!history.canRedo}>
+					<Menubar.Item
+						onSelect={() => annotationState.redo()}
+						disabled={!annotationState.canRedo}
+					>
 						Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
 					</Menubar.Item>
 					<Menubar.Separator />
-					<Menubar.Item onSelect={createNewCell}>New Cell...</Menubar.Item>
+					<Menubar.Item onSelect={() => (editorState.tool = 'draw')}>
+						New Cell <Menubar.Shortcut>N</Menubar.Shortcut>
+					</Menubar.Item>
 					<Menubar.Separator />
 					<Menubar.Sub>
 						<Menubar.SubTrigger>Find</Menubar.SubTrigger>

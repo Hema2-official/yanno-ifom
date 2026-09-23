@@ -3,39 +3,35 @@
 	import { svgState } from '$lib/states/svg.svelte';
 	import { cellBodyToPathCached } from '$lib/utils/display';
 	import { getCenterOfPolygonsCached } from '$lib/utils/geometry';
-	import type { MouseEventHandler } from 'svelte/elements';
-	import type { Point, Polygon } from '$lib/types/geometry.type';
+	import type { Polygon } from '$lib/types/geometry.type';
 
 	type Props = {
 		cellPolygons: Polygon[];
 		cellId: string;
-		onContextMenu: MouseEventHandler<SVGElement>;
+		selected?: boolean;
 	};
 
-	let { cellPolygons, cellId, onContextMenu }: Props = $props();
+	let { cellPolygons, cellId, selected = false }: Props = $props();
 
-	let center: Point = $derived(getCenterOfPolygonsCached(cellPolygons));
+	const center = $derived(getCenterOfPolygonsCached(cellPolygons));
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<g id="cell{cellId}" oncontextmenu={onContextMenu}>
-	{#each cellPolygons ?? [] as body, index (index)}
+<g data-cell-id={cellId}>
+	{#each cellPolygons as body, index (index)}
 		<path
-			id="cell{cellId}-body{index}"
 			d={cellBodyToPathCached(body)}
 			fill={svgState.svgFillSwitch ? svgState.svgFill : 'transparent'}
-			stroke={svgState.svgStrokeSwitch ? svgState.svgStroke : 'none'}
-			stroke-width="2px"
+			stroke={selected
+				? 'var(--accent-color)'
+				: svgState.svgStrokeSwitch
+					? svgState.svgStroke
+					: 'none'}
+			stroke-width={selected ? '3px' : '2px'}
 		/>
 	{/each}
-	<!-- <path
-		d={cellToPath(cell)}
-		fill={$svgFillSwitch ? $svgFill : 'transparent'}
-		stroke={$svgStrokeSwitch ? $svgStroke : 'none'}
-		stroke-width="2px"
-	/> -->
 </g>
 
+<!-- Hold Shift to hide the labels -->
 {#if !inputState.pressedKeys.has('Shift')}
 	<text
 		x={center.x}

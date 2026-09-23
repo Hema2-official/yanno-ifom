@@ -27,6 +27,7 @@ import {
 import { WebPConverter } from '$lib/utils/webp';
 import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
 import { annotationState, stateBefore } from './AnnotationState.svelte';
+import { editorState } from './EditorState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
 import { extractError } from '$lib/api/errors';
@@ -66,7 +67,7 @@ class ProjectState {
 		} else if (this.localProject?.id) {
 			return getLocalFrameUrl(this.localProject.id, imageIndex);
 		}
-		throw new Error('No project loaded');
+		return null; // no project loaded (e.g. while switching)
 	}
 
 	saveData(data: VersionManaged<TrackType[]>): Promise<void> {
@@ -112,6 +113,7 @@ class ProjectState {
 		this.saveError = null;
 		annotationState.load(null);
 		annotationState.currentFrameIndex = 0;
+		editorState.reset();
 		videoDisplayState.concurrentFrames = 1;
 	}
 

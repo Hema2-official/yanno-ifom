@@ -19,14 +19,11 @@ class SvgState {
 
 	svgScalePercent = $state(100);
 
-	svgViewBox: SvgViewBoxType = $derived.by(() => {
-		const metadata = projectState.videoMetadata;
-		return {
-			minX: 0,
-			minY: 0,
-			width: metadata?.width || 512,
-			height: metadata?.height || 512
-		};
+	svgViewBox: SvgViewBoxType = $derived({
+		minX: 0,
+		minY: 0,
+		width: projectState.videoMetadata?.width || 512,
+		height: projectState.videoMetadata?.height || 512
 	});
 
 	normalizeSwitch = $state(true);

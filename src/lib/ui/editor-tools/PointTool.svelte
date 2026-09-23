@@ -1,84 +1,69 @@
 <script lang="ts">
 	import { svgState } from '$lib/states/svg.svelte';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
-	import { P } from '$lib/utils/pattern';
-	import { overrideDisplayPointerWhile } from './interaction.svelte';
+	import { startDrag } from './drag';
+	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
 	import type { EditorToolProps } from './types';
 
-	let { bodies = $bindable(), pushLocalState }: EditorToolProps = $props();
+	let { cells }: EditorToolProps = $props();
 
-	let interactiveRoot: SVGGElement | undefined = $state();
-	let svgElement = $derived(interactiveRoot?.ownerSVGElement);
+	let root: SVGGElement | undefined = $state();
 
-	const handleIdPattern = P('hdl#_#');
-	let currentBodyIndex = -1;
-	let currentHandleIndex = -1;
-	let isMouseDown = $state(false);
+	// The dragged cell's private copy, only during a gesture
+	let working: WorkingCell | null = $state.raw(null);
+	let handle = { body: 0, point: 0 };
 
-	overrideDisplayPointerWhile(
-		() => isMouseDown,
-		(e) => handleMouseMove(e),
-		(e) => handleMouseUp(e)
-	);
+	const shown = $derived(working ? [working] : outlinesOf(cells));
+	const halfSize = $derived(200 / svgState.svgScalePercent);
 
-	function handleMouseDown(e: MouseEvent) {
+	function handlePointerDown(e: PointerEvent) {
+		if (e.button !== 0 || !root) return;
+		const { cell: index, body, point } = (e.target as SVGElement).dataset;
+		const cell = index === undefined ? undefined : cells[Number(index)];
+		if (!cell) return;
+
 		e.preventDefault();
 		e.stopPropagation();
+		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
 
-		const target = e.target as SVGElement;
-		if (!target.id.startsWith('hdl')) return;
-		[currentBodyIndex, currentHandleIndex] = handleIdPattern.match(target.id);
-
-		isMouseDown = true;
+		handle = { body: Number(body), point: Number(point) };
+		working = new WorkingCell(cell);
 	}
 
-	function handleMouseUp(e: MouseEvent) {
-		e.preventDefault();
-		e.stopPropagation();
-
-		if (!isMouseDown) return;
-		isMouseDown = false;
-		pushLocalState();
+	function handleDragMove(e: PointerEvent) {
+		if (!working || !root?.ownerSVGElement) return;
+		const { x, y } = getPointerViewBoxCoords(e, root.ownerSVGElement);
+		const vertex = working.bodies[handle.body][handle.point];
+		vertex.x = x;
+		vertex.y = y;
 	}
 
-	function handleMouseMove(e: MouseEvent) {
-		e.preventDefault();
-		e.stopPropagation();
-
-		if (!svgElement || !isMouseDown) return;
-
-		const mouseViewBox = getPointerViewBoxCoords(e, svgElement);
-		bodies[currentBodyIndex][currentHandleIndex].x = mouseViewBox.x;
-		bodies[currentBodyIndex][currentHandleIndex].y = mouseViewBox.y;
+	function handleDragEnd() {
+		if (!working) return;
+		const edited = working;
+		working = null;
+		commitWorking([edited]);
 	}
 </script>
 
-<!-- Non-interactive elements -->
-{#each bodies as body, i (i)}
-	<path
-		id="body{i}"
-		d={cellBodyToPath(body)}
-		fill="none"
-		stroke="black"
-		stroke-width="2px"
-		opacity="1"
-	/>
-{/each}
+<!-- The working outline on top of the base cell, which stays as a ghost -->
+{#if working}
+	<g pointer-events="none">
+		{#each working.bodies as body, i (i)}
+			<path d={cellBodyToPath(body)} fill="none" stroke="black" stroke-width="2px" />
+		{/each}
+	</g>
+{/if}
 
-<!-- Interactive elements -->
-<g
-	role="presentation"
-	onmousedown={handleMouseDown}
-	onmouseup={handleMouseUp}
-	onmousemove={handleMouseMove}
-	bind:this={interactiveRoot}
->
-	{#each bodies as body, bodyIndex (bodyIndex)}
-		{@const halfSize = 200 / svgState.svgScalePercent}
-		<g>
+<!-- A handle per vertex of every selected cell -->
+<g role="presentation" onpointerdown={handlePointerDown} bind:this={root}>
+	{#each shown as entry, cellIndex (entry.cell.ObjectID)}
+		{#each entry.bodies as body, bodyIndex (bodyIndex)}
 			{#each body as point, pointIndex (pointIndex)}
 				<rect
-					id="hdl{bodyIndex}_{pointIndex}"
+					data-cell={cellIndex}
+					data-body={bodyIndex}
+					data-point={pointIndex}
 					x={point.x - halfSize}
 					y={point.y - halfSize}
 					width={halfSize * 2}
@@ -89,6 +74,6 @@
 					cursor="crosshair"
 				/>
 			{/each}
-		</g>
+		{/each}
 	{/each}
 </g>

@@ -1,0 +1,70 @@
+<script module lang="ts">
+	import type { TrackType } from '$lib/types/annotation.type';
+
+	export type DisplayTarget =
+		| { kind: 'cell'; cell: TrackType }
+		| { kind: 'background'; frameIndex: number };
+</script>
+
+<script lang="ts">
+	import { useEventListener } from 'runed';
+	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import { annotationState } from '$lib/states/AnnotationState.svelte';
+	import { editorState } from '$lib/states/EditorState.svelte';
+	import type { Measurable } from '$lib/utils/display';
+
+	type Props = {
+		open: boolean;
+		anchor: Measurable | null;
+		target: DisplayTarget | null;
+		onClose: () => void;
+	};
+
+	let { open, anchor, target, onClose }: Props = $props();
+
+	// bits-ui only notices outside clicks that bubble up to the document, and
+	// the tools and toolbar stop theirs, so any pointerdown outside the menu
+	// closes it here in the capture phase
+	useEventListener(
+		() => (open ? document : null),
+		'pointerdown',
+		(e) => {
+			if (!(e.target instanceof Element && e.target.closest('[role="menu"]'))) onClose();
+		},
+		{ capture: true }
+	);
+</script>
+
+<ContextMenu.Root {open} onOpenChange={(next) => !next && onClose()}>
+	<ContextMenu.Content class="w-52" customAnchor={anchor} preventScroll={false}>
+		{#if target?.kind === 'cell'}
+			<!-- A right-clicked cell is always selected, so the items act on the whole selection -->
+			{@const count = editorState.selectedCells.length}
+			<ContextMenu.Label class="text-center font-bold">
+				{count > 1 ? `${count} cells` : `Cell #${target.cell.ObjectID}`}
+			</ContextMenu.Label>
+			<ContextMenu.Separator />
+			<ContextMenu.Item
+				inset
+				onSelect={() => annotationState.deleteCells(editorState.selectedCells)}
+			>
+				Delete
+			</ContextMenu.Item>
+		{:else if target?.kind === 'background'}
+			{@const frameIndex = target.frameIndex}
+			<ContextMenu.Item inset onSelect={() => (editorState.tool = 'draw')}
+				>New cell</ContextMenu.Item
+			>
+			<ContextMenu.Item
+				inset
+				onSelect={() => editorState.selectAll(annotationState.getFrame(frameIndex) ?? [])}
+			>
+				Select all in frame
+			</ContextMenu.Item>
+			<ContextMenu.Separator />
+			<ContextMenu.Item inset onSelect={() => editorState.clearSelection()}>
+				Deselect all
+			</ContextMenu.Item>
+		{/if}
+	</ContextMenu.Content>
+</ContextMenu.Root>

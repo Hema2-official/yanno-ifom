@@ -111,11 +111,7 @@
 				{/if}
 
 				<Label for="{uid}-import" class="flex items-center gap-2 select-none">
-					<Checkbox
-						id="{uid}-import"
-						checked={importAnnotation}
-						onCheckedChange={(checked) => (importAnnotation = checked)}
-					/> Import annotation
+					<Checkbox id="{uid}-import" bind:checked={importAnnotation} /> Import annotation
 				</Label>
 
 				{#if importAnnotation}

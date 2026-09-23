@@ -4,20 +4,6 @@ import type { TrackType } from '$lib/types/annotation.type';
 import { polygonsToRle, rleToPolygons } from '$lib/utils/rle';
 
 /**
- * Creates a deep copy of the given object or proxy.
- *
- * @param obj - The object or proxy to be copied.
- * @returns A deep copy of the object.
- */
-export function deepCopy<T>(obj: T) {
-	// Let Svelte do its magic unwrapping proxies before we clone anything
-	// ($state.snapshot doesn't care if it's not a proxy)
-	const snapshot = $state.snapshot(obj);
-
-	return structuredClone(snapshot);
-}
-
-/**
  * Returns the minimum value in an array.
  * Replacement for Math.min(...) to get around spread operator limitations.
  *
