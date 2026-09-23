@@ -33,7 +33,8 @@
 		<Spinner />
 	</div>
 {:then}
-	<div class="flex w-full flex-1 flex-row items-start justify-start">
+	<!-- Without min-h-0 a long sidebar stretches this past the screen -->
+	<div class="flex min-h-0 w-full flex-1 flex-row items-start justify-start">
 		<SideBar />
 		<div class="order-2 flex h-full flex-1 flex-col items-center">
 			<Display />
