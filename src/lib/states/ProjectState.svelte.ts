@@ -57,6 +57,7 @@ class ProjectState {
 		this.cloudProject?.video_metadata ?? this.localProject?.video_metadata
 	);
 	frameCount = $derived(getFrameCount(this.videoConfig, this.videoMetadata));
+	readOnly = $derived(this.cloudProject?.role === 'viewer');
 
 	getChannelFrameUrl(frameIndex: number, channelIndex: number): string | null {
 		const imageIndex = getImageIndex(this.videoConfig, frameIndex, channelIndex);

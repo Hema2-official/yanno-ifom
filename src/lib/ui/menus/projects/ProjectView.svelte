@@ -10,10 +10,12 @@
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import VersionItem from '../version/VersionItem.svelte';
 	import RenameDialog from './RenameDialog.svelte';
+	import ShareDialog from './ShareDialog.svelte';
 	import CreateVersionDialog from '../version/CreateVersionDialog.svelte';
 
 	import {
 		ArrowLeftIcon,
+		UsersIcon,
 		PencilIcon,
 		PlusIcon,
 		LayersIcon,
@@ -30,8 +32,11 @@
 	);
 
 	let project = $derived(projectResource.current);
+	let isOwner = $derived(project?.role === 'owner');
+	let canEdit = $derived(project?.role !== 'viewer');
 
 	let showRenameDialog = $state(false);
+	let showShareDialog = $state(false);
 	let showCreateVersionDialog = $state(false);
 	let copyFromVersion: ProjectVersion | undefined = $state(undefined);
 
@@ -61,6 +66,7 @@
 				{#each versions as version (version.id)}
 					<VersionItem
 						{version}
+						{canEdit}
 						onCopy={() => handleCopyVersion(version)}
 						onRefresh={() => projectResource.refetch()}
 					/>
@@ -85,12 +91,20 @@
 				</div>
 
 				<div class="flex gap-2">
-					<Button variant="secondary" onclick={() => (showRenameDialog = true)}>
-						<PencilIcon data-icon="inline-start" /> Rename
+					{#if isOwner}
+						<Button variant="secondary" onclick={() => (showRenameDialog = true)}>
+							<PencilIcon data-icon="inline-start" /> Rename
+						</Button>
+					{/if}
+					<Button variant="secondary" onclick={() => (showShareDialog = true)}>
+						<UsersIcon data-icon="inline-start" />
+						{isOwner ? 'Share' : 'Members'}
 					</Button>
-					<Button onclick={handleCreateVersion}>
-						<PlusIcon data-icon="inline-start" /> New Version
-					</Button>
+					{#if canEdit}
+						<Button onclick={handleCreateVersion}>
+							<PlusIcon data-icon="inline-start" /> New Version
+						</Button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -135,4 +149,6 @@
 		{copyFromVersion}
 		onRefresh={() => projectResource.refetch()}
 	/>
+
+	<ShareDialog bind:open={showShareDialog} {project} />
 {/if}

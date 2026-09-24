@@ -26,8 +26,8 @@
 	import DisplayContextMenu, { type DisplayTarget } from './DisplayContextMenu.svelte';
 	import EditorToolbar from './EditorToolbar.svelte';
 
-	// The current tool is mounted in every frame tile, always
-	const Tool = $derived(toolRegistry[editorState.tool].component);
+	// The current tool is mounted in every frame tile, when editing is on
+	const Tool = $derived(projectState.readOnly ? null : toolRegistry[editorState.tool].component);
 
 	let contextMenu = $state.raw<{ anchor: Measurable; target: DisplayTarget } | null>(null);
 
@@ -413,12 +413,15 @@
 		</svg>
 	</div>
 
-	<DisplayContextMenu
-		open={contextMenu !== null}
-		anchor={contextMenu?.anchor ?? null}
-		target={contextMenu?.target ?? null}
-		onClose={() => (contextMenu = null)}
-	/>
+	<!-- The editing controls: viewers only look -->
+	{#if !projectState.readOnly}
+		<DisplayContextMenu
+			open={contextMenu !== null}
+			anchor={contextMenu?.anchor ?? null}
+			target={contextMenu?.target ?? null}
+			onClose={() => (contextMenu = null)}
+		/>
 
-	<EditorToolbar />
+		<EditorToolbar />
+	{/if}
 </div>

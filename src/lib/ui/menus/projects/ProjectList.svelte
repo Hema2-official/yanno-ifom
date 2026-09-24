@@ -11,13 +11,19 @@
 		title: string;
 		listProjects: (signal: AbortSignal) => Promise<T[]>;
 		item: Snippet<[project: T, refetch: () => void]>;
-		/** Projects stored in this browser instead of the cloud. */
 		local?: boolean;
-		/** Leave out the whole section while there is nothing to list. */
 		hideWhenEmpty?: boolean;
+		allowCreate?: boolean;
 	};
 
-	let { title, listProjects, item, local = false, hideWhenEmpty = false }: Props = $props();
+	let {
+		title,
+		listProjects,
+		item,
+		local = false,
+		hideWhenEmpty = false,
+		allowCreate = true
+	}: Props = $props();
 
 	const projects = resource([], (_, __, { signal }) => listProjects(signal), {
 		initialValue: []
@@ -36,9 +42,11 @@
 				<Button variant="secondary" onclick={refetch} disabled={projects.loading}>
 					<RefreshCwIcon data-icon="inline-start" /> Refresh
 				</Button>
-				<Button onclick={() => (showCreate = true)}>
-					<PlusIcon data-icon="inline-start" /> New
-				</Button>
+				{#if allowCreate}
+					<Button onclick={() => (showCreate = true)}>
+						<PlusIcon data-icon="inline-start" /> New
+					</Button>
+				{/if}
 			</div>
 		</div>
 

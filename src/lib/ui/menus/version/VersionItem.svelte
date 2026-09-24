@@ -20,11 +20,12 @@
 
 	type Props = {
 		version: ProjectVersion;
+		canEdit?: boolean;
 		onCopy: () => void;
 		onRefresh: () => void;
 	};
 
-	let { version, onCopy, onRefresh }: Props = $props();
+	let { version, canEdit = true, onCopy, onRefresh }: Props = $props();
 
 	let showRunDialog = $state(false);
 	let showDeleteDialog = $state(false);
@@ -81,30 +82,36 @@
 				</Item.Description>
 			</Item.Content>
 
-			<Item.Actions onclick={(e) => [e.preventDefault(), e.stopPropagation()]}>
-				{#if version.ready}
-					<Button variant="ghost" size="icon" onclick={() => (showRunDialog = true)}>
-						<PlayIcon />
-					</Button>
+			{#if canEdit}
+				<Item.Actions onclick={(e) => [e.preventDefault(), e.stopPropagation()]}>
+					{#if version.ready}
+						<Button variant="ghost" size="icon" onclick={() => (showRunDialog = true)}>
+							<PlayIcon />
+						</Button>
 
-					<Button variant="ghost" size="icon" onclick={onCopy}>
-						<CopyIcon />
-					</Button>
-				{:else}
-					<Button variant="ghost" size="icon" onclick={() => (showCancelDialog = true)}>
-						<SquareIcon />
-					</Button>
-				{/if}
+						<Button variant="ghost" size="icon" onclick={onCopy}>
+							<CopyIcon />
+						</Button>
+					{:else}
+						<Button
+							variant="ghost"
+							size="icon"
+							onclick={() => (showCancelDialog = true)}
+						>
+							<SquareIcon />
+						</Button>
+					{/if}
 
-				<Button
-					variant="ghost"
-					size="icon"
-					class="hover:bg-destructive/40!"
-					disabled={!version.ready}
-					onclick={() => (showDeleteDialog = true)}
-					><TrashIcon />
-				</Button>
-			</Item.Actions>
+					<Button
+						variant="ghost"
+						size="icon"
+						class="hover:bg-destructive/40!"
+						disabled={!version.ready}
+						onclick={() => (showDeleteDialog = true)}
+						><TrashIcon />
+					</Button>
+				</Item.Actions>
+			{/if}
 		</Button>
 	{/snippet}
 </Item.Root>

@@ -65,7 +65,10 @@ class AnnotationState {
 	canRedo = $derived(this.undoneCount > 0);
 
 	/** True while the visible data isn't persisted yet (pending save or local undo). */
-	isDirty = $derived(this.#saveTimer !== null || this.undoneCount > 0);
+	// A viewer's undos only browse the history, since viewers never save
+	isDirty = $derived(
+		this.#saveTimer !== null || (this.undoneCount > 0 && !projectState.readOnly)
+	);
 
 	#tracksByFrame: Map<number, TrackType[]> = $derived.by(() =>
 		Map.groupBy(this.data?.current ?? [], (track) => track.Frame)

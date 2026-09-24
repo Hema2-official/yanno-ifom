@@ -2,8 +2,13 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
-	import { CloudIcon, HardDriveIcon } from '@lucide/svelte';
-	import { deleteProject, getProjects, updateProject } from '$lib/api/projects';
+	import { CloudIcon, HardDriveIcon, UsersIcon } from '@lucide/svelte';
+	import {
+		deleteProject,
+		getProjects,
+		getSharedProjects,
+		updateProject
+	} from '$lib/api/projects';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -48,6 +53,24 @@
 					{#if project.versions.length}
 						Versions: {project.versions.map((v) => v.name).join(', ')}
 					{:else}No versions yet{/if}
+				</ProjectItem>
+			{/snippet}
+		</ProjectList>
+
+		<ProjectList
+			title="Shared with You"
+			listProjects={(signal) => getSharedProjects({ signal })}
+			allowCreate={false}
+			hideWhenEmpty
+		>
+			{#snippet item(project)}
+				<ProjectItem
+					href={resolve(`/projects?project=${project.id}`)}
+					icon={UsersIcon}
+					{project}
+				>
+					Shared by {project.owner.name} ({project.owner.email})
+					{project.role === 'viewer' ? '(view only)' : ''}
 				</ProjectItem>
 			{/snippet}
 		</ProjectList>

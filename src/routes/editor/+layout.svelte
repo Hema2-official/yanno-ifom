@@ -70,7 +70,7 @@
 			}
 
 			if (e.key === 'Delete' || e.key === 'Backspace') {
-				if (editorState.selectedCells.length === 0) return;
+				if (editorState.selectedCells.length === 0 || projectState.readOnly) return;
 				e.preventDefault();
 				annotationState.deleteCells(editorState.selectedCells);
 				return;
@@ -171,7 +171,15 @@
 			<Breadcrumb.Item class="ml-4 [&_svg]:mt-0.5 [&_svg]:size-4.5">
 				<Tooltip.Provider delayDuration={200}>
 					<Tooltip.Root>
-						{#if projectState.cloudProject && projectState.isSaving}
+						{#if projectState.readOnly}
+							<Tooltip.Trigger class="inline-flex items-center gap-1">
+								<CloudIcon /> View only
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								{projectState.cloudProject?.owner.name} shared this project with you as
+								a viewer
+							</Tooltip.Content>
+						{:else if projectState.cloudProject && projectState.isSaving}
 							<CloudSyncIcon /> Saving...
 						{:else if projectState.saveError}
 							<!-- TODO: make the clickability more obvious either by saying click to retry or adding an actual Button next to the status -->
@@ -212,42 +220,44 @@
 		{/snippet}
 
 		{#snippet extraMenus()}
-			<Menubar.Menu>
-				<Menubar.Trigger>Edit</Menubar.Trigger>
-				<Menubar.Content>
-					<Menubar.Item
-						onSelect={() => annotationState.undo()}
-						disabled={!annotationState.canUndo}
-					>
-						Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
-					</Menubar.Item>
-					<Menubar.Item
-						onSelect={() => annotationState.redo()}
-						disabled={!annotationState.canRedo}
-					>
-						Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
-					</Menubar.Item>
-					<Menubar.Separator />
-					<Menubar.Item onSelect={() => (editorState.tool = 'draw')}>
-						New Cell <Menubar.Shortcut>N</Menubar.Shortcut>
-					</Menubar.Item>
-					<Menubar.Separator />
-					<Menubar.Sub>
-						<Menubar.SubTrigger>Find</Menubar.SubTrigger>
-						<Menubar.SubContent>
-							<Menubar.Item>Search the web</Menubar.Item>
-							<Menubar.Separator />
-							<Menubar.Item>Find...</Menubar.Item>
-							<Menubar.Item>Find Next</Menubar.Item>
-							<Menubar.Item>Find Previous</Menubar.Item>
-						</Menubar.SubContent>
-					</Menubar.Sub>
-					<Menubar.Separator />
-					<Menubar.Item>Cut</Menubar.Item>
-					<Menubar.Item>Copy</Menubar.Item>
-					<Menubar.Item>Paste</Menubar.Item>
-				</Menubar.Content>
-			</Menubar.Menu>
+			{#if !projectState.readOnly}
+				<Menubar.Menu>
+					<Menubar.Trigger>Edit</Menubar.Trigger>
+					<Menubar.Content>
+						<Menubar.Item
+							onSelect={() => annotationState.undo()}
+							disabled={!annotationState.canUndo}
+						>
+							Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
+						</Menubar.Item>
+						<Menubar.Item
+							onSelect={() => annotationState.redo()}
+							disabled={!annotationState.canRedo}
+						>
+							Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
+						</Menubar.Item>
+						<Menubar.Separator />
+						<Menubar.Item onSelect={() => (editorState.tool = 'draw')}>
+							New Cell <Menubar.Shortcut>N</Menubar.Shortcut>
+						</Menubar.Item>
+						<Menubar.Separator />
+						<Menubar.Sub>
+							<Menubar.SubTrigger>Find</Menubar.SubTrigger>
+							<Menubar.SubContent>
+								<Menubar.Item>Search the web</Menubar.Item>
+								<Menubar.Separator />
+								<Menubar.Item>Find...</Menubar.Item>
+								<Menubar.Item>Find Next</Menubar.Item>
+								<Menubar.Item>Find Previous</Menubar.Item>
+							</Menubar.SubContent>
+						</Menubar.Sub>
+						<Menubar.Separator />
+						<Menubar.Item>Cut</Menubar.Item>
+						<Menubar.Item>Copy</Menubar.Item>
+						<Menubar.Item>Paste</Menubar.Item>
+					</Menubar.Content>
+				</Menubar.Menu>
+			{/if}
 			<Menubar.Menu>
 				<Menubar.Trigger>View</Menubar.Trigger>
 				<Menubar.Content>
