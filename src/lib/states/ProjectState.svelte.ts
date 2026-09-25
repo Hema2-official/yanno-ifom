@@ -31,8 +31,7 @@ import { editorState } from './EditorState.svelte';
 import { editSession } from './EditSessionState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
-import { extractError } from '$lib/api/errors';
-import { toast } from 'svelte-sonner';
+import { extractError, toastError } from '$lib/api/errors';
 import * as geotiff from 'geotiff';
 
 export type ProgressCallback = (message: string, fraction?: number) => void;
@@ -186,7 +185,7 @@ class ProjectState {
 			onProgress?.('Importing annotation...');
 			// The project exists already: report the failed import, but keep the project
 			await importAnnotation(project.id, annotationFile).catch((error: unknown) => {
-				toast.error('Annotation import failed', { description: extractError(error) });
+				toastError('Annotation import failed', error);
 			});
 		}
 		return project.id;

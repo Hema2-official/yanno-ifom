@@ -1,8 +1,7 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { HTTPError } from 'ky';
-import { toast } from 'svelte-sonner';
-import { extractError } from '$lib/api/errors';
+import { toastError } from '$lib/api/errors';
 import { getVersionData } from '$lib/api/projects';
 import { releaseEditSession, stealEditSession, streamEditSession } from '$lib/api/realtime';
 import type { EditLock, ProjectVersion } from '$lib/types/api.type';
@@ -56,7 +55,7 @@ class EditSessionState {
 	async takeOver() {
 		if (!this.#run || !this.sessionId) return;
 		await stealEditSession(this.#run.version, this.sessionId).catch((error: unknown) => {
-			toast.error("Couldn't take over", { description: extractError(error) });
+			toastError("Couldn't take over", error);
 		});
 	}
 
@@ -125,7 +124,7 @@ class EditSessionState {
 				if (this.#run !== run) return;
 				annotationState.load(data);
 			} catch (error) {
-				toast.error("Couldn't load the latest data", { description: extractError(error) });
+				toastError("Couldn't load the latest data", error);
 			} finally {
 				this.#reloading = false;
 			}
@@ -147,7 +146,7 @@ class EditSessionState {
 		this.#run = null;
 		this.lock = null;
 		this.sessionId = null;
-		toast.error(
+		toastError(
 			reason === 'deleted'
 				? 'This version was deleted'
 				: 'Your access to this project changed'

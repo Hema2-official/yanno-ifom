@@ -8,7 +8,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import FileUploadInput from '$lib/ui/common/FileUploadInput.svelte';
 	import VideoConfigurator from './VideoConfigurator.svelte';
-	import { extractError } from '$lib/api/errors';
+	import { toastError } from '$lib/api/errors';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { defaultVideoConfig } from '$lib/types/api.type';
 	import { LoaderCircleIcon } from '@lucide/svelte';
@@ -70,7 +70,7 @@
 			open = false;
 			onCreated?.(id);
 		} catch (error) {
-			toast.error("Couldn't create the project", { description: extractError(error) });
+			toastError("Couldn't create the project", error);
 		} finally {
 			progress = null;
 			progressValue = null;

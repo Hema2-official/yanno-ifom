@@ -1,14 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { PencilIcon, TrashIcon, type LucideIcon } from '@lucide/svelte';
-	import { toast } from 'svelte-sonner';
 	import * as Item from '$lib/components/ui/item';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
 	import RenameDialog from './RenameDialog.svelte';
 	import { cn } from '$lib/utils/shadcn';
 	import { videoSummary } from '$lib/utils/frames';
-	import { extractError } from '$lib/api/errors';
+	import { toastError } from '$lib/api/errors';
 	import type { Project } from '$lib/types/api.type';
 	import type { DBProject } from '$lib/utils/indexeddb';
 
@@ -37,7 +36,7 @@
 
 	const handleDelete = () =>
 		onDelete?.().catch((error: unknown) => {
-			toast.error('Failed to delete project', { description: extractError(error) });
+			toastError('Failed to delete project', error);
 		});
 </script>
 

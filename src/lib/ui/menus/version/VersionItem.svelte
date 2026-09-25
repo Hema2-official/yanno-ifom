@@ -14,7 +14,7 @@
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
 	import { cancelTask, deleteVersion } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';
-	import { extractError } from '$lib/api/errors';
+	import { toastError } from '$lib/api/errors';
 	import { resolve } from '$app/paths';
 	import RunTaskDialog from './RunTaskDialog.svelte';
 
@@ -38,7 +38,7 @@
 				onRefresh();
 			})
 			.catch((error: unknown) => {
-				toast.error('Failed to delete version', { description: extractError(error) });
+				toastError('Failed to delete version', error);
 			});
 	}
 
@@ -49,7 +49,7 @@
 				onRefresh();
 			})
 			.catch((error: unknown) => {
-				toast.error('Failed to cancel task', { description: extractError(error) });
+				toastError('Failed to cancel task', error);
 			});
 	}
 

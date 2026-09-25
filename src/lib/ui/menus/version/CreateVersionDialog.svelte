@@ -3,7 +3,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
-	import { extractError } from '$lib/api/errors';
+	import { toastError } from '$lib/api/errors';
 	import { copyProjectVersion, createProjectVersion } from '$lib/api/projects';
 	import type { Project, ProjectVersion } from '$lib/types/api.type';
 
@@ -38,7 +38,7 @@
 				onRefresh();
 			})
 			.catch((error: unknown) => {
-				toast.error('Failed to create version', { description: extractError(error) });
+				toastError('Failed to create version', error);
 			});
 	}
 </script>

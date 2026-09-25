@@ -11,7 +11,7 @@
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
 	import { addMember, getMembers, removeMember, updateMember } from '$lib/api/projects';
 	import { searchUsers } from '$lib/api/users';
-	import { extractError } from '$lib/api/errors';
+	import { extractError, toastError } from '$lib/api/errors';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import type { MemberRole, Project, ProjectMember, UserSummary } from '$lib/types/api.type';
 	import * as InputGroup from '$lib/components/ui/input-group';
@@ -57,7 +57,7 @@
 			members.mutate([...members.current, member]);
 			search = '';
 		} catch (error) {
-			toast.error(`Failed to share with ${user.name}`, { description: extractError(error) });
+			toastError(`Failed to share with ${user.name}`, error);
 		}
 	}
 
@@ -68,7 +68,7 @@
 			const memberIdx = members.current.findIndex((m) => m.account.id === member.account.id);
 			if (memberIdx !== -1) members.mutate(members.current.with(memberIdx, updated));
 		} catch (error) {
-			toast.error('Failed to change the role', { description: extractError(error) });
+			toastError('Failed to change the role', error);
 		}
 	}
 
@@ -83,7 +83,7 @@
 			toast.success(`You left "${project.name}"`);
 			goto(resolve('/projects'));
 		} catch (error) {
-			toast.error('Failed to leave the project', { description: extractError(error) });
+			toastError('Failed to leave the project', error);
 		}
 	}
 
@@ -92,9 +92,7 @@
 			await removeMember(project.id, member.account.id);
 			members.mutate(members.current.filter((m) => m.account.id !== member.account.id));
 		} catch (error) {
-			toast.error(`Failed to remove ${member.account.name}`, {
-				description: extractError(error)
-			});
+			toastError(`Failed to remove ${member.account.name}`, error);
 		}
 	}
 </script>

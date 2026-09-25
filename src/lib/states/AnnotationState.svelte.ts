@@ -1,7 +1,7 @@
 import type { ChangeType, RLEType, TrackType, VersionManaged } from '$lib/types/annotation.type';
 import type { Polygon } from '$lib/types/geometry.type';
 import { withMask, withOutline } from '$lib/utils/tracks';
-import { extractError } from '$lib/api/errors';
+import { toastError } from '$lib/api/errors';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
 import { projectState } from './ProjectState.svelte';
 import { toast } from 'svelte-sonner';
@@ -188,7 +188,7 @@ class AnnotationState {
 		try {
 			return build();
 		} catch (error) {
-			toast.error("Couldn't apply the edit", { description: extractError(error) });
+			toastError("Couldn't apply the edit", error);
 			return null;
 		}
 	}
@@ -208,7 +208,7 @@ class AnnotationState {
 
 	#persist(data: VersionManaged<TrackType[]>) {
 		projectState.saveData(data).catch((error: unknown) => {
-			toast.error('Failed to save annotation data', { description: String(error) });
+			toastError('Failed to save annotation data', error);
 		});
 	}
 }

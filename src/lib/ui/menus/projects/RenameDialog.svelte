@@ -2,9 +2,8 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { extractError } from '$lib/api/errors';
+	import { toastError } from '$lib/api/errors';
 	import { LoaderCircleIcon } from '@lucide/svelte';
-	import { toast } from 'svelte-sonner';
 
 	type Props = {
 		open: boolean;
@@ -34,7 +33,7 @@
 			await rename(name.trim());
 			open = false;
 		} catch (error) {
-			toast.error('Rename failed', { description: extractError(error) });
+			toastError('Rename failed', error);
 		} finally {
 			busy = false;
 		}
