@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-	import { useEventListener } from 'runed';
+	import { useEventListener, watch } from 'runed';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
@@ -33,15 +33,21 @@
 		},
 		{ capture: true }
 	);
+
+	/**	When target is nulled, this keeps the content open so it doesn't just disappear. */
+	let lastTarget: DisplayTarget | null = $state(null);
+	watch([() => target], ([_target]) => {
+		if (_target) lastTarget = _target;
+	});
 </script>
 
 <ContextMenu.Root {open} onOpenChange={(next) => !next && onClose()}>
 	<ContextMenu.Content class="w-52" customAnchor={anchor} preventScroll={false}>
-		{#if target?.kind === 'cell'}
+		{#if lastTarget?.kind === 'cell'}
 			<!-- A right-clicked cell is always selected, so the items act on the whole selection -->
 			{@const count = editorState.selectedCells.length}
 			<ContextMenu.Label class="text-center font-bold">
-				{count > 1 ? `${count} cells` : `Cell #${target.cell.ObjectID}`}
+				{count > 1 ? `${count} cells` : `Cell #${lastTarget.cell.ObjectID}`}
 			</ContextMenu.Label>
 			<ContextMenu.Separator />
 			<ContextMenu.Item
@@ -50,8 +56,8 @@
 			>
 				Delete
 			</ContextMenu.Item>
-		{:else if target?.kind === 'background'}
-			{@const frameIndex = target.frameIndex}
+		{:else if lastTarget?.kind === 'background'}
+			{@const frameIndex = lastTarget.frameIndex}
 			<ContextMenu.Item inset onSelect={() => (editorState.tool = 'draw')}
 				>New cell</ContextMenu.Item
 			>
