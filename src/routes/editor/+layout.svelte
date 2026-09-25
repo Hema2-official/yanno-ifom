@@ -14,6 +14,8 @@
 	import { CloudAlertIcon, CloudIcon, CloudOffIcon, CloudSyncIcon } from '@lucide/svelte';
 	import { download, tracksToText } from '$lib/utils/data.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
+	import { editSession } from '$lib/states/EditSessionState.svelte';
+	import EditLockStatus from '$lib/ui/annotation/EditLockStatus.svelte';
 	import { beforeNavigate } from '$app/navigation';
 
 	let { children }: { children: Snippet } = $props();
@@ -112,6 +114,8 @@
 			document.body.removeEventListener('keydown', handleKeyDown);
 			document.body.removeEventListener('keyup', handleKeyUp);
 			window.removeEventListener('wheel', preventPageZoom);
+			// Leaving the editor frees the version's edit lock for others
+			void editSession.stop();
 		};
 	});
 
@@ -172,13 +176,7 @@
 				<Tooltip.Provider delayDuration={200}>
 					<Tooltip.Root>
 						{#if projectState.readOnly}
-							<Tooltip.Trigger class="inline-flex items-center gap-1">
-								<CloudIcon /> View only
-							</Tooltip.Trigger>
-							<Tooltip.Content>
-								{projectState.cloudProject?.owner.name} shared this project with you as
-								a viewer
-							</Tooltip.Content>
+							<EditLockStatus />
 						{:else if projectState.cloudProject && projectState.isSaving}
 							<CloudSyncIcon /> Saving...
 						{:else if projectState.saveError}

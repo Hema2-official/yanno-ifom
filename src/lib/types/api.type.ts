@@ -161,6 +161,24 @@ export const defaultTrackingParams: TrackingParams = {
 	max_time_kernel_shift: undefined
 };
 
+export const defaultInheritanceParams: InheritanceParams = {
+	method: InheritanceMethod.EUCLIDEAN,
+	// The tracker's own default
+	max_centroid_distance: 60
+};
+
+export type StepParams = {
+	segmentation: SegmentationParams;
+	tracking: TrackingParams;
+	inheritance: InheritanceParams;
+};
+
+export const defaultStepParams: StepParams = {
+	segmentation: defaultSegmentationParams,
+	tracking: defaultTrackingParams,
+	inheritance: defaultInheritanceParams
+};
+
 export type ServerTask = {
 	uuid: string; // UUID
 	step: VersionStep;
@@ -175,4 +193,10 @@ export type ServerTask = {
 export type EnqueueTaskBody = {
 	step: VersionStep;
 	parameters: SegmentationParams | TrackingParams | InheritanceParams;
+};
+
+export type EditLock = {
+	editing: boolean;
+	holder: { name: string; you: boolean; since: number; last_save: number | null } | null;
+	steal: { name: string; deadline: number; mine: boolean } | null;
 };

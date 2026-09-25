@@ -28,6 +28,7 @@ import { WebPConverter } from '$lib/utils/webp';
 import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
 import { annotationState, stateBefore } from './AnnotationState.svelte';
 import { editorState } from './EditorState.svelte';
+import { editSession } from './EditSessionState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
 import { extractError } from '$lib/api/errors';
@@ -57,7 +58,8 @@ class ProjectState {
 		this.cloudProject?.video_metadata ?? this.localProject?.video_metadata
 	);
 	frameCount = $derived(getFrameCount(this.videoConfig, this.videoMetadata));
-	readOnly = $derived(this.cloudProject?.role === 'viewer');
+	// Viewers never edit, editors only while their session holds the version's lock
+	readOnly = $derived(!!this.cloudProject && !editSession.canEdit);
 
 	getChannelFrameUrl(frameIndex: number, channelIndex: number): string | null {
 		const imageIndex = getImageIndex(this.videoConfig, frameIndex, channelIndex);
@@ -73,23 +75,33 @@ class ProjectState {
 
 	saveData(data: VersionManaged<TrackType[]>): Promise<void> {
 		const { cloudVersion, localProject } = this;
+		// The session that made the change saves it, even once it has let go of the lock
+		const sessionId = editSession.sessionId;
 		const save = this.saveQueue.then(() =>
-			this.writeData(data, cloudVersion, localProject?.id)
+			this.writeData(data, cloudVersion, localProject?.id, sessionId)
 		);
 		this.saveQueue = save.catch(() => {});
 		return save;
 	}
 
+	/** Resolves once the pending saves are through. */
+	idle(): Promise<void> {
+		return this.saveQueue;
+	}
+
 	private async writeData(
 		data: VersionManaged<TrackType[]>,
 		version: ProjectVersion | null,
-		localProjectId: number | undefined
+		localProjectId: number | undefined,
+		sessionId: string | null
 	) {
 		try {
 			this.isSaving = true;
 
 			if (version) {
-				await updateVersionData(version, $state.snapshot(data));
+				await updateVersionData(version, $state.snapshot(data), {
+					headers: sessionId ? { 'X-Edit-Session': sessionId } : undefined
+				});
 			} else if (localProjectId) {
 				await localProjectsDb.projects.update(localProjectId, {
 					annotation: await compressJson(data)
@@ -108,6 +120,7 @@ class ProjectState {
 	}
 
 	#clearStates() {
+		void editSession.stop();
 		this.cloudProject = null;
 		this.cloudVersion = null;
 		this.localProject = null;
@@ -131,6 +144,9 @@ class ProjectState {
 
 		// Check if it is ready
 		if (!version.ready) throw new Error('Version is not ready');
+
+		// Editors hold the version's edit lock while they edit; the data comes after, so it's current
+		if (project.role !== 'viewer') await editSession.start(version);
 
 		// Get version data from server
 		const versionData = await getVersionData(version);
