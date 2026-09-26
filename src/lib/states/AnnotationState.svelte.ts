@@ -33,7 +33,7 @@ function makeChange(newData: TrackType[], oldData: TrackType[], msg?: string): C
 export function stateBefore(data: VersionManaged<TrackType[]>, count: number): TrackType[] {
 	let result = structuredClone(data.current); // patch() mutates in place
 	for (let i = data.changes.length - 1; i >= data.changes.length - count; i--) {
-		result = jsondiffer.patch(result, data.changes[i].reverse) as TrackType[];
+		result = jsondiffer.patch(result, structuredClone(data.changes[i].reverse)) as TrackType[];
 	}
 	return result;
 }
