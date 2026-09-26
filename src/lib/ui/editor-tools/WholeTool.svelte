@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { inputState } from '$lib/states/InputState.svelte';
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
 	import type { Point } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
@@ -31,8 +31,8 @@
 	const resizeDirection: Point = { x: 0, y: 0 };
 	let lastPointerEvent: PointerEvent | null = null;
 
-	const isCtrlHeld = $derived(inputState.pressedKeys.has('Control'));
-	const isShiftHeld = $derived(inputState.pressedKeys.has('Shift'));
+	const scaleFromCenter = $derived(keybindings.isHeld('whole.scaleFromCenter'));
+	const keepAspect = $derived(keybindings.isHeld('whole.keepAspect'));
 
 	const light = '#ffffff';
 	const dark = '#0f172a';
@@ -130,22 +130,22 @@
 			return;
 		}
 
-		// Resize: Ctrl scales around the center (so both sides move), Shift keeps the aspect ratio
+		// Resize: scaling around the center moves both sides
 		const { x: dirX, y: dirY } = resizeDirection;
-		const factor = isCtrlHeld ? 2 : 1;
+		const factor = scaleFromCenter ? 2 : 1;
 		const width = Math.max(startBounds.maxX - startBounds.minX, 1e-5);
 		const height = Math.max(startBounds.maxY - startBounds.minY, 1e-5);
 		let scaleX = dirX === 0 ? 1 : 1 + (factor * dirX * deltaX) / width;
 		let scaleY = dirY === 0 ? 1 : 1 + (factor * dirY * deltaY) / height;
-		if (isShiftHeld) {
+		if (keepAspect) {
 			if (dirX !== 0 && dirY !== 0) scaleX = scaleY = (scaleX + scaleY) / 2;
 			else if (dirX !== 0) scaleY = scaleX;
 			else scaleX = scaleY;
 		}
 		const pivotX =
-			isCtrlHeld || dirX === 0 ? midX : dirX < 0 ? startBounds.maxX : startBounds.minX;
+			scaleFromCenter || dirX === 0 ? midX : dirX < 0 ? startBounds.maxX : startBounds.minX;
 		const pivotY =
-			isCtrlHeld || dirY === 0 ? midY : dirY < 0 ? startBounds.maxY : startBounds.minY;
+			scaleFromCenter || dirY === 0 ? midY : dirY < 0 ? startBounds.maxY : startBounds.minY;
 		bodies.forEach((body, bodyIndex) =>
 			body.forEach((point, pointIndex) => {
 				const start = startPositions[bodyIndex][pointIndex];
@@ -164,7 +164,7 @@
 	}
 
 	// Modifier changes re-apply the last resize with the new rules
-	watch([() => isCtrlHeld, () => isShiftHeld], () => {
+	watch([() => scaleFromCenter, () => keepAspect], () => {
 		if (lastPointerEvent) handleDragMove(lastPointerEvent);
 	});
 </script>

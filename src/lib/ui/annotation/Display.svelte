@@ -5,6 +5,7 @@
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { inputState } from '$lib/states/InputState.svelte';
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import {
@@ -191,13 +192,13 @@
 		// Cancel the default so the middle button doesn't start autoscroll
 		if (e.button === 1) e.preventDefault();
 
-		// A click with the primary button selects the cell under it (Ctrl
+		// A click with the primary button selects the cell under it (selection.add
 		// toggles) or clears the selection on the background; a drag pans and
 		// leaves the selection alone, so the change waits for the release.
 		pendingSelection = null;
 		if (e.button === 0) {
 			const target = targetAt(e);
-			const additive = e.ctrlKey || e.metaKey;
+			const additive = keybindings.isActive('selection.add', e);
 			if (target?.kind === 'cell') {
 				const { cell } = target;
 				pendingSelection = () =>
@@ -350,7 +351,9 @@
 			style:height="{scalePercent}%"
 			style:transform="translate({translateX}px, {translateY}px)"
 			bind:this={svgElement}
-			opacity={svgState.isSvgShown ? svgState.svgAlpha / 255 : 0}
+			opacity={svgState.isSvgShown && !keybindings.isHeld('display.hideAnnotation')
+				? svgState.svgAlpha / 255
+				: 0}
 		>
 			{@render SVGFilter('colormap-f', colormapFilter)}
 			{#each normalizeFilters as functions, channelIndex (channelIndex)}

@@ -1,0 +1,174 @@
+import { annotationState } from '$lib/states/AnnotationState.svelte';
+import { editorState } from '$lib/states/EditorState.svelte';
+import { projectState } from '$lib/states/ProjectState.svelte';
+import { settingsState } from '$lib/states/settings.svelte';
+import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
+import type { ToolId } from '$lib/ui/editor-tools/registry';
+import type { KeyCombo } from './keys';
+
+/** Where an action applies: `global` always, `editor` while the editor is open. */
+export type ActionScope = 'global' | 'editor';
+
+/** A press action runs on keydown; a hold action is on while its keys are down. */
+export type ActionDefinition = {
+	label: string;
+	description?: string;
+	/** The heading it's listed under in the settings. */
+	group: string;
+	scope: ActionScope;
+	defaults: KeyCombo[];
+} & ({ kind: 'press'; run: () => void; enabled?: () => boolean } | { kind: 'hold' });
+
+const selectTool = (tool: ToolId) => ({
+	kind: 'press' as const,
+	run: () => (editorState.tool = tool),
+	enabled: () => !projectState.readOnly
+});
+
+/** Moves the frame window by `delta`, staying within the video. */
+const stepFrame = (delta: number) => {
+	const last = Math.max(0, projectState.frameCount - videoDisplayState.concurrentFrames);
+	const target = annotationState.currentFrameIndex + delta;
+	annotationState.currentFrameIndex = Math.min(last, Math.max(0, target));
+};
+
+// In precedence order: of the press actions sharing a chord, the first
+// enabled one runs; hold actions all apply
+const table = {
+	'settings.open': {
+		label: 'Open the settings',
+		group: 'General',
+		scope: 'global',
+		kind: 'press',
+		defaults: ['Mod+,'],
+		run: () => (settingsState.open = true)
+	},
+	undo: {
+		label: 'Undo',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Mod+z'],
+		enabled: () => annotationState.canUndo,
+		run: () => annotationState.undo()
+	},
+	redo: {
+		label: 'Redo',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Mod+Shift+z', 'Mod+y'],
+		enabled: () => annotationState.canRedo,
+		run: () => annotationState.redo()
+	},
+	'selection.delete': {
+		label: 'Delete the selected cells',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Delete', 'Backspace'],
+		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		run: () => annotationState.deleteCells(editorState.selectedCells)
+	},
+	'selection.add': {
+		label: 'Add to the selection',
+		description: 'Held while clicking a cell',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'hold',
+		defaults: ['Mod']
+	},
+	'tool.cursor': {
+		label: 'Cursor tool',
+		description: 'Also clears the selection',
+		group: 'Tools',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Escape'],
+		run: () => editorState.reset()
+	},
+	'tool.point': {
+		label: 'Point tool',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['p'],
+		...selectTool('point')
+	},
+	'tool.whole': {
+		label: 'Whole tool',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['w'],
+		...selectTool('whole')
+	},
+	'tool.smooth': {
+		label: 'Smooth tool',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['s'],
+		...selectTool('smooth')
+	},
+	'tool.draw': {
+		label: 'Draw tool',
+		description: 'Draws a new cell',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['n'],
+		...selectTool('draw')
+	},
+	'whole.scaleFromCenter': {
+		label: 'Resize around the center',
+		description: 'Held while resizing with the whole tool',
+		group: 'Tools',
+		scope: 'editor',
+		kind: 'hold',
+		defaults: ['Mod']
+	},
+	'whole.keepAspect': {
+		label: 'Keep the aspect ratio',
+		description: 'Held while resizing with the whole tool',
+		group: 'Tools',
+		scope: 'editor',
+		kind: 'hold',
+		defaults: ['Shift']
+	},
+	'frame.previous': {
+		label: 'Previous frame',
+		group: 'View',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['ArrowLeft'],
+		enabled: () => projectState.frameCount > 0,
+		run: () => stepFrame(-1)
+	},
+	'frame.next': {
+		label: 'Next frame',
+		group: 'View',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['ArrowRight'],
+		enabled: () => projectState.frameCount > 0,
+		run: () => stepFrame(1)
+	},
+	'display.hideAnnotation': {
+		label: 'Hide the annotation',
+		description: 'While held',
+		group: 'View',
+		scope: 'editor',
+		kind: 'hold',
+		defaults: ['Space']
+	},
+	'display.hideLabels': {
+		label: 'Hide the labels',
+		description: 'While held',
+		group: 'View',
+		scope: 'editor',
+		kind: 'hold',
+		defaults: ['Shift']
+	}
+} satisfies Record<string, ActionDefinition>;
+
+export type ActionId = keyof typeof table;
+
+export const actions: Record<ActionId, ActionDefinition> = table;
+export const actionIds = Object.keys(table) as ActionId[];

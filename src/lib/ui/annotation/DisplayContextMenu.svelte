@@ -11,6 +11,7 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import type { Measurable } from '$lib/utils/display';
 
 	type Props = {
@@ -55,12 +56,14 @@
 				onSelect={() => annotationState.deleteCells(editorState.selectedCells)}
 			>
 				Delete
+				<ContextMenu.Shortcut>{keybindings.label('selection.delete')}</ContextMenu.Shortcut>
 			</ContextMenu.Item>
 		{:else if lastTarget?.kind === 'background'}
 			{@const frameIndex = lastTarget.frameIndex}
-			<ContextMenu.Item inset onSelect={() => (editorState.tool = 'draw')}
-				>New cell</ContextMenu.Item
-			>
+			<ContextMenu.Item inset onSelect={() => (editorState.tool = 'draw')}>
+				New cell
+				<ContextMenu.Shortcut>{keybindings.label('tool.draw')}</ContextMenu.Shortcut>
+			</ContextMenu.Item>
 			<ContextMenu.Item
 				inset
 				onSelect={() => editorState.selectAll(annotationState.getFrame(frameIndex) ?? [])}

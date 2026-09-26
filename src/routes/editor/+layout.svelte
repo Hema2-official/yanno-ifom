@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { svgState } from '$lib/states/svg.svelte';
+	import { onDestroy } from 'svelte';
+	import { useEventListener } from 'runed';
+	import KeybindingScope from '$lib/keybindings/KeybindingScope.svelte';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
-	import { toolRegistry, type ToolId } from '$lib/ui/editor-tools/registry';
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
@@ -28,96 +29,18 @@
 		}
 	});
 
-	// Shortcuts must not steal keystrokes from text fields
-	const isTypingTarget = (e: KeyboardEvent) =>
-		e.target instanceof HTMLElement &&
-		(e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName));
-
-	// Dialogs own the keyboard entirely; open menus only take Escape (any
-	// other shortcut closes the display's context menu as a side effect)
-	const isOpen = (roles: string) =>
-		document.querySelector(`[data-state="open"]:is(${roles})`) !== null;
-	const isDialogOpen = () => isOpen('[role="dialog"], [role="alertdialog"]');
-	const isMenuOpen = () => isOpen('[role="menu"]');
-
-	// Escape is the cursor tool's shortcut, handled apart from the others
-	const shortcutTools = new Map(
-		Object.entries(toolRegistry)
-			.filter(([, tool]) => tool.shortcut !== 'Escape')
-			.map(([id, tool]) => [tool.shortcut.toLowerCase(), id as ToolId])
+	// Disable accidental UI zooming on touchpads
+	useEventListener(
+		() => window,
+		'wheel',
+		(e) => {
+			if (e.ctrlKey) e.preventDefault();
+		},
+		{ passive: false }
 	);
 
-	onMount(() => {
-		// Global shortcuts
-		// TODO: centralize this and provide configuration
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (isTypingTarget(e) || isDialogOpen()) return;
-
-			if (e.ctrlKey || e.metaKey) {
-				if (e.key.toLowerCase() === 'z') {
-					e.preventDefault();
-					if (e.shiftKey) annotationState.redo();
-					else annotationState.undo();
-				} else if (e.key === 'y') {
-					e.preventDefault();
-					annotationState.redo();
-				}
-				return;
-			}
-			if (e.altKey) return;
-
-			if (e.key === 'Escape') {
-				if (!isMenuOpen()) editorState.reset();
-				return;
-			}
-
-			if (e.key === 'Delete' || e.key === 'Backspace') {
-				if (editorState.selectedCells.length === 0 || projectState.readOnly) return;
-				e.preventDefault();
-				annotationState.deleteCells(editorState.selectedCells);
-				return;
-			}
-
-			const tool = shortcutTools.get(e.key.toLowerCase());
-			if (tool) {
-				e.preventDefault();
-				editorState.tool = tool;
-				return;
-			}
-
-			// Hold Space to hide the annotation
-			if (e.key === ' ') {
-				e.preventDefault();
-				svgState.isSvgShown = false;
-			}
-		};
-
-		const handleKeyUp = (e: KeyboardEvent) => {
-			if (isTypingTarget(e)) return;
-
-			if (e.key === ' ') {
-				e.preventDefault();
-				svgState.isSvgShown = true;
-			}
-		};
-
-		// Disable accidental UI zooming on touchpads
-		const preventPageZoom = (e: WheelEvent) => {
-			if (e.ctrlKey) e.preventDefault();
-		};
-
-		document.body.addEventListener('keydown', handleKeyDown);
-		document.body.addEventListener('keyup', handleKeyUp);
-		window.addEventListener('wheel', preventPageZoom, { passive: false });
-
-		return () => {
-			document.body.removeEventListener('keydown', handleKeyDown);
-			document.body.removeEventListener('keyup', handleKeyUp);
-			window.removeEventListener('wheel', preventPageZoom);
-			// Leaving the editor frees the version's edit lock for others
-			void editSession.stop();
-		};
-	});
+	// Leaving the editor frees the version's edit lock for others
+	onDestroy(() => void editSession.stop());
 
 	const exportAsJSON = () => {
 		if (!annotationState.data) return;
@@ -137,6 +60,8 @@
 		);
 	};
 </script>
+
+<KeybindingScope scope="editor" />
 
 <div class="flex h-screen w-full flex-col items-center justify-start">
 	<TopBar>
@@ -226,17 +151,18 @@
 							onSelect={() => annotationState.undo()}
 							disabled={!annotationState.canUndo}
 						>
-							Undo <Menubar.Shortcut>⌘Z</Menubar.Shortcut>
+							Undo <Menubar.Shortcut>{keybindings.label('undo')}</Menubar.Shortcut>
 						</Menubar.Item>
 						<Menubar.Item
 							onSelect={() => annotationState.redo()}
 							disabled={!annotationState.canRedo}
 						>
-							Redo <Menubar.Shortcut>⇧⌘Z</Menubar.Shortcut>
+							Redo <Menubar.Shortcut>{keybindings.label('redo')}</Menubar.Shortcut>
 						</Menubar.Item>
 						<Menubar.Separator />
 						<Menubar.Item onSelect={() => (editorState.tool = 'draw')}>
-							New Cell <Menubar.Shortcut>N</Menubar.Shortcut>
+							New Cell
+							<Menubar.Shortcut>{keybindings.label('tool.draw')}</Menubar.Shortcut>
 						</Menubar.Item>
 						<Menubar.Separator />
 						<Menubar.Sub>

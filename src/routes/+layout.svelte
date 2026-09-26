@@ -3,8 +3,10 @@
 	import { goto } from '$app/navigation';
 	import type { Snippet } from 'svelte';
 	import { accountState } from '$lib/states/AccountState.svelte';
+	import KeybindingListener from '$lib/keybindings/KeybindingListener.svelte';
 	import { registerFrameServiceWorker } from '$lib/workers/frameServiceWorker';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
 	import { resolve } from '$app/paths';
 	import type { Pathname } from '$app/types';
 	import { ModeWatcher } from 'mode-watcher';
@@ -60,7 +62,9 @@
 </script>
 
 <ModeWatcher lightClassNames={['light']} />
+<KeybindingListener />
 <Toaster />
+<SettingsDialog />
 
 <main class="flex h-screen w-full">
 	{@render children()}

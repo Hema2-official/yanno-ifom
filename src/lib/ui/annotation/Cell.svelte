@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { inputState } from '$lib/states/InputState.svelte';
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { cellBodyToPathCached } from '$lib/utils/display';
 	import { getCenterOfPolygonsCached } from '$lib/utils/geometry';
@@ -32,8 +32,7 @@
 	{/each}
 </g>
 
-<!-- TODO: centralize this too | Hold Shift to hide the labels -->
-{#if label !== null && !inputState.pressedKeys.has('Shift')}
+{#if label !== null && !keybindings.isHeld('display.hideLabels')}
 	<text
 		x={center.x}
 		y={center.y}

@@ -16,6 +16,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { accountState } from '$lib/states/AccountState.svelte';
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
+	import { settingsState } from '$lib/states/settings.svelte';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import { resolve } from '$app/paths';
 	import CreateProjectDialog from '$lib/ui/menus/projects/CreateProjectDialog.svelte';
@@ -184,10 +186,15 @@
 					<DropdownMenu.Item>
 						<UserPenIcon /> Profile
 					</DropdownMenu.Item>
-					<DropdownMenu.Item>
-						<SettingsIcon /> Settings
-					</DropdownMenu.Item>
-					<DropdownMenu.Separator />
+				{/if}
+				<DropdownMenu.Item onSelect={() => (settingsState.open = true)}>
+					<SettingsIcon /> Settings
+					<DropdownMenu.Shortcut>
+						{keybindings.label('settings.open')}
+					</DropdownMenu.Shortcut>
+				</DropdownMenu.Item>
+				<DropdownMenu.Separator />
+				{#if accountState.currentAccount}
 					<DropdownMenu.Item onSelect={handleLogout}>
 						<LogOutIcon /> Log out
 					</DropdownMenu.Item>
