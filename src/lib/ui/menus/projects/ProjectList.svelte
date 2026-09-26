@@ -5,6 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
+	import { extractError } from '$lib/api/errors';
 	import CreateProjectDialog from './CreateProjectDialog.svelte';
 
 	type Props = {
@@ -53,7 +54,7 @@
 		{#if projects.loading}
 			<Spinner />
 		{:else if projects.error}
-			<p class="text-destructive text-sm">{projects.error.message}</p>
+			<p class="text-destructive text-sm">{extractError(projects.error)}</p>
 		{:else if projects.current.length === 0}
 			<p class="text-muted-foreground text-sm">No projects yet.</p>
 		{:else}
