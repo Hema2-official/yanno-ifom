@@ -18,7 +18,9 @@ export function toastError(message: string, error?: unknown) {
 	}
 }
 
-export async function handleError(error: unknown): Promise<string> {
+export async function handleError(error: unknown): Promise<string | DOMException> {
+	// Aborts stay as they are, so runed's `resource` can ignore them
+	if (error instanceof DOMException && error.name === 'AbortError') return error;
 	if (error instanceof HTTPError) {
 		const data: APIError | undefined =
 			error.data ??
