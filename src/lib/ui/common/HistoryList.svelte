@@ -63,22 +63,19 @@
 	);
 
 	// Follow the current state wherever it moves (undo, redo, a new change)
-	watch(
-		() => [viewport, currentRow] as const,
-		([element, row]) => {
-			if (!element) return;
+	watch([() => viewport, () => currentRow], ([element, row]) => {
+		if (!element) return;
 
-			// The row together with the padding on both sides
-			const top = row * ROW_HEIGHT;
-			const bottom = top + ROW_HEIGHT + 2 * PADDING;
-			if (top < element.scrollTop) element.scrollTop = top;
-			else if (bottom > element.scrollTop + element.clientHeight)
-				element.scrollTop = bottom - element.clientHeight;
+		// The row together with the padding on both sides
+		const top = row * ROW_HEIGHT;
+		const bottom = top + ROW_HEIGHT + 2 * PADDING;
+		if (top < element.scrollTop) element.scrollTop = top;
+		else if (bottom > element.scrollTop + element.clientHeight)
+			element.scrollTop = bottom - element.clientHeight;
 
-			// Renders the rows there before the scroll event arrives
-			scrollTop = element.scrollTop;
-		}
-	);
+		// Renders the rows there before the scroll event arrives
+		scrollTop = element.scrollTop;
+	});
 
 	/** Shows the state of `row`, as if the changes above it had been undone one by one. */
 	function jumpTo(row: number) {
