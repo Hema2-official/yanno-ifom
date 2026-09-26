@@ -1,6 +1,7 @@
 import { http, BASE_URL } from './kyConfig';
 import type { Options } from 'ky';
 import type {
+	CopyProjectVersionBody,
 	CreateProjectVersionBody,
 	EnqueueTaskBody,
 	MemberRole,
@@ -134,7 +135,7 @@ export async function createProjectVersion(
 
 export async function copyProjectVersion(
 	version: ProjectVersion,
-	body: CreateProjectVersionBody,
+	body: CopyProjectVersionBody,
 	options?: Options
 ) {
 	try {

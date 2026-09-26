@@ -12,6 +12,7 @@ import {
 	type VersionManaged
 } from '$lib/types/annotation.type';
 import type {
+	CreateProjectVersionBody,
 	Project,
 	ProjectVersion,
 	VideoChannelMetadata,
@@ -173,6 +174,12 @@ class ProjectState {
 		annotationFile: File | null,
 		onProgress?: ProgressCallback
 	) {
+		// Check annotation before doing anything else
+		const imported: CreateProjectVersionBody | null = annotationFile && {
+			name: annotationFile.name.replace(/\.json$/i, '') + ' (imported)',
+			data: await readAnnotationFile(annotationFile)
+		};
+
 		onProgress?.('Uploading video...');
 		const project = await createProject(name, videoFile, video_config, {
 			onUploadProgress: ({ percent }) =>
@@ -181,10 +188,10 @@ class ProjectState {
 					: onProgress?.('Processing video...')
 		});
 
-		if (annotationFile) {
+		if (imported) {
 			onProgress?.('Importing annotation...');
 			// The project exists already: report the failed import, but keep the project
-			await importAnnotation(project.id, annotationFile).catch((error: unknown) => {
+			await createProjectVersion(project.id, imported).catch((error: unknown) => {
 				toastError('Annotation import failed', error);
 			});
 		}
@@ -288,14 +295,7 @@ class ProjectState {
 	}
 }
 
-/** Creates a version named after the file and fills it with the file's annotation. */
-async function importAnnotation(projectId: string, file: File) {
-	const name = file.name.replace(/\.json$/i, '') + ' (imported)';
-	const version = await createProjectVersion(projectId, { name });
-	await updateVersionData(version, await readAnnotationFile(file));
-}
-
-async function readAnnotationFile(file: File): Promise<VersionManaged<TrackType[]>> {
+export async function readAnnotationFile(file: File): Promise<VersionManaged<TrackType[]>> {
 	const parsed: unknown = JSON.parse(await file.text());
 	const result = annotationDataSchema.safeParse(
 		Array.isArray(parsed) ? { current: parsed, changes: [] } : parsed

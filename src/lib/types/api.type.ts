@@ -1,3 +1,5 @@
+import type { TrackType, VersionManaged } from './annotation.type';
+
 export type AuthResponse = {
 	account_id: number;
 };
@@ -107,7 +109,10 @@ export type Project = {
 
 export type CreateProjectVersionBody = {
 	name: string;
+	data?: VersionManaged<TrackType[]>; // Optional import
 };
+
+export type CopyProjectVersionBody = Pick<CreateProjectVersionBody, 'name'>;
 
 export type APIError = {
 	detail: string;
