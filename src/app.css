@@ -7,6 +7,7 @@
 @custom-variant data-unchecked (&:where([data-state="unchecked"]), &:where([data-unchecked]:not([data-unchecked="false"])));
 @custom-variant data-horizontal (&:where([data-orientation="horizontal"]));
 @custom-variant data-vertical (&:where([data-orientation="vertical"]));
+@custom-variant data-active (&:where([data-active="true"]));
 
 @custom-variant dark {
 	&:where(.dark, .dark *) {
