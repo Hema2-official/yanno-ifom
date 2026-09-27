@@ -41,6 +41,7 @@
 
 		// Guests can list and edit local projects, which live in this browser
 		const isPublic =
+			path === '/' ||
 			path === '/projects' ||
 			(path === '/editor' && search.get('project')?.startsWith('local_'));
 

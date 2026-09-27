@@ -15,7 +15,7 @@
 				})
 				// The root layout redirects once the account is known
 				.finally(() => accountState.refresh());
-		}, 2000);
+		}, 1000);
 	});
 </script>
 

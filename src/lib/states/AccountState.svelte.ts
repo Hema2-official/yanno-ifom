@@ -8,6 +8,7 @@ class AccountState {
 	currentAccount: MeResponse | null | undefined = $state(undefined);
 
 	async refresh() {
+		this.currentAccount = undefined;
 		this.currentAccount = await getMe().catch(() => null);
 	}
 
