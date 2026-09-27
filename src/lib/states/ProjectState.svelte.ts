@@ -131,11 +131,12 @@ class ProjectState {
 		videoDisplayState.concurrentFrames = 1;
 	}
 
-	async loadCloudProject(projectId: string, versionId: string) {
+	async loadCloudProject(projectId: string, versionId: string, signal?: AbortSignal) {
 		this.#clearStates();
 
 		// Get project from server
-		const project = await getProject(projectId);
+		const project = await getProject(projectId, { signal });
+		signal?.throwIfAborted();
 		const version = project.versions.find((v) => v.id === versionId);
 		if (!version) throw new Error("Couldn't find version in project");
 
@@ -147,13 +148,15 @@ class ProjectState {
 
 		// Editors hold the version's edit lock while they edit; the data comes after, so it's current
 		if (project.role !== 'viewer') await editSession.start(version);
+		signal?.throwIfAborted();
 
-		// Get version data from server
-		const versionData = await getVersionData(version);
-		annotationState.load(versionData);
+		// A version made without an import has no data until its first save
+		const versionData = await getVersionData(version, { signal });
+		signal?.throwIfAborted();
+		annotationState.load(versionData ?? { current: [], changes: [] });
 	}
 
-	async loadLocalProject(localProjectId: number) {
+	async loadLocalProject(localProjectId: number, signal?: AbortSignal) {
 		this.#clearStates();
 
 		// Wait for the local frame service worker to initialize
@@ -161,10 +164,13 @@ class ProjectState {
 
 		// Load project from indexeddb
 		const project = await localProjectsDb.projects.get(localProjectId);
+		signal?.throwIfAborted();
 		if (!project) throw new Error("Couldn't find project");
 		this.localProject = project;
 
-		annotationState.load(await decompressJson(project.annotation));
+		const annotation = await decompressJson<VersionManaged<TrackType[]>>(project.annotation);
+		signal?.throwIfAborted();
+		annotationState.load(annotation);
 	}
 
 	async createCloudProject(
