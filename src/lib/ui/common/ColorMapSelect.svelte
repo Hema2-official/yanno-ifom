@@ -1,19 +1,24 @@
+<script module lang="ts">
+	import { SettingState } from '$lib/states/SettingState.svelte';
+	import { AVAILABLE_COLORMAPS, type ColorMapType } from '$lib/utils/imaging';
+
+	// Listed first in the picker
+	const favoriteColormaps = new SettingState<ColorMapType[]>('favoriteColormaps', []);
+</script>
+
 <script lang="ts">
 	import { tick } from 'svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Command from '$lib/components/ui/command';
 	import { Button } from '$lib/components/ui/button';
 	import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
-	import { AVAILABLE_COLORMAPS, type ColorMapType } from '$lib/utils/imaging';
-	import { PersistedState, watch } from 'runed';
+	import { watch } from 'runed';
 	import { StarIcon } from '@lucide/svelte';
 
 	let { value = $bindable() }: { value: string } = $props();
 
 	let open = $state(false);
 	let triggerRef = $state<HTMLButtonElement | null>(null);
-
-	const favoriteColormaps = new PersistedState<ColorMapType[]>('favoriteColormaps', []);
 
 	function closeAndFocusTrigger() {
 		open = false;

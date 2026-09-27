@@ -24,8 +24,8 @@ export class WorkingCell implements OutlineEntry {
 	constructor(cell: TrackType) {
 		this.cell = cell;
 		const polygons = structuredClone(rleToPolygons(cell.SegmentationRLE));
-		this.bodies = optionsState.autoResample
-			? resampleCellBodies(polygons, optionsState.resampleSegmentLength)
+		this.bodies = optionsState.autoResample.current
+			? resampleCellBodies(polygons, optionsState.resampleSegmentLength.current)
 			: polygons;
 	}
 }

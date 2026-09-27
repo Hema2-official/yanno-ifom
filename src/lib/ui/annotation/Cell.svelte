@@ -21,13 +21,15 @@
 	{#each cellPolygons as body, index (index)}
 		<path
 			d={cellBodyToPathCached(body)}
-			fill={svgState.svgFillSwitch ? svgState.svgFill : 'transparent'}
+			fill={svgState.svgFillSwitch.current ? svgState.svgFill.current : 'transparent'}
 			stroke={selected
 				? 'var(--accent-color)'
-				: svgState.svgStrokeSwitch
-					? svgState.svgStroke
+				: svgState.svgStrokeSwitch.current
+					? svgState.svgStroke.current
 					: 'none'}
-			stroke-width={selected ? '3px' : '2px'}
+			stroke-width={selected
+				? svgState.outlineWidth.current + 1
+				: svgState.outlineWidth.current}
 		/>
 	{/each}
 </g>
@@ -39,7 +41,7 @@
 		text-anchor="middle"
 		dominant-baseline="middle"
 		fill="black"
-		font-size="12px"
+		font-size={svgState.labelSize.current}
 		font-weight="bold">{label}</text
 	>
 {/if}

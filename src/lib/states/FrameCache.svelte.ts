@@ -1,3 +1,6 @@
+import { watch } from 'runed';
+import { SettingState } from './SettingState.svelte';
+
 type CacheEntry = {
 	objectUrl: string;
 	size: number;
@@ -13,10 +16,10 @@ const MAX_PARALLEL_FETCHES = 4;
  */
 class FrameCache {
 	/** Maximum memory the cached frames may occupy, in bytes. */
-	maxBytes = $state(256 * 1024 * 1024);
+	maxBytes = new SettingState('maxBytes', 256 * 1024 * 1024, { local: true });
 
 	/** How many frames around the displayed window get prefetched. */
-	prefetchRadius = $state(20);
+	prefetchRadius = new SettingState('prefetchRadius', 20, { local: true });
 
 	/** Current memory usage of the cache, in bytes. */
 	totalBytes = $state(0);
@@ -27,6 +30,13 @@ class FrameCache {
 	#failed = new Set<string>();
 	#queue: string[] = [];
 	#activeFetches = 0;
+
+	constructor() {
+		// A smaller budget drops frames at once
+		$effect.root(() => {
+			watch([() => this.maxBytes.current], () => this.#evict(), { lazy: true });
+		});
+	}
 
 	/**
 	 * Returns the in-memory object URL of a frame, falling back to the
@@ -120,7 +130,7 @@ class FrameCache {
 	/** Drops the least recently used entries until the cache fits the budget. */
 	#evict() {
 		for (const [url, entry] of this.#entries) {
-			if (this.totalBytes <= this.maxBytes) break;
+			if (this.totalBytes <= this.maxBytes.current) break;
 			URL.revokeObjectURL(entry.objectUrl);
 			this.#entries.delete(url);
 			this.totalBytes -= entry.size;

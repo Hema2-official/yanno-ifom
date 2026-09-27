@@ -10,6 +10,7 @@ export type MeResponse = {
 	name: string;
 	created_at: string;
 	updated_at: string;
+	preferences: Record<string, unknown>;
 };
 
 /** Another user, as the API lists them. */

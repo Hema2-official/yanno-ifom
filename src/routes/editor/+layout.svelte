@@ -8,7 +8,6 @@
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
-	import { optionsState } from '$lib/states/options.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -220,14 +219,6 @@
 					<Menubar.Item inset>Zoom In</Menubar.Item>
 					<Menubar.Item inset>Zoom Out</Menubar.Item>
 					<Menubar.Item inset>Reset Zoom</Menubar.Item>
-					<Menubar.Separator />
-					<Menubar.CheckboxItem bind:checked={optionsState.sidebarRight}>
-						Sidebar on the right
-					</Menubar.CheckboxItem>
-					<Menubar.Separator />
-					<Menubar.CheckboxItem bind:checked={optionsState.autoResample}>
-						Auto Resample
-					</Menubar.CheckboxItem>
 				</Menubar.Content>
 			</Menubar.Menu>
 		{/snippet}

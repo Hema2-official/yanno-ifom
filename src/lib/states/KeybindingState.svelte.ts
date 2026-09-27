@@ -1,4 +1,3 @@
-import { PersistedState } from 'runed';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { actionIds, actions, type ActionId, type ActionScope } from '$lib/keybindings/actions';
 import {
@@ -12,6 +11,7 @@ import {
 	type KeyCombo
 } from '$lib/keybindings/keys';
 import { isApple } from '$lib/utils/platform';
+import { SettingState } from './SettingState.svelte';
 
 // Shortcuts must not steal keystrokes from text fields
 const isTypingTarget = (e: KeyboardEvent) =>
@@ -29,7 +29,7 @@ const sameCombos = (a: KeyCombo[], b: KeyCombo[]) =>
 
 class KeybindingState {
 	/** The actions bound differently from their defaults, by id. */
-	#stored = new PersistedState<Record<string, unknown>>('keybindings', {});
+	#stored = new SettingState<Record<string, unknown>>('keybindings', {});
 	#scopes = new SvelteSet<ActionScope>(['global']);
 	/** The hold actions currently down, with the chord that pressed each. */
 	#held = new SvelteMap<ActionId, KeyCombo>();
@@ -74,7 +74,7 @@ class KeybindingState {
 	}
 
 	resetAll() {
-		this.#stored.current = {};
+		this.#stored.reset();
 	}
 
 	/**

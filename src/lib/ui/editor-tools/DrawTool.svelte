@@ -54,8 +54,8 @@
 		// Anything shorter is an accidental click
 		if (drawn.length < 3 || !metadata) return;
 
-		const outline = optionsState.autoResample
-			? resampleCellBody(drawn, optionsState.resampleSegmentLength)
+		const outline = optionsState.autoResample.current
+			? resampleCellBody(drawn, optionsState.resampleSegmentLength.current)
 			: drawn;
 		const cell = annotationState.addCell((tracks) =>
 			newCell(frameIndex, tracks, [outline], [metadata.height, metadata.width])

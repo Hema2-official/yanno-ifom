@@ -19,6 +19,17 @@ export async function updateMe(body: { name: string }, options?: Options) {
 	}
 }
 
+export async function updatePreferences(patch: Record<string, unknown>, options?: Options) {
+	try {
+		return await http.patch<Record<string, unknown>>(`api/v0/users/me/preferences`, {
+			...options,
+			json: patch
+		});
+	} catch (error) {
+		throw await handleError(error);
+	}
+}
+
 /** Users whose name or email contains `search`, to share projects with. */
 export async function searchUsers(search: string, options?: Options) {
 	try {

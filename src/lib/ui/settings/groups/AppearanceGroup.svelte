@@ -58,7 +58,7 @@
 
 	{#if shown.includes('sidebar')}
 		<SettingsRow label="Sidebar on the right" for="{uid}-sidebar">
-			<Switch id="{uid}-sidebar" bind:checked={optionsState.sidebarRight} />
+			<Switch id="{uid}-sidebar" bind:checked={optionsState.sidebarRight.current} />
 		</SettingsRow>
 	{/if}
 </SettingsSection>

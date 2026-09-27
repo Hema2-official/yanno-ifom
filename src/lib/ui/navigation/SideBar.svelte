@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { labelKeys, svgState, type LabelKey } from '$lib/states/svg.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
-	import { zoomState } from '$lib/states/zoom.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
@@ -53,32 +52,32 @@
 
 <aside
 	class="border-accent flex h-full w-80 flex-col
-		{optionsState.sidebarRight ? 'order-3 border-l' : 'order-1 border-r'}"
+		{optionsState.sidebarRight.current ? 'order-3 border-l' : 'order-1 border-r'}"
 >
 	<ScrollArea class="h-full min-h-0 px-6 pt-4">
 		<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Graphics</h2>
 		<div class="flex flex-col gap-4 pb-6">
 			<Label for="normalize-switch" class="cursor-pointer">
-				<Switch id="normalize-switch" bind:checked={svgState.normalizeSwitch} /> Normalize
+				<Switch id="normalize-switch" bind:checked={svgState.normalizeSwitch.current} /> Normalize
 			</Label>
 
 			<Label for="colormap-switch" class="cursor-pointer">
-				<Switch id="colormap-switch" bind:checked={svgState.colormapSwitch} /> Colormap
+				<Switch id="colormap-switch" bind:checked={svgState.colormapSwitch.current} /> Colormap
 			</Label>
 
 			<div class="flex items-center gap-2">
 				<Label>Color map:</Label>
-				<ColorMapSelect bind:value={svgState.videoColormap} />
+				<ColorMapSelect bind:value={svgState.videoColormap.current} />
 			</div>
 
 			<div class="flex flex-col gap-2">
 				<Label for="colormap-shades" class="text-nowrap">
-					Shades: {svgState.videoColormapShades}
+					Shades: {svgState.videoColormapShades.current}
 				</Label>
 				<Slider
 					id="colormap-shades"
 					type="single"
-					bind:value={svgState.videoColormapShades}
+					bind:value={svgState.videoColormapShades.current}
 					min={16}
 					max={256}
 					step={1}
@@ -86,11 +85,11 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				<Switch id="labels-switch" bind:checked={svgState.labelSwitch} />
+				<Switch id="labels-switch" bind:checked={svgState.labelSwitch.current} />
 				<Label for="labels-switch">Labels:</Label>
-				<Select.Root type="single" bind:value={svgState.labelKey}>
+				<Select.Root type="single" bind:value={svgState.labelKey.current}>
 					<Select.Trigger class="flex-1 font-normal" size="sm">
-						{readableLabelKey(svgState.labelKey)}
+						{readableLabelKey(svgState.labelKey.current)}
 					</Select.Trigger>
 					<Select.Content>
 						{#each labelKeys as value (value)}
@@ -175,44 +174,6 @@
 					step={1}
 					disabled={projectState.frameCount === 0}
 				/>
-			</div>
-		</div>
-
-		<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Debug</h2>
-		<div class="flex flex-col gap-4 pb-6">
-			<Label for="is-svg-shown" class="cursor-pointer">
-				<Switch id="is-svg-shown" bind:checked={svgState.isSvgShown} /> Show SVG
-			</Label>
-
-			<Label for="svg-stroke-switch" class="cursor-pointer">
-				<Switch id="svg-stroke-switch" bind:checked={svgState.svgStrokeSwitch} /> Stroke
-			</Label>
-
-			<Label for="svg-stroke-color" class="cursor-pointer">
-				<ColorPicker id="svg-stroke-color" bind:value={svgState.svgStroke} /> Stroke color
-			</Label>
-
-			<Label for="svg-fill-switch" class="cursor-pointer">
-				<Switch id="svg-fill-switch" bind:checked={svgState.svgFillSwitch} /> Fill
-			</Label>
-
-			<Label for="svg-fill-color" class="cursor-pointer">
-				<ColorPicker id="svg-fill-color" bind:value={svgState.svgFill} /> Fill color
-			</Label>
-
-			<div class="flex flex-col gap-2">
-				<Label for="svg-alpha" class="text-nowrap">SVG opacity</Label>
-				<Slider id="svg-alpha" type="single" bind:value={svgState.svgAlpha} max={255} />
-			</div>
-
-			<Label for="pointer-lock-enabled" class="cursor-pointer">
-				<Switch id="pointer-lock-enabled" bind:checked={optionsState.pointerLockEnabled} />
-				Enable pointer lock
-			</Label>
-
-			<div class="flex flex-col gap-2">
-				<Label>Zoom multiplier</Label>
-				<Slider type="single" bind:value={zoomState.scrollMultiplier} min={0.1} max={10} />
 			</div>
 		</div>
 

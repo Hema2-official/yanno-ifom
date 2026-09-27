@@ -176,7 +176,7 @@
 			{#each bodies as body, i (i)}
 				<path
 					d={cellBodyToPath(body)}
-					stroke={svgState.svgStroke}
+					stroke={svgState.svgStroke.current}
 					stroke-dasharray="3, 2"
 					class="fill-none stroke-1 opacity-80"
 				/>

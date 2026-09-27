@@ -55,7 +55,7 @@
 	const gridRows = $derived(Math.ceil(videoDisplayState.concurrentFrames / gridCols));
 
 	const colormapFilter = $derived(
-		colormapToRgbFunctions(svgState.videoColormap, svgState.videoColormapShades)
+		colormapToRgbFunctions(svgState.videoColormap.current, svgState.videoColormapShades.current)
 	);
 	const normalizeFilters = $derived.by(() => {
 		const metadata = projectState.videoMetadata;
@@ -66,16 +66,16 @@
 	/** A channel's image goes through the normalization, its adjustments, then the colormap. */
 	const channelFilter = (channel: ChannelDisplaySettings, channelIndex: number) => {
 		let filter = '';
-		if (svgState.normalizeSwitch && normalizeFilters[channelIndex])
+		if (svgState.normalizeSwitch.current && normalizeFilters[channelIndex])
 			filter += `url(#normalize-f-${channelIndex}) `;
 		if (channel.isAdjusted) filter += `url(#adjust-f-${channelIndex}) `;
-		if (svgState.colormapSwitch) filter += 'url(#colormap-f) ';
+		if (svgState.colormapSwitch.current) filter += 'url(#colormap-f) ';
 		return filter.trim();
 	};
 
 	const cellLabel = (cell: TrackType): string | null => {
-		if (!svgState.labelSwitch) return null;
-		return String(cell[svgState.labelKey] ?? '');
+		if (!svgState.labelSwitch.current) return null;
+		return String(cell[svgState.labelKey.current] ?? '');
 	};
 
 	const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
@@ -106,7 +106,7 @@
 		if (!e.ctrlKey) return; // plain wheel is left to the tools
 
 		const delta = clamp(e.deltaY, MAX_ZOOM_DELTA);
-		const rate = zoomState.scrollMultiplier * 0.01;
+		const rate = zoomState.scrollMultiplier.current * 0.01;
 
 		const oldScale = scalePercent;
 		const newScale = Math.max(
@@ -161,7 +161,7 @@
 		pan.travel = 0;
 		imageWrapperElement.setPointerCapture(e.pointerId);
 
-		if (optionsState.pointerLockEnabled && e.button === 0) {
+		if (optionsState.pointerLockEnabled.current && e.button === 0) {
 			imageWrapperElement.requestPointerLock();
 			pan.locked = true;
 			pan.first = true;
@@ -305,7 +305,7 @@
 		};
 
 		for (let i = 0; i < count; i++) addFrame(start + i, false);
-		for (let distance = 1; distance <= frameCache.prefetchRadius; distance++) {
+		for (let distance = 1; distance <= frameCache.prefetchRadius.current; distance++) {
 			addFrame(start + count - 1 + distance, true);
 			addFrame(start - distance, true);
 		}
@@ -352,7 +352,7 @@
 			style:transform="translate({translateX}px, {translateY}px)"
 			bind:this={svgElement}
 			opacity={svgState.isSvgShown && !keybindings.isHeld('display.hideAnnotation')
-				? svgState.svgAlpha / 255
+				? svgState.annotationOpacity.current
 				: 0}
 		>
 			{@render SVGFilter('colormap-f', colormapFilter)}

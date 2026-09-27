@@ -1,6 +1,7 @@
 import type { TrackType } from '$lib/types/annotation.type';
-import type { ColorMapType } from '$lib/utils/imaging';
+import { AVAILABLE_COLORMAPS, type ColorMapType } from '$lib/utils/imaging';
 import { projectState } from './ProjectState.svelte';
+import { SettingState } from './SettingState.svelte';
 
 export type SvgViewBoxType = {
 	minX: number;
@@ -12,17 +13,24 @@ export type SvgViewBoxType = {
 export const labelKeys = ['ObjectID', 'TrackID', 'Class'] as const;
 export type LabelKey = Extract<keyof TrackType, (typeof labelKeys)[number]>;
 
+const oneOf =
+	<T extends string>(values: readonly T[]) =>
+	(value: unknown): value is T =>
+		values.includes(value as T);
+
 class SvgState {
 	isSvgShown = $state(true);
 
-	labelSwitch = $state(true);
-	labelKey: LabelKey = $state('ObjectID');
+	labelSwitch = new SettingState('labelSwitch', true);
+	labelKey = new SettingState<LabelKey>('labelKey', 'ObjectID', { validate: oneOf(labelKeys) });
 
-	svgFill = $state('#ffffff');
-	svgStroke = $state('#000000');
-	svgAlpha = $state(255);
-	svgFillSwitch = $state(false);
-	svgStrokeSwitch = $state(true);
+	svgFill = new SettingState('svgFill', '#ffffff');
+	svgStroke = new SettingState('svgStroke', '#000000');
+	svgFillSwitch = new SettingState('svgFillSwitch', false);
+	svgStrokeSwitch = new SettingState('svgStrokeSwitch', true);
+	outlineWidth = new SettingState('outlineWidth', 2);
+	labelSize = new SettingState('labelSize', 12);
+	annotationOpacity = new SettingState('annotationOpacity', 1);
 
 	svgScalePercent = $state(100);
 
@@ -33,11 +41,13 @@ class SvgState {
 		height: projectState.videoMetadata?.height || 512
 	});
 
-	normalizeSwitch = $state(true);
-	colormapSwitch = $state(true);
+	normalizeSwitch = new SettingState('normalizeSwitch', true);
+	colormapSwitch = new SettingState('colormapSwitch', true);
 
-	videoColormap: ColorMapType = $state('viridis');
-	videoColormapShades = $state(64);
+	videoColormap = new SettingState<ColorMapType>('videoColormap', 'viridis', {
+		validate: oneOf(AVAILABLE_COLORMAPS)
+	});
+	videoColormapShades = new SettingState('videoColormapShades', 64);
 }
 
 export const svgState = new SvgState();

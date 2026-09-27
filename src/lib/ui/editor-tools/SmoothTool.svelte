@@ -186,7 +186,7 @@
 			{#each entry.bodies as body, bodyIndex (bodyIndex)}
 				<path
 					d={cellBodyToPath(body)}
-					stroke={svgState.svgStroke}
+					stroke={svgState.svgStroke.current}
 					class="fill-none stroke-1 opacity-80"
 				/>
 			{/each}
