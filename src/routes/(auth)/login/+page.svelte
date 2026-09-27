@@ -1,68 +1,96 @@
 <script lang="ts">
-	import TextBox from '$lib/ui/common/TextBox.svelte';
+	import { resolve } from '$app/paths';
+	import { LoaderCircleIcon } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import * as Marker from '$lib/components/ui/marker';
 	import { login } from '$lib/api/auth';
-	import type { APIError, CredentialsError } from '$lib/types/api.type';
+	import { toastError } from '$lib/api/errors';
 	import { accountState } from '$lib/states/AccountState.svelte';
+	import type { APIError, CredentialsError } from '$lib/types/api.type';
+
+	const uid = $props.id();
 
 	let email = $state('');
 	let password = $state('');
+	let emailMessage = $state('');
+	let passwordMessage = $state('');
+	let message = $state('');
+	let busy = $state(false);
 
-	let email_field_message: string | undefined = $state(undefined);
-	let password_field_message: string | undefined = $state(undefined);
-	let other_error_message = $state('');
+	async function onsubmit(e: SubmitEvent) {
+		e.preventDefault();
+		if (busy) return;
 
-	let isLoading = $state(false);
-
-	const handleSubmit = () => {
-		if (isLoading) return;
-
-		// Reset error messages
-		email_field_message = '';
-		password_field_message = '';
-
-		isLoading = true;
-		login(email, password)
-			.then((response) => {
-				console.log('Logged in as', response.account_id);
-				// The root layout redirects once the account is known
-				return accountState.refresh();
-			})
-			.catch((error: Error | APIError | CredentialsError) => {
-				if (typeof error === 'object' && 'detail' in error) {
-					if (typeof error.detail === 'string') {
-						other_error_message = error.detail;
-					} else if (error.detail && typeof error.detail === 'object') {
-						email_field_message = error.detail.email_field_message;
-						password_field_message = error.detail.password_field_message;
-					}
-				} else {
-					alert('Login failed: ' + error);
-				}
-			})
-			.finally(() => {
-				isLoading = false;
-			});
-	};
+		emailMessage = passwordMessage = message = '';
+		busy = true;
+		try {
+			await login(email, password);
+			// The root layout redirects once the account is known
+			await accountState.refresh();
+		} catch (error) {
+			const detail = (error as Partial<APIError | CredentialsError>).detail;
+			if (typeof detail === 'string') message = detail;
+			else if (detail) {
+				emailMessage = detail.email_field_message ?? '';
+				passwordMessage = detail.password_field_message ?? '';
+			} else toastError('Login failed', error);
+		} finally {
+			busy = false;
+		}
+	}
 </script>
 
-<form
-	class="flex w-[200px] flex-col items-center justify-center px-3 py-4"
-	onsubmit={(e) => {
-		e.preventDefault();
-		handleSubmit();
-	}}
->
-	{#if other_error_message}
-		<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{other_error_message}</p>
-	{/if}
-	<TextBox bind:value={email} type="email">Email</TextBox>
-	{#if email_field_message}
-		<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{email_field_message}</p>
-	{/if}
-	<TextBox bind:value={password} type="password">Password</TextBox>
-	{#if password_field_message}
-		<p class="m-0 w-full px-1 pb-1 text-xs text-red-500">{password_field_message}</p>
-	{/if}
-	<Button variant="outline" class="mt-4" type="submit" disabled={isLoading}>Log in</Button>
-</form>
+<div class="mt-6 flex w-72 flex-col gap-4">
+	<form class="flex flex-col gap-4" {onsubmit}>
+		<h1 class="text-center text-2xl font-semibold">Log in</h1>
+
+		{#if message}
+			<p class="text-destructive text-sm">{message}</p>
+		{/if}
+
+		<div class="flex flex-col gap-1.5">
+			<Label for="{uid}-email">Email</Label>
+			<Input
+				id="{uid}-email"
+				type="email"
+				autocomplete="email"
+				bind:value={email}
+				aria-invalid={emailMessage ? true : undefined}
+			/>
+			{#if emailMessage}
+				<p class="text-destructive text-xs">{emailMessage}</p>
+			{/if}
+		</div>
+
+		<div class="flex flex-col gap-1.5">
+			<Label for="{uid}-password">Password</Label>
+			<Input
+				id="{uid}-password"
+				type="password"
+				autocomplete="current-password"
+				bind:value={password}
+				aria-invalid={passwordMessage ? true : undefined}
+			/>
+			{#if passwordMessage}
+				<p class="text-destructive text-xs">{passwordMessage}</p>
+			{/if}
+		</div>
+
+		<Button type="submit" disabled={busy}>
+			{#if busy}
+				<LoaderCircleIcon data-icon="inline-start" class="animate-spin" />
+			{/if}
+			Log in
+		</Button>
+	</form>
+
+	<Marker.Root variant="separator">
+		<Marker.Content>or</Marker.Content>
+	</Marker.Root>
+
+	<Button type="button" variant="secondary" disabled={busy} href={resolve('/projects')}>
+		View local projects
+	</Button>
+</div>

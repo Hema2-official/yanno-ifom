@@ -2,7 +2,8 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { createSearchParamsSchema, useSearchParams } from 'runed/kit';
-	import { CloudIcon, HardDriveIcon, UsersIcon } from '@lucide/svelte';
+	import { CloudIcon, HardDriveIcon, LogInIcon, UsersIcon } from '@lucide/svelte';
+	import { Separator } from '$lib/components/ui/separator';
 	import {
 		deleteProject,
 		getProjects,
@@ -18,24 +19,27 @@
 	import ProjectView from '$lib/ui/menus/projects/ProjectView.svelte';
 
 	const params = useSearchParams(createSearchParamsSchema({ project: { type: 'string' } }));
+
+	let currentHref = encodeURIComponent(page.url.pathname + page.url.search);
 </script>
 
 <div class="mx-auto mt-24 flex w-3/5 flex-col gap-10">
 	{#if accountState.currentAccount === undefined}
 		<Spinner />
 	{:else if !accountState.currentAccount}
-		<p class="text-muted-foreground text-sm">
-			<Button
-				variant="link"
-				class="px-0"
-				href={resolve(
-					`/login?redirect=${encodeURIComponent(page.url.pathname + page.url.search)}`
-				)}
-			>
-				Log in
+		<section class="flex flex-col items-start gap-4">
+			<div class="flex items-center gap-3">
+				<CloudIcon class="text-muted-foreground size-8 shrink-0" />
+				<h2 class="text-3xl font-bold">Log in to manage cloud projects</h2>
+			</div>
+			<p class="text-muted-foreground max-w-prose">
+				Cloud projects can be accessed from anywhere and enable collaboration.
+			</p>
+			<Button href={resolve(`/login?redirect=${currentHref}`)}>
+				<LogInIcon data-icon="inline-start" /> Log in
 			</Button>
-			to manage cloud projects.
-		</p>
+		</section>
+		<Separator />
 	{:else if params.project}
 		<ProjectView projectId={params.project} />
 	{:else}

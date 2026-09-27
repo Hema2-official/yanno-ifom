@@ -199,6 +199,16 @@
 	* {
 		@apply border-border outline-ring/50;
 	}
+
+	/* Keep autofilled fields in the theme's colors, focus rings included */
+	input:autofill {
+		--autofill-tint: --alpha(#fde724 / 15%);
+		--tw-inset-shadow:
+			inset 0 0 0 100vmax var(--autofill-tint), inset 0 0 0 100vmax var(--background);
+		box-shadow: var(--tw-inset-shadow);
+		background-clip: padding-box;
+		-webkit-text-fill-color: var(--foreground);
+	}
 }
 
 body {
