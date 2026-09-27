@@ -128,7 +128,10 @@
 		<Breadcrumb.Root>
 			<Breadcrumb.List class="text-lg">
 				<Breadcrumb.Item>
-					<Breadcrumb.Link href="/" class="text-foreground font-semibold">
+					<Breadcrumb.Link
+						href={resolve('/projects')}
+						class="text-foreground font-semibold"
+					>
 						{$_('app_title')}
 					</Breadcrumb.Link>
 				</Breadcrumb.Item>

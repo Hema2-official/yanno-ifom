@@ -12,12 +12,21 @@
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { CloudAlertIcon, CloudIcon, CloudOffIcon, CloudSyncIcon } from '@lucide/svelte';
+	import {
+		ChevronDownIcon,
+		CloudAlertIcon,
+		CloudIcon,
+		CloudOffIcon,
+		CloudSyncIcon
+	} from '@lucide/svelte';
 	import { download, tracksToText } from '$lib/utils/data.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { editSession } from '$lib/states/EditSessionState.svelte';
 	import EditLockStatus from '$lib/ui/annotation/EditLockStatus.svelte';
-	import { beforeNavigate } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import type { Project } from '$lib/types/api.type';
+	import type { PathnameWithSearchOrHash } from '$app/types';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -59,6 +68,9 @@
 			'text/plain'
 		);
 	};
+
+	const versionHref = (project: Project, versionId: string): PathnameWithSearchOrHash =>
+		`/editor?project=${project.id}&version=${versionId}`;
 </script>
 
 <KeybindingScope scope="editor" />
@@ -67,37 +79,57 @@
 	<TopBar>
 		{#snippet extraCrumbs()}
 			<Breadcrumb.Separator />
+			<!-- The project crumb leads back to its page; local projects have none -->
 			<Breadcrumb.Item>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger class="flex items-center gap-1">
-						<Breadcrumb.Link>{projectState.name}</Breadcrumb.Link>
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="start">
-						{#if projectState.cloudProject}
-							{#each projectState.cloudProject.versions as version (version.id)}
-								<DropdownMenu.Item
-									disabled={version.id == projectState.cloudVersion?.id}
-									onSelect={() => {
-										// TODO: warn user about unsaved changes, load new version
-									}}
-									>{version.name}
-								</DropdownMenu.Item>
-							{/each}
-						{:else}
-							<DropdownMenu.Item disabled>This is a local project</DropdownMenu.Item>
-						{/if}
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
+				{#if projectState.cloudProject}
+					<Breadcrumb.Link
+						href={resolve(`/projects?project=${projectState.cloudProject.id}`)}
+					>
+						{projectState.name}
+					</Breadcrumb.Link>
+				{:else}
+					<Breadcrumb.Page>{projectState.name}</Breadcrumb.Page>
+				{/if}
 			</Breadcrumb.Item>
 
-			{#if projectState.cloudVersion}
+			{#if projectState.cloudProject && projectState.cloudVersion}
+				{@const project = projectState.cloudProject}
 				<Breadcrumb.Separator />
+				<!-- The version crumb switches versions: the page reloads, saving this one first -->
 				<Breadcrumb.Item>
-					<Breadcrumb.Page>{projectState.versionName}</Breadcrumb.Page>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger class="flex items-center gap-1">
+							<Breadcrumb.Page>{projectState.versionName}</Breadcrumb.Page>
+							<ChevronDownIcon class="size-4 opacity-70" />
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="start">
+							<DropdownMenu.Group>
+								<DropdownMenu.GroupHeading>Versions</DropdownMenu.GroupHeading>
+								<DropdownMenu.RadioGroup
+									value={projectState.cloudVersion.id}
+									onValueChange={(id) => goto(resolve(versionHref(project, id)))}
+								>
+									{#each project.versions as version (version.id)}
+										<DropdownMenu.RadioItem
+											value={version.id}
+											disabled={!version.ready}
+										>
+											{version.name}
+											{#if !version.ready}
+												<span class="text-muted-foreground"
+													>(processing)</span
+												>
+											{/if}
+										</DropdownMenu.RadioItem>
+									{/each}
+								</DropdownMenu.RadioGroup>
+							</DropdownMenu.Group>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 				</Breadcrumb.Item>
 			{/if}
 
-			<Breadcrumb.Item class="ml-4 [&_svg]:mt-0.5 [&_svg]:size-4.5">
+			<Breadcrumb.Item class="ml-2 [&_svg]:mt-0.5 [&_svg]:size-4.5">
 				<Tooltip.Provider delayDuration={200}>
 					<Tooltip.Root>
 						{#if projectState.readOnly}
@@ -123,7 +155,7 @@
 								{#if annotationState.isDirty}Unsaved changes
 								{:else}Synchronized with the cloud{/if}
 							</Tooltip.Content>
-						{:else}
+						{:else if projectState.localProject}
 							<CloudOffIcon />
 							<span class="text-muted-foreground">Editing locally</span>
 						{/if}
