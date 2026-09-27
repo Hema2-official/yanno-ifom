@@ -55,7 +55,7 @@
 	class="border-accent flex h-full w-80 flex-col
 		{optionsState.sidebarRight ? 'order-3 border-l' : 'order-1 border-r'}"
 >
-	<ScrollArea class="min-h-0 px-6 pt-4">
+	<ScrollArea class="h-full min-h-0 px-6 pt-4">
 		<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Graphics</h2>
 		<div class="flex flex-col gap-4 pb-6">
 			<Label for="normalize-switch" class="cursor-pointer">
