@@ -4,6 +4,7 @@
 	import * as Item from '$lib/components/ui/item';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import RenameDialog from './RenameDialog.svelte';
 	import { cn } from '$lib/utils/shadcn';
 	import { videoSummary } from '$lib/utils/frames';
@@ -63,23 +64,23 @@
 			{#if onRename || onDelete}
 				<Item.Actions onclick={(e) => e.preventDefault()}>
 					{#if onRename}
-						<Button
+						<IconButton
 							variant="ghost"
-							size="icon"
+							label="Rename project"
 							onclick={() => (showRenameDialog = true)}
 						>
 							<PencilIcon />
-						</Button>
+						</IconButton>
 					{/if}
 					{#if onDelete}
-						<Button
+						<IconButton
 							variant="ghost"
-							size="icon"
 							class="hover:bg-destructive/40!"
+							label="Delete project"
 							onclick={() => (showDeleteDialog = true)}
 						>
 							<TrashIcon />
-						</Button>
+						</IconButton>
 					{/if}
 				</Item.Actions>
 			{/if}

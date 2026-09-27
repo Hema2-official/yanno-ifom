@@ -9,6 +9,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import { addMember, getMembers, removeMember, updateMember } from '$lib/api/projects';
 	import { searchUsers } from '$lib/api/users';
 	import { extractError, toastError } from '$lib/api/errors';
@@ -183,15 +184,14 @@
 							{#if isOwner}
 								{@render roleSelect(member.role, (r) => changeRole(member, r))}
 
-								<Button
+								<IconButton
 									variant="ghost"
-									size="icon"
 									class="hover:bg-destructive/40!"
-									aria-label="Remove {member.account.name}"
+									label="Remove {member.account.name}"
 									onclick={() => remove(member)}
 								>
 									<XIcon />
-								</Button>
+								</IconButton>
 							{:else}
 								<span class="text-muted-foreground text-sm capitalize">
 									{member.role}

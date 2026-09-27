@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { labelKeys, svgState, type LabelKey } from '$lib/states/svg.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
-	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
-	import ColorPicker from '$lib/ui/common/ColorPicker.svelte';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { Slider } from '$lib/components/ui/slider';
 	import { Switch } from '$lib/components/ui/switch';
@@ -114,14 +113,14 @@
 							{#if channelIndex === primaryChannelIndex}(primary){/if}
 						</Label>
 						{#if channel.isAdjusted}
-							<Button
+							<IconButton
 								variant="ghost"
 								size="icon-xs"
-								title="Reset brightness, contrast and gamma"
+								label="Reset brightness, contrast and gamma"
 								onclick={() => channel.resetAdjustments()}
 							>
 								<RotateCcwIcon />
-							</Button>
+							</IconButton>
 						{/if}
 					</div>
 					{#if channel.visible}

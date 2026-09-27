@@ -12,6 +12,7 @@
 	} from '@lucide/svelte';
 	import VersionStatus from './VersionStatus.svelte';
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import { cancelTask, deleteVersion } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';
 	import { toastError } from '$lib/api/errors';
@@ -85,31 +86,36 @@
 			{#if canEdit}
 				<Item.Actions onclick={(e) => [e.preventDefault(), e.stopPropagation()]}>
 					{#if version.ready}
-						<Button variant="ghost" size="icon" onclick={() => (showRunDialog = true)}>
-							<PlayIcon />
-						</Button>
-
-						<Button variant="ghost" size="icon" onclick={onCopy}>
-							<CopyIcon />
-						</Button>
-					{:else}
-						<Button
+						<IconButton
 							variant="ghost"
-							size="icon"
+							label="Run a task"
+							onclick={() => (showRunDialog = true)}
+						>
+							<PlayIcon />
+						</IconButton>
+
+						<IconButton variant="ghost" label="Copy version" onclick={onCopy}>
+							<CopyIcon />
+						</IconButton>
+					{:else}
+						<IconButton
+							variant="ghost"
+							label="Stop processing"
 							onclick={() => (showCancelDialog = true)}
 						>
 							<SquareIcon />
-						</Button>
+						</IconButton>
 					{/if}
 
-					<Button
+					<IconButton
 						variant="ghost"
-						size="icon"
 						class="hover:bg-destructive/40!"
+						label="Delete version"
 						disabled={!version.ready}
 						onclick={() => (showDeleteDialog = true)}
-						><TrashIcon />
-					</Button>
+					>
+						<TrashIcon />
+					</IconButton>
 				</Item.Actions>
 			{/if}
 		</Button>

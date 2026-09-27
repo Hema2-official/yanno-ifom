@@ -129,37 +129,35 @@
 			{/if}
 
 			<Breadcrumb.Item class="ml-2 [&_svg]:mt-0.5 [&_svg]:size-4.5">
-				<Tooltip.Provider delayDuration={200}>
-					<Tooltip.Root>
-						{#if projectState.readOnly}
-							<EditLockStatus />
-						{:else if projectState.cloudProject && projectState.isSaving}
-							<CloudSyncIcon /> Saving...
-						{:else if projectState.saveError}
-							<!-- TODO: make the clickability more obvious either by saying click to retry or adding an actual Button next to the status -->
-							<Tooltip.Trigger
-								class="text-destructive inline-flex items-center gap-1"
-								onclick={() => annotationState.save()}
-							>
-								<CloudAlertIcon />
-								{projectState.cloudProject ? 'Out of sync' : 'Not saved'}
-							</Tooltip.Trigger>
-							<Tooltip.Content class="flex-col items-start">
-								<span>{projectState.saveError}</span>
-								<span class="opacity-70">Click to retry saving</span>
-							</Tooltip.Content>
-						{:else if projectState.cloudProject}
-							<Tooltip.Trigger><CloudIcon /></Tooltip.Trigger>
-							<Tooltip.Content>
-								{#if annotationState.isDirty}Unsaved changes
-								{:else}Synchronized with the cloud{/if}
-							</Tooltip.Content>
-						{:else if projectState.localProject}
-							<CloudOffIcon />
-							<span class="text-muted-foreground">Editing locally</span>
-						{/if}
-					</Tooltip.Root>
-				</Tooltip.Provider>
+				<Tooltip.Root>
+					{#if projectState.readOnly}
+						<EditLockStatus />
+					{:else if projectState.cloudProject && projectState.isSaving}
+						<CloudSyncIcon /> Saving...
+					{:else if projectState.saveError}
+						<!-- TODO: make the clickability more obvious either by saying click to retry or adding an actual Button next to the status -->
+						<Tooltip.Trigger
+							class="text-destructive inline-flex items-center gap-1"
+							onclick={() => annotationState.save()}
+						>
+							<CloudAlertIcon />
+							{projectState.cloudProject ? 'Out of sync' : 'Not saved'}
+						</Tooltip.Trigger>
+						<Tooltip.Content class="flex-col items-start">
+							<span>{projectState.saveError}</span>
+							<span class="opacity-70">Click to retry saving</span>
+						</Tooltip.Content>
+					{:else if projectState.cloudProject}
+						<Tooltip.Trigger><CloudIcon /></Tooltip.Trigger>
+						<Tooltip.Content>
+							{#if annotationState.isDirty}Unsaved changes
+							{:else}Synchronized with the cloud{/if}
+						</Tooltip.Content>
+					{:else if projectState.localProject}
+						<CloudOffIcon />
+						<span class="text-muted-foreground">Editing locally</span>
+					{/if}
+				</Tooltip.Root>
 			</Breadcrumb.Item>
 		{/snippet}
 

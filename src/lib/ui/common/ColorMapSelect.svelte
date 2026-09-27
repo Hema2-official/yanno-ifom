@@ -11,6 +11,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Command from '$lib/components/ui/command';
 	import { Button } from '$lib/components/ui/button';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
 	import { watch } from 'runed';
 	import { StarIcon } from '@lucide/svelte';
@@ -73,18 +74,18 @@
 							}}
 							class="gap-1! p-0!"
 						>
-							<Button
+							{@const favorite = favoriteColormaps.current.includes(colormap)}
+							<IconButton
 								variant="ghost"
 								size="icon-sm"
 								class="hover:bg-transparent!"
+								label={favorite ? 'Remove from favorites' : 'Add to favorites'}
 								onclick={(e) => toggleFavorite(e, colormap)}
 							>
 								<StarIcon
-									class={favoriteColormaps.current.includes(colormap)
-										? 'fill-yellow-400 text-yellow-400'
-										: ''}
+									class={favorite ? 'fill-yellow-400 text-yellow-400' : ''}
 								/>
-							</Button>
+							</IconButton>
 							{colormap}
 						</Command.Item>
 					{/each}

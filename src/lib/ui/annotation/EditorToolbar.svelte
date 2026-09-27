@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
-	import { optionsState } from '$lib/states/options.svelte';
 	import { toolRegistry, type ToolDefinition, type ToolId } from '$lib/ui/editor-tools/registry';
+	import KeyComboKbd from '$lib/ui/settings/KeyComboKbd.svelte';
 
 	const tools = Object.entries(toolRegistry) as [ToolId, ToolDefinition][];
 </script>
@@ -13,19 +14,31 @@
 	<!-- TODO: have icons for the tools and a setting to show icon/keybinding -->
 	{#each tools as [id, tool] (id)}
 		{@const label = keybindings.label(`tool.${id}`)}
-		<button
-			title={$_(tool.label)}
-			class:selected={editorState.tool === id}
-			class:long={label.length > 3}
-			onclick={() => (editorState.tool = id)}>{label}</button
-		>
+		{@const [name, description] = $_(tool.label).split('\n')}
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class:selected={editorState.tool === id}
+						class:long={label.length > 3}
+						onclick={() => (editorState.tool = id)}>{label}</button
+					>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content side="right" class="flex-col items-start gap-0.5">
+				<span class="flex items-center gap-2 font-medium">
+					{name}
+					{#each keybindings.bindings[`tool.${id}`] as combo (combo)}
+						<KeyComboKbd {combo} />
+					{/each}
+				</span>
+				{#if description}
+					<span class="opacity-80">{description}</span>
+				{/if}
+			</Tooltip.Content>
+		</Tooltip.Root>
 	{/each}
-	<!-- TODO: move out auto-resample button -->
-	<button
-		title={$_('auto_resample')}
-		class:selected={optionsState.autoResample}
-		onclick={() => (optionsState.autoResample = !optionsState.autoResample)}>R</button
-	>
 </div>
 
 <style lang="scss">

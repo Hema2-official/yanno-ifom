@@ -2,8 +2,8 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { on } from 'svelte/events';
 	import { PlusIcon, RotateCcwIcon, TriangleAlertIcon, XIcon } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import { actions, type ActionId } from '$lib/keybindings/actions';
 	import {
 		comboFromEvent,
@@ -108,14 +108,22 @@
 					<KeyComboKbd {combo} />
 				{/if}
 			</button>
-			<button
-				type="button"
-				class="text-muted-foreground hover:text-foreground self-stretch border-l px-1"
-				aria-label="Remove {comboLabel(combo)}"
-				onclick={() => remove(index)}
-			>
-				<XIcon class="size-3" />
-			</button>
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					{#snippet child({ props })}
+						<button
+							{...props}
+							type="button"
+							class="text-muted-foreground hover:text-foreground self-stretch border-l px-1"
+							aria-label="Remove {comboLabel(combo)}"
+							onclick={() => remove(index)}
+						>
+							<XIcon class="size-3" />
+						</button>
+					{/snippet}
+				</Tooltip.Trigger>
+				<Tooltip.Content>Remove this key</Tooltip.Content>
+			</Tooltip.Root>
 		</div>
 		{#if others.length > 0}
 			<Tooltip.Root>
@@ -131,27 +139,35 @@
 		{/if}
 	{/each}
 
-	<button
-		type="button"
-		class={cn(chip(recording === combos.length), 'px-1.5 py-0.5 outline-none')}
-		aria-label="Add a key"
-		{@attach recordsInto(combos.length)}
-	>
-		{#if recording === combos.length}
-			{@render recorder()}
-		{:else}
-			<PlusIcon class="size-3" />
-		{/if}
-	</button>
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<button
+					{...props}
+					type="button"
+					class={cn(chip(recording === combos.length), 'px-1.5 py-0.5 outline-none')}
+					aria-label="Add a key"
+					{@attach recordsInto(combos.length)}
+				>
+					{#if recording === combos.length}
+						{@render recorder()}
+					{:else}
+						<PlusIcon class="size-3" />
+					{/if}
+				</button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>Add a key</Tooltip.Content>
+	</Tooltip.Root>
 
 	{#if keybindings.isCustomized(id)}
-		<Button
+		<IconButton
 			variant="ghost"
 			size="icon-xs"
-			title="Reset to the default"
+			label="Reset to the default"
 			onclick={() => keybindings.reset(id)}
 		>
 			<RotateCcwIcon />
-		</Button>
+		</IconButton>
 	{/if}
 </SettingsRow>

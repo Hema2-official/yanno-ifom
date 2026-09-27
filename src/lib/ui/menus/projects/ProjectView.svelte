@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { getProject, updateProject } from '$lib/api/projects';
 	import { versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
@@ -7,6 +6,7 @@
 	import { getFrameCount } from '$lib/utils/frames';
 
 	import { Button } from '$lib/components/ui/button';
+	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import VersionItem from '../version/VersionItem.svelte';
 	import RenameDialog from './RenameDialog.svelte';
@@ -84,9 +84,9 @@
 		<div class="flex items-center gap-3">
 			<div class="flex w-full items-center justify-between">
 				<div class="flex items-baseline gap-2">
-					<Button variant="ghost" size="icon" onclick={() => goto(resolve('/projects'))}>
+					<IconButton variant="ghost" label="All projects" href={resolve('/projects')}>
 						<ArrowLeftIcon />
-					</Button>
+					</IconButton>
 					<h2 class="text-2xl font-bold">{project.name}</h2>
 				</div>
 

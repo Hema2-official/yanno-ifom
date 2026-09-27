@@ -6,6 +6,7 @@
 	import KeybindingListener from '$lib/keybindings/KeybindingListener.svelte';
 	import { registerFrameServiceWorker } from '$lib/workers/frameServiceWorker';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
 	import { resolve } from '$app/paths';
 	import type { Pathname } from '$app/types';
@@ -67,6 +68,8 @@
 <Toaster />
 <SettingsDialog />
 
-<main class="flex h-screen w-full">
-	{@render children()}
-</main>
+<Tooltip.Provider delayDuration={300}>
+	<main class="flex h-screen w-full">
+		{@render children()}
+	</main>
+</Tooltip.Provider>
