@@ -325,7 +325,7 @@
 {/snippet}
 
 <div
-	class="bg-empty-background relative flex size-full max-h-full max-w-full items-center overflow-hidden"
+	class="bg-empty-background relative isolate flex size-full max-h-full max-w-full items-center overflow-hidden"
 	role="presentation"
 	oncontextmenu={handleContextMenu}
 	onpointerleave={() => (inputState.pointer = null)}
