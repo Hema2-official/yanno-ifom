@@ -1,16 +1,13 @@
 <script module lang="ts">
 	import { PaintbrushIcon } from '@lucide/svelte';
-	import { matches, type SettingsGroup } from '../group';
+	import { searchRows, type SettingsGroup } from '../group';
 
 	// Each row's label with its search keywords
 	const rows = {
 		theme: 'Theme dark light system mode',
 		sidebar: 'Sidebar on the right layout'
 	};
-	type Row = keyof typeof rows;
-
-	const search = (query: string) =>
-		(Object.keys(rows) as Row[]).filter((row) => matches(query, rows[row]));
+	const search = searchRows(rows);
 
 	export const group: SettingsGroup = {
 		id: 'appearance',
