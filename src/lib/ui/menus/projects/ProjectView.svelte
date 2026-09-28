@@ -4,9 +4,7 @@
 	import { versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
 	import { resource } from 'runed';
 	import { getFrameCount } from '$lib/utils/frames';
-
 	import { Button } from '$lib/components/ui/button';
-	import IconButton from '$lib/ui/common/IconButton.svelte';
 	import Spinner from '$lib/ui/common/Spinner.svelte';
 	import VersionItem from '../version/VersionItem.svelte';
 	import RenameDialog from './RenameDialog.svelte';
@@ -84,9 +82,9 @@
 		<div class="flex items-center gap-3">
 			<div class="flex w-full items-center justify-between">
 				<div class="flex items-baseline gap-2">
-					<IconButton variant="ghost" label="All projects" href={resolve('/projects')}>
+					<Button variant="ghost" href={resolve('/projects')}>
 						<ArrowLeftIcon />
-					</IconButton>
+					</Button>
 					<h2 class="text-2xl font-bold">{project.name}</h2>
 				</div>
 
