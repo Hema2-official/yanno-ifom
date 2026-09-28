@@ -3,7 +3,8 @@
 	import { AVAILABLE_COLORMAPS, type ColorMapType } from '$lib/utils/imaging';
 
 	// Listed first in the picker
-	const favoriteColormaps = new SettingState<ColorMapType[]>('favoriteColormaps', []);
+	const defaultFavs: ColorMapType[] = ['viridis', 'inferno'];
+	const favoriteColormaps = new SettingState<ColorMapType[]>('favoriteColormaps', defaultFavs);
 </script>
 
 <script lang="ts">
