@@ -135,7 +135,7 @@ export function textToTracks(input: string): TrackType[] {
  */
 export function tracksToText(tracks: TrackType[], pos: number = 0): string {
 	// Sort tracks by Frame ascending, then by ObjectID ascending
-	const sortedTracks = [...tracks].sort((a, b) => {
+	const sortedTracks = tracks.toSorted((a, b) => {
 		if (a.Frame !== b.Frame) {
 			return a.Frame - b.Frame;
 		}

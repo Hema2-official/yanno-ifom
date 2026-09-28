@@ -58,7 +58,7 @@ class AnnotationState {
 		const message = `Undo ${undone.map((change) => change.msg ?? 'change').join(', ')}`;
 		const undoCurrent = stateBefore(this.saved, this.undoneCount);
 		const undoChange = makeChange(undoCurrent, current, message);
-		return { current: undoCurrent, changes: undoChange ? [...changes, undoChange] : changes };
+		return { current: undoCurrent, changes: undoChange ? changes.concat(undoChange) : changes };
 	});
 
 	canUndo = $derived((this.saved?.changes.length ?? 0) > this.undoneCount);
@@ -105,7 +105,7 @@ class AnnotationState {
 
 		this.saved = {
 			current: newData,
-			changes: change ? [...this.data.changes, change] : this.data.changes
+			changes: change ? this.data.changes.concat(change) : this.data.changes
 		};
 		this.undoneCount = 0;
 		this.#scheduleSave();
@@ -163,7 +163,7 @@ class AnnotationState {
 		if (!data) return null;
 
 		const cells = this.#tryBuild(() => build(data.current));
-		if (cells) this.commitData([...data.current, ...cells], message(cells));
+		if (cells) this.commitData(data.current.concat(cells), message(cells));
 		return cells;
 	}
 
