@@ -15,6 +15,7 @@
 	import { cn } from '$lib/utils/shadcn';
 	import KeyComboKbd from './KeyComboKbd.svelte';
 	import SettingsRow from './SettingsRow.svelte';
+	import { Button } from '$lib/components/ui/button';
 
 	let { id }: { id: ActionId } = $props();
 
@@ -86,10 +87,10 @@
 </script>
 
 {#snippet recorder()}
-	{#if pending !== null}
-		<KeyComboKbd combo={pending} />
-	{:else}
+	{#if pending === null}
 		<span class="text-muted-foreground text-xs">Press keys…</span>
+	{:else}
+		<KeyComboKbd combo={pending} />
 	{/if}
 {/snippet}
 
@@ -142,19 +143,19 @@
 	<Tooltip.Root>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}
-				<button
+				<Button
 					{...props}
-					type="button"
-					class={cn(chip(recording === combos.length), 'px-1.5 py-0.5 outline-none')}
-					aria-label="Add a key"
+					size="icon-xs"
+					variant="ghost"
+					class="w-auto min-w-6 px-1"
 					{@attach recordsInto(combos.length)}
 				>
 					{#if recording === combos.length}
 						{@render recorder()}
 					{:else}
-						<PlusIcon class="size-3" />
+						<PlusIcon />
 					{/if}
-				</button>
+				</Button>
 			{/snippet}
 		</Tooltip.Trigger>
 		<Tooltip.Content>Add a key</Tooltip.Content>
