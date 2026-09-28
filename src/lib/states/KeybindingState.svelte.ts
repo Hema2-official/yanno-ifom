@@ -13,15 +13,15 @@ import {
 import { isApple } from '$lib/utils/platform';
 import { SettingState } from './SettingState.svelte';
 
-// Shortcuts must not steal keystrokes from text fields
-const isTypingTarget = (e: KeyboardEvent) =>
+// Shortcuts and the paste command must not steal keystrokes from text fields
+export const isTypingTarget = (e: Event) =>
 	e.target instanceof HTMLElement &&
 	(e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName));
 
 // Dialogs own the keyboard entirely; open menus only take Escape
 const isOpen = (roles: string) =>
 	document.querySelector(`[data-state="open"]:is(${roles})`) !== null;
-const isDialogOpen = () => isOpen('[role="dialog"], [role="alertdialog"]');
+export const isDialogOpen = () => isOpen('[role="dialog"], [role="alertdialog"]');
 const isMenuOpen = () => isOpen('[role="menu"]');
 
 const sameCombos = (a: KeyCombo[], b: KeyCombo[]) =>

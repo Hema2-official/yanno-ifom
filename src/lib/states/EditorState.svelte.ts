@@ -1,11 +1,19 @@
 import { SvelteSet } from 'svelte/reactivity';
 import type { TrackType } from '$lib/types/annotation.type';
 import type { ToolId } from '$lib/ui/editor-tools/registry';
+import { toast } from 'svelte-sonner';
+import { parseCells, readClipboardText, writeCells } from '$lib/utils/clipboard';
+import { cellsLabel } from '$lib/utils/tracks';
 import { annotationState } from './AnnotationState.svelte';
+
+export type PendingPaste = { cells: TrackType[]; frameIndex: number };
 
 class EditorState {
 	/** The active tool; every frame tile mounts its component. */
 	tool: ToolId = $state('cursor');
+
+	/** The paste the dialog is asking about, if any. */
+	pendingPaste: PendingPaste | null = $state.raw(null);
 
 	/** Selected ObjectIDs. Stale ids are ignored until their cells come back (undo). */
 	#selection = new SvelteSet<string>();
@@ -41,6 +49,26 @@ class EditorState {
 
 	clearSelection() {
 		this.#selection.clear();
+	}
+
+	/** Puts the selected cells on the clipboard as JSON text. */
+	async copySelection() {
+		const cells = this.selectedCells;
+		if (await writeCells(cells)) toast(`Copied ${cellsLabel(cells)}`);
+	}
+
+	/** Deletes the selected cells once they are safely on the clipboard. */
+	async cutSelection() {
+		const cells = this.selectedCells;
+		if (await writeCells(cells)) annotationState.deleteCells(cells);
+	}
+
+	/** Opens the paste dialog for the cells in the text, if it holds any. */
+	async pasteText(frameIndex: number, text?: string | null) {
+		if (text == null) text = await readClipboardText();
+		if (text == null) return;
+		const cells = parseCells(text);
+		if (cells) this.pendingPaste = { cells, frameIndex };
 	}
 
 	/** Back to the cursor tool with nothing selected. */

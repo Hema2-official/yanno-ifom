@@ -4,7 +4,8 @@
 	import KeybindingScope from '$lib/keybindings/KeybindingScope.svelte';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
-	import { keybindings } from '$lib/states/KeybindingState.svelte';
+	import { comboLabel } from '$lib/keybindings/keys';
+	import { isDialogOpen, isTypingTarget, keybindings } from '$lib/states/KeybindingState.svelte';
 	import type { Snippet } from 'svelte';
 	import TopBar from '$lib/ui/navigation/TopBar.svelte';
 	import * as Menubar from '$lib/components/ui/menubar';
@@ -22,6 +23,7 @@
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { editSession } from '$lib/states/EditSessionState.svelte';
 	import EditLockStatus from '$lib/ui/annotation/EditLockStatus.svelte';
+	import PasteDialog from '$lib/ui/annotation/PasteDialog.svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/types/api.type';
@@ -46,6 +48,13 @@
 		},
 		{ passive: false }
 	);
+
+	const handlePaste = (e: ClipboardEvent) => {
+		if (projectState.readOnly || !annotationState.data) return;
+		if (isTypingTarget(e) || isDialogOpen()) return;
+		const text = e.clipboardData?.getData('text/plain') ?? '';
+		editorState.pasteText(annotationState.currentFrameIndex, text);
+	};
 
 	// Leaving the editor frees the version's edit lock for others
 	onDestroy(() => void editSession.stop());
@@ -73,6 +82,7 @@
 </script>
 
 <KeybindingScope scope="editor" />
+<svelte:window onpaste={handlePaste} />
 
 <div class="flex h-screen w-full flex-col items-center justify-start">
 	<TopBar>
@@ -205,9 +215,25 @@
 							</Menubar.SubContent>
 						</Menubar.Sub>
 						<Menubar.Separator />
-						<Menubar.Item>Cut</Menubar.Item>
-						<Menubar.Item>Copy</Menubar.Item>
-						<Menubar.Item>Paste</Menubar.Item>
+						<Menubar.Item
+							onSelect={() => void editorState.cutSelection()}
+							disabled={editorState.selectedCells.length === 0}
+						>
+							Cut <Menubar.Shortcut>{keybindings.label('cut')}</Menubar.Shortcut>
+						</Menubar.Item>
+						<Menubar.Item
+							onSelect={() => void editorState.copySelection()}
+							disabled={editorState.selectedCells.length === 0}
+						>
+							Copy <Menubar.Shortcut>{keybindings.label('copy')}</Menubar.Shortcut>
+						</Menubar.Item>
+						<Menubar.Item
+							onSelect={() =>
+								void editorState.pasteText(annotationState.currentFrameIndex)}
+							disabled={!annotationState.data}
+						>
+							Paste... <Menubar.Shortcut>{comboLabel('Mod+v')}</Menubar.Shortcut>
+						</Menubar.Item>
 					</Menubar.Content>
 				</Menubar.Menu>
 			{/if}
@@ -224,3 +250,5 @@
 
 	{@render children()}
 </div>
+
+<PasteDialog paste={editorState.pendingPaste} onClose={() => (editorState.pendingPaste = null)} />

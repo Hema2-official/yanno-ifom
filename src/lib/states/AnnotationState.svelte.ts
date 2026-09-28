@@ -1,6 +1,6 @@
 import type { ChangeType, RLEType, TrackType, VersionManaged } from '$lib/types/annotation.type';
 import type { Polygon } from '$lib/types/geometry.type';
-import { withMask, withOutline } from '$lib/utils/tracks';
+import { cellsLabel, withMask, withOutline } from '$lib/utils/tracks';
 import { toastError } from '$lib/api/errors';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
 import { projectState } from './ProjectState.svelte';
@@ -147,12 +147,24 @@ class AnnotationState {
 
 	/** Appends the cell that `build` makes from the current data, or returns null if it can't. */
 	addCell(build: (tracks: TrackType[]) => TrackType): TrackType | null {
+		const cells = this.addCells(
+			(tracks) => [build(tracks)],
+			([cell]) => `Add cell ${cell.ObjectID}`
+		);
+		return cells?.[0] ?? null;
+	}
+
+	/** Appends the cells that `build` makes from the current data, or returns null if it can't. */
+	addCells(
+		build: (tracks: TrackType[]) => TrackType[],
+		message: (cells: TrackType[]) => string
+	): TrackType[] | null {
 		const data = this.data;
 		if (!data) return null;
 
-		const cell = this.#tryBuild(() => build(data.current));
-		if (cell) this.commitData([...data.current, cell], `Add cell ${cell.ObjectID}`);
-		return cell;
+		const cells = this.#tryBuild(() => build(data.current));
+		if (cells) this.commitData([...data.current, ...cells], message(cells));
+		return cells;
 	}
 
 	/** Removes the cells and offers an undo. */
@@ -160,7 +172,7 @@ class AnnotationState {
 		if (!this.data || cells.length === 0) return;
 
 		const ids = new Set(cells.map((cell) => cell.ObjectID));
-		const label = cells.length === 1 ? `cell ${cells[0].ObjectID}` : `${cells.length} cells`;
+		const label = cellsLabel(cells);
 		this.commitData(
 			this.data.current.filter((track) => !ids.has(track.ObjectID)),
 			`Delete ${label}`

@@ -10,9 +10,9 @@
 
 	const tools = Object.entries(toolRegistry) as [ToolId, ToolDefinition][];
 
-	const selectTool = (id: string) => {
+	const selectTool = (id: ToolId | undefined) => {
 		// Disallow deselecting tools
-		if (id) editorState.tool = id as ToolId;
+		if (id) editorState.tool = id;
 	};
 </script>
 

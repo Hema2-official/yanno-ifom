@@ -70,6 +70,25 @@ const table = {
 		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
 		run: () => annotationState.deleteCells(editorState.selectedCells)
 	},
+	copy: {
+		label: 'Copy the selected cells',
+		description: 'As JSON text, for pasting into any project',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Mod+c'],
+		enabled: () => editorState.selectedCells.length > 0,
+		run: () => void editorState.copySelection()
+	},
+	cut: {
+		label: 'Cut the selected cells',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Mod+x'],
+		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		run: () => void editorState.cutSelection()
+	},
 	'selection.add': {
 		label: 'Add to the selection',
 		description: 'Held while clicking a cell',

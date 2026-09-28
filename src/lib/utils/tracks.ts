@@ -11,6 +11,11 @@ export function newObjectId(frame: number, tracks: TrackType[]): string {
 	return prefix + String(number).padStart(4, '0');
 }
 
+/** "cell 00120003" or "3 cells", for messages. */
+export function cellsLabel(cells: TrackType[]): string {
+	return cells.length === 1 ? `cell ${cells[0].ObjectID}` : `${cells.length} cells`;
+}
+
 /** The next unused track ID, or null while the data isn't tracked at all. */
 export function newTrackId(tracks: TrackType[]): number | null {
 	let max: number | null = null;
