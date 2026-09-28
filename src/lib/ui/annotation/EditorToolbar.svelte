@@ -5,10 +5,8 @@
 	import { cn } from '$lib/utils/shadcn';
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
-	import { toolRegistry, type ToolDefinition, type ToolId } from '$lib/ui/editor-tools/registry';
+	import { getToolLabels, toolRegistryEntries, type ToolId } from '$lib/ui/editor-tools/registry';
 	import KeyComboKbd from '$lib/ui/settings/KeyComboKbd.svelte';
-
-	const tools = Object.entries(toolRegistry) as [ToolId, ToolDefinition][];
 
 	const selectTool = (id: ToolId | undefined) => {
 		// Disallow deselecting tools
@@ -27,9 +25,9 @@
 	onpointerdown={(e) => e.stopPropagation()}
 >
 	<!-- TODO: have icons for the tools and a setting to show icon/keybinding -->
-	{#each tools as [id, tool] (id)}
+	{#each toolRegistryEntries as [id] (id)}
 		{@const label = keybindings.label(`tool.${id}`)}
-		{@const [name, description] = $_(tool.label).split('\n', 2)}
+		{@const [name, description] = getToolLabels(id)}
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}

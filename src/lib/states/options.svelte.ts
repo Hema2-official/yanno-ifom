@@ -10,7 +10,7 @@ class OptionsState {
 	/** Between the vertices of a resampled outline, in image pixels. */
 	resampleSegmentLength = new SettingState('resampleSegmentLength', 0.8);
 
-	toolAfterPaste = new SettingState<ToolId | null>('toolAfterPaste', 'whole');
+	toolAfterPaste = new SettingState<ToolId | 'none'>('toolAfterPaste', 'whole');
 }
 
 export const optionsState = new OptionsState();

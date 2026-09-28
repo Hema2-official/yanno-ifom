@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { SlidersHorizontalIcon } from '@lucide/svelte';
+	import * as Select from '$lib/components/ui/select';
 	import { searchRows, type SettingsGroup } from '../group';
 
 	// Each row's label with its search keywords
@@ -8,6 +9,7 @@
 		vertexSpacing: 'Vertex spacing resample distance',
 		pointerLock: 'Pointer lock while panning cursor drag',
 		zoomSpeed: 'Zoom speed wheel scroll',
+		toolAfterPaste: 'Tool to switch to after pasting cells',
 		prefetch: 'Frames to prefetch preload cache bandwidth',
 		cacheSize: 'Frame cache size memory RAM'
 	};
@@ -30,6 +32,7 @@
 	import SettingsRow from '../SettingsRow.svelte';
 	import SettingsSection from '../SettingsSection.svelte';
 	import SliderRow from '../SliderRow.svelte';
+	import { getToolLabels, toolRegistryEntries } from '$lib/ui/editor-tools/registry';
 
 	let { query }: GroupProps = $props();
 
@@ -93,6 +96,28 @@
 				step={0.1}
 				format={(value) => `${value.toFixed(1)}×`}
 			/>
+		{/if}
+	</SettingsSection>
+{/if}
+
+{#if any('toolAfterPaste')}
+	<SettingsSection heading="Clipboard">
+		{#if shown.includes('toolAfterPaste')}
+			<SettingsRow label="Tool to switch to after pasting cells" for="{uid}-theme">
+				<Select.Root type="single" bind:value={optionsState.toolAfterPaste.current}>
+					<Select.Trigger id="{uid}-theme" class="w-32 capitalize" size="sm">
+						{optionsState.toolAfterPaste.current === 'none'
+							? "Don't switch"
+							: getToolLabels(optionsState.toolAfterPaste.current)[0]}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="none" label="Don't switch" />
+						{#each toolRegistryEntries as [key] (key)}
+							<Select.Item value={key} label={getToolLabels(key)[0]} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			</SettingsRow>
 		{/if}
 	</SettingsSection>
 {/if}

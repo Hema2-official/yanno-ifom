@@ -129,7 +129,7 @@
 		if (!pasted) return;
 
 		editorState.selectAll(pasted);
-		if (optionsState.toolAfterPaste.current)
+		if (optionsState.toolAfterPaste.current !== 'none')
 			editorState.tool = optionsState.toolAfterPaste.current;
 
 		toast(`Pasted ${cellsLabel(pasted)} to frame ${frame}`, {
