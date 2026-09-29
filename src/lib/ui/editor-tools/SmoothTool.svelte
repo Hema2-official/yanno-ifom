@@ -5,6 +5,7 @@
 	import type { Point, Polygon } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { getPolygonsBoundsCached } from '$lib/utils/geometry';
+	import { clamp } from '$lib/utils/math';
 	import { startDrag } from './drag';
 	import { WorkingCell, commitWorking, outlinesOf, type OutlineEntry } from './working.svelte';
 	import type { EditorToolProps } from './types';
@@ -121,7 +122,7 @@
 		e.preventDefault();
 		e.stopPropagation();
 		const factor = e.deltaY > 0 ? 1 / RADIUS_STEP : RADIUS_STEP;
-		storedRadius.current = Math.min(maxRadius, Math.max(MIN_RADIUS, radius * factor));
+		storedRadius.current = clamp(radius * factor, MIN_RADIUS, maxRadius);
 	}
 </script>
 

@@ -4,6 +4,7 @@ import { projectState } from '$lib/states/ProjectState.svelte';
 import { settingsState } from '$lib/states/settings.svelte';
 import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
 import type { ToolId } from '$lib/ui/editor-tools/registry';
+import { clamp } from '$lib/utils/math';
 import type { KeyCombo } from './keys';
 
 /** Where an action applies: `global` always, `editor` while the editor is open. */
@@ -27,9 +28,8 @@ const selectTool = (tool: ToolId) => ({
 
 /** Moves the frame window by `delta`, staying within the video. */
 const stepFrame = (delta: number) => {
-	const last = Math.max(0, projectState.frameCount - videoDisplayState.concurrentFrames);
 	const target = annotationState.currentFrameIndex + delta;
-	annotationState.currentFrameIndex = Math.min(last, Math.max(0, target));
+	annotationState.currentFrameIndex = clamp(target, 0, videoDisplayState.maxFrameIndex);
 };
 
 // In precedence order: of the press actions sharing a chord, the first
