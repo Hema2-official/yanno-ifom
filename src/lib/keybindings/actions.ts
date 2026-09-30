@@ -154,6 +154,14 @@ const table = {
 		defaults: ['s'],
 		...selectTool('smooth')
 	},
+	'tool.brush': {
+		label: 'Brush tool',
+		description: 'The right button erases',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['b'],
+		...selectTool('brush')
+	},
 	'tool.draw': {
 		label: 'Draw tool',
 		description: 'Draws a new cell',

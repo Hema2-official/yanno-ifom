@@ -156,11 +156,15 @@ class AnnotationState {
 		);
 	}
 
-	/** Replaces the masks of the given cells; false if one can't be traced. */
-	setMasks(updates: { cell: TrackType; mask: RLEType }[], message: string): boolean {
+	/** Replaces the masks of the given cells, deleting those given null; false if one can't be traced. */
+	setMasks(updates: { cell: TrackType; mask: RLEType | null }[], message: string): boolean {
+		const deleted = new Set(
+			updates.filter(({ mask }) => !mask).map(({ cell }) => cell.ObjectID)
+		);
 		return this.#replaceCells(
-			() => updates.map(({ cell, mask }) => withMask(cell, mask)),
-			message
+			() => updates.flatMap(({ cell, mask }) => (mask ? [withMask(cell, mask)] : [])),
+			message,
+			deleted
 		);
 	}
 
@@ -282,7 +286,7 @@ class AnnotationState {
 		return added;
 	}
 
-	#replaceCells(build: () => TrackType[], message: string): boolean {
+	#replaceCells(build: () => TrackType[], message: string, deleted = new Set<string>()): boolean {
 		const data = this.data;
 		if (!data) return false;
 
@@ -291,7 +295,9 @@ class AnnotationState {
 
 		const byId = new Map(cells.map((cell) => [cell.ObjectID, cell]));
 		this.commitData(
-			data.current.map((track) => byId.get(track.ObjectID) ?? track),
+			data.current
+				.filter((track) => !deleted.has(track.ObjectID))
+				.map((track) => byId.get(track.ObjectID) ?? track),
 			message
 		);
 		return true;

@@ -30,23 +30,18 @@ export function trackAncestor(cells: TrackType[], trackId: number): number | nul
 	return member?.AncestorID ?? null;
 }
 
-/** A new cell of the frame with the given outline, shaped like the cells the backend writes. */
-export function newCell(
-	frame: number,
-	tracks: TrackType[],
-	outline: Polygon[],
-	maskSize: [number, number]
-): TrackType {
+/** A new cell of the frame with the given mask, shaped like the cells the backend writes. */
+export function newCell(frame: number, tracks: TrackType[], mask: RLEType): TrackType {
 	const cell: TrackType = {
 		Frame: frame,
 		ObjectID: newObjectId(frame, tracks),
-		SegmentationRLE: { size: maskSize, counts: '' },
+		SegmentationRLE: mask,
 		TrackID: newTrackId(tracks),
 		Interpolated: false,
 		Class: null,
 		AncestorID: null
 	};
-	return withOutline(cell, outline);
+	return withMask(cell, mask);
 }
 
 /** The cell with its outline rasterized into a new mask. */

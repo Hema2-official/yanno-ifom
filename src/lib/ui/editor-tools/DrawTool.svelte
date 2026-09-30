@@ -8,6 +8,7 @@
 	import type { Polygon } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBody } from '$lib/utils/geometry';
+	import { polygonsToRle } from '$lib/utils/rle';
 	import { newCell } from '$lib/utils/tracks';
 	import { startDrag } from '$lib/utils/drag';
 	import type { EditorToolProps } from './types';
@@ -58,7 +59,7 @@
 			? resampleCellBody(drawn, optionsState.resampleSegmentLength.current)
 			: drawn;
 		const cell = annotationState.addCell((tracks) =>
-			newCell(frameIndex, tracks, [outline], [metadata.height, metadata.width])
+			newCell(frameIndex, tracks, polygonsToRle([outline], [metadata.height, metadata.width]))
 		);
 		if (cell) editorState.select(cell);
 	}

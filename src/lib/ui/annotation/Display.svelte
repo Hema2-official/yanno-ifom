@@ -274,6 +274,7 @@
 
 	const handleContextMenu = (e: MouseEvent) => {
 		e.preventDefault(); // never the browser's menu over the display
+		if (Tool && toolRegistry[editorState.tool].rightButton) return;
 		// Some systems ask on the press, which may still become a drag
 		if (rightDown) {
 			pendingMenu = e;
@@ -363,7 +364,9 @@
 			{#each layout.tiles as tile (tile.offset)}
 				{@const frameIndex = shownFrames[tile.offset]}
 				<FrameTile
-					class={annotationOpacity > 0 ? '*:pointer-events-auto' : undefined}
+					class={annotationOpacity > 0
+						? '[&>*:not([pointer-events=none])]:pointer-events-auto'
+						: undefined}
 					{frameIndex}
 					matrix={placement.matrices[tile.offset]}
 					restingMatrix={restingMatrices[tile.offset]}

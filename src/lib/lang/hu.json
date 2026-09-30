@@ -7,5 +7,6 @@
 	"whole_tool": "Teljes eszköz\nLehetővé teszi az egész sejt szerkesztését mozgatással, átméretezéssel és elforgatással.",
 	"smooth_tool": "Sima eszköz\nLehetővé teszi a sejt szegélyének gyors szerkesztését egy részének húzásával.",
 	"draw_tool": "Rajz eszköz\nÚj sejt rajzolása a körvonalának megrajzolásával.",
+	"brush_tool": "Ecset eszköz\nA kijelölt sejt maszkjának festése, vagy új sejté, ha nincs kijelölés. A jobb gomb töröl.",
 	"unsupported_tiff": "A használt TIF/TIFF fájlt ez az alkalmazás nem támogatja.\n\nKérjük, lépjen kapcsolatba a fejlesztővel, vagy jelentse a hibát."
 }
