@@ -2,11 +2,12 @@
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
+	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { Point, Polygon } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { getPolygonsBoundsCached } from '$lib/utils/geometry';
 	import { clamp } from '$lib/utils/math';
-	import { startDrag } from './drag';
+	import { startDrag } from '$lib/utils/drag';
 	import { WorkingCell, commitWorking, outlinesOf, type OutlineEntry } from './working.svelte';
 	import type { EditorToolProps } from './types';
 	import { PersistedState } from 'runed';
@@ -55,8 +56,7 @@
 
 	const light = '#ffffff';
 	const dark = '#0f172a';
-	// One "screen unit" in viewBox coordinates keeps the ring and markers crisp at any zoom
-	const u = $derived(100 / svgState.svgScalePercent);
+	const u = $derived(zoomState.screenUnit);
 
 	const RADIUS_STEP = 1.08;
 	const MIN_RADIUS = 1;

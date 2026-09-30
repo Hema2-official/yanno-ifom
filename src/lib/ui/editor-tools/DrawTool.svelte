@@ -4,11 +4,12 @@
 	import { optionsState } from '$lib/states/options.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
+	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { Polygon } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { resampleCellBody } from '$lib/utils/geometry';
 	import { newCell } from '$lib/utils/tracks';
-	import { startDrag } from './drag';
+	import { startDrag } from '$lib/utils/drag';
 	import type { EditorToolProps } from './types';
 
 	let { frameIndex }: EditorToolProps = $props();
@@ -20,8 +21,7 @@
 
 	const light = '#ffffff';
 	const dark = '#0f172a';
-	// One "screen unit" in viewBox coordinates keeps the stroke crisp at any zoom
-	const u = $derived(100 / svgState.svgScalePercent);
+	const u = $derived(zoomState.screenUnit);
 	const viewBox = $derived(svgState.svgViewBox);
 
 	// Pointer positions closer than this to the previous vertex are skipped

@@ -4,7 +4,7 @@ import type { Point } from '$lib/types/geometry.type';
 export type PointerRecord = Point & { frameIndex: number };
 
 class InputState {
-	/** Null while the pointer is off the frame grid (or panning the display). */
+	/** Null while the pointer is off the frames. */
 	pointer: PointerRecord | null = $state.raw(null);
 }
 

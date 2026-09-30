@@ -21,7 +21,7 @@ export type CellLook = {
 };
 
 class SvgState {
-	isSvgShown = $state(true);
+	isAnnotationShown = $state(true);
 
 	labelSwitch = new SettingState('labelSwitch', true);
 	labelKey = new SettingState<LabelKey>('labelKey', 'ObjectID', { validate: oneOf(labelKeys) });
@@ -33,8 +33,6 @@ class SvgState {
 	outlineWidth = new SettingState('outlineWidth', 2);
 	labelSize = new SettingState('labelSize', 12);
 	annotationOpacity = new SettingState('annotationOpacity', 1);
-
-	svgScalePercent = $state(100);
 
 	cellLook: CellLook = $derived({
 		fill: this.svgFillSwitch.current ? this.svgFill.current : null,
@@ -57,6 +55,11 @@ class SvgState {
 		validate: oneOf(AVAILABLE_COLORMAPS)
 	});
 	videoColormapShades = new SettingState('videoColormapShades', 64);
+
+	cellLabel(cell: TrackType): string | null {
+		if (!this.labelSwitch.current) return null;
+		return String(cell[this.labelKey.current] ?? '');
+	}
 }
 
 export const svgState = new SvgState();

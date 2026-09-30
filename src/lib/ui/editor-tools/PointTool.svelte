@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { svgState } from '$lib/states/svg.svelte';
+	import { zoomState } from '$lib/states/zoom.svelte';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
-	import { startDrag } from './drag';
+	import { startDrag } from '$lib/utils/drag';
 	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
 	import type { EditorToolProps } from './types';
 
@@ -14,7 +14,7 @@
 	let handle = { body: 0, point: 0 };
 
 	const shown = $derived(working ? [working] : outlinesOf(cells));
-	const halfSize = $derived(200 / svgState.svgScalePercent);
+	const halfSize = $derived(2 * zoomState.screenUnit);
 
 	function handlePointerDown(e: PointerEvent) {
 		if (e.button !== 0 || !root) return;

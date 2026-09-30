@@ -97,6 +97,33 @@ const table = {
 		kind: 'hold',
 		defaults: ['Mod']
 	},
+	'selection.range': {
+		label: 'Select range across frames',
+		description: 'Held while clicking a cell to select overlapping cells across frames',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'hold',
+		defaults: ['Shift']
+	},
+	'selection.setTrackId': {
+		label: 'Set the track ID of the selected cells',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['t'],
+		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		run: () => (editorState.trackIdDialogOpen = true)
+	},
+	'selection.interpolate': {
+		label: 'Fill the gaps between the selected cells',
+		description: 'With cells blended from the nearest ones before and after',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['i'],
+		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 1,
+		run: () => editorState.interpolateSelection()
+	},
 	'tool.cursor': {
 		label: 'Cursor tool',
 		description: 'Also clears the selection',

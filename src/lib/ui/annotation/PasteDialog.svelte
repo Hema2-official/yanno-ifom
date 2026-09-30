@@ -2,7 +2,6 @@
 	import { watch } from 'runed';
 	import { toast } from 'svelte-sonner';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import * as RadioGroup from '$lib/components/ui/radio-group';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Input } from '$lib/components/ui/input';
@@ -10,7 +9,14 @@
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState, type PendingPaste } from '$lib/states/EditorState.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
-	import { cellsLabel, newObjectId, withMask } from '$lib/utils/tracks';
+	import { wholeNumber } from '$lib/utils/math';
+	import {
+		cellsLabel,
+		framesLabel,
+		newObjectId,
+		trackAncestor,
+		withMask
+	} from '$lib/utils/tracks';
 	import type { TrackType } from '$lib/types/annotation.type';
 	import { optionsState } from '$lib/states/options.svelte';
 
@@ -20,20 +26,28 @@
 
 	// Keeps the content up while the dialog fades out
 	let shown = $state.raw<PendingPaste | null>(null);
-	let target: 'here' | 'source' = $state('here');
+	let startFrame: number | null | undefined = $state(null);
 	let objectId = $state('');
 	let keepTrack = $state(false);
-	// Svelte binds an empty number input as null or undefined
 	let trackId: number | null | undefined = $state(null);
 	let keepClass = $state(false);
 	let classText = $state('');
 
 	const cells = $derived(shown?.cells ?? []);
 	const single = $derived(cells.length === 1);
-	const sourceFrame = $derived(cells[0]?.Frame ?? 0);
-	const targetFrame = $derived.by(() =>
-		target === 'source' ? sourceFrame : (shown?.frameIndex ?? 0)
+	const sourceFrames = $derived(
+		Array.from(new Set(cells.map((cell) => cell.Frame))).sort((a, b) => a - b)
 	);
+	const firstFrame = $derived(sourceFrames[0] ?? 0);
+	const lastFrame = $derived(sourceFrames.at(-1) ?? 0);
+	const start = $derived(wholeNumber(startFrame, 0));
+	// The earliest cells go to the chosen frame, the others keeping their distance
+	const shift = $derived(start === null ? 0 : start - firstFrame);
+	const sourceHint = $derived.by(() => {
+		const hint = `Copied from ${framesLabel(sourceFrames)}`;
+		if (sourceFrames.length < 2 || start === null) return hint;
+		return `${hint}, landing on ${framesLabel(sourceFrames.map((frame) => frame + shift))}`;
+	});
 
 	const classToText = (value: unknown) =>
 		typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value);
@@ -43,22 +57,19 @@
 		if (!next) return;
 		shown = next;
 		const [cell] = next.cells;
-		target = 'here';
+		startFrame = next.frameIndex;
 		keepTrack = cell.TrackID !== null;
 		trackId = cell.TrackID;
 		keepClass = cell.Class != null;
 		classText = classToText(cell.Class);
 	});
 
-	// The suggested object ID follows the target frame
-	watch([() => shown, () => targetFrame], ([, frame]) => {
+	// The suggested object ID follows the frame the earliest cells go to
+	watch([() => shown, () => firstFrame + shift], ([, frame]) => {
 		objectId = newObjectId(frame, annotationState.data?.current ?? []);
 	});
 
 	const problem = $derived.by(() => {
-		if (cells.some((cell) => cell.Frame !== sourceFrame)) {
-			return 'The cells come from several frames';
-		}
 		const metadata = projectState.videoMetadata;
 		if (!metadata) return 'The video size is unknown';
 		const odd = cells.find(
@@ -68,38 +79,52 @@
 		if (odd) {
 			return `The masks are ${odd.SegmentationRLE.size.join('x')}, the video is ${metadata.height}x${metadata.width}`;
 		}
+		if (start === null) return 'Enter the frame to paste to';
+		const frameCount = projectState.frameCount;
+		if (lastFrame + shift >= frameCount) {
+			return `The cells would go past the last frame, ${frameCount - 1}`;
+		}
 		if (single) {
 			const id = objectId.trim();
 			if (!id) return 'Enter an object ID';
 			if (annotationState.getCell(id)) return `Object ID ${id} is taken`;
 		}
 		if (keepTrack) {
-			const ids = single ? [trackId ?? null] : cells.map((cell) => cell.TrackID);
-			const inFrame = annotationState.getFrame(targetFrame) ?? [];
-			const crowded = ids.find(
-				(id) => id !== null && inFrame.some((cell) => cell.TrackID === id)
+			// One cell per track and frame, counting the pasted ones too
+			const slots = cells.flatMap((cell) => {
+				const id = single ? (trackId ?? null) : cell.TrackID;
+				return id === null ? [] : [{ id, frame: cell.Frame + shift }];
+			});
+			const clash = slots.find(
+				({ id, frame }, index) =>
+					slots.findIndex((slot) => slot.id === id && slot.frame === frame) !== index ||
+					(annotationState.getFrame(frame) ?? []).some((cell) => cell.TrackID === id)
 			);
-			if (crowded != null)
-				return `Track ${crowded} already has a cell in frame ${targetFrame}`;
+			if (clash) return `Track ${clash.id} would have two cells in frame ${clash.frame}`;
 		}
 		return null;
 	});
 
 	function makeEntry(tracks: TrackType[], cell: TrackType) {
-		const tId = keepTrack ? (single ? (trackId ?? null) : cell.TrackID) : null;
-		let aId: number | null = null; // Only a cell joining a track shares its ancestor
-		if (tId != null) aId = tracks.find((other) => other.TrackID === tId)?.AncestorID ?? null;
+		const frame = cell.Frame + shift;
+		const track = keepTrack ? (single ? (trackId ?? null) : cell.TrackID) : null;
+		// Joining a track, the cell takes its ancestor, or brings its own to a track without one
+		const ancestor =
+			track === null ? null : (trackAncestor(tracks, track) ?? cell.AncestorID ?? null);
+		if (track !== null && ancestor === track) {
+			throw new Error(`Track ${track} would be its own ancestor`);
+		}
 
 		// withMask only checks that the mask traces to an outline
 		return withMask(
 			{
-				Frame: targetFrame,
-				ObjectID: single ? objectId.trim() : newObjectId(targetFrame, tracks),
+				Frame: frame,
+				ObjectID: single ? objectId.trim() : newObjectId(frame, tracks),
 				SegmentationRLE: cell.SegmentationRLE,
-				TrackID: tId,
+				TrackID: track,
 				Interpolated: false,
 				Class: keepClass ? (single ? classText || null : (cell.Class ?? null)) : null,
-				AncestorID: aId
+				AncestorID: ancestor
 			},
 			cell.SegmentationRLE
 		);
@@ -109,7 +134,7 @@
 		e.preventDefault();
 		if (problem !== null) return;
 
-		const frame = targetFrame;
+		const where = (copies: TrackType[]) => framesLabel(copies.map((copy) => copy.Frame));
 		const pasted = annotationState.addCells(
 			(tracks) => {
 				const next = tracks.slice();
@@ -119,7 +144,7 @@
 					return copy;
 				});
 			},
-			(pasted) => `Paste ${cellsLabel(pasted)} to frame ${frame}`
+			(pasted) => `Paste ${cellsLabel(pasted)} to ${where(pasted)}`
 		);
 		if (!pasted) return;
 
@@ -127,7 +152,7 @@
 		if (optionsState.toolAfterPaste.current !== 'none')
 			editorState.tool = optionsState.toolAfterPaste.current;
 
-		toast(`Pasted ${cellsLabel(pasted)} to frame ${frame}`, {
+		toast(`Pasted ${cellsLabel(pasted)} to ${where(pasted)}`, {
 			action: { label: 'Undo', onClick: () => annotationState.undo() }
 		});
 		close();
@@ -137,25 +162,34 @@
 <Dialog.Root open={editorState.pendingPaste !== null} onOpenChange={(open) => !open && close()}>
 	<Dialog.Content>
 		<form class="grid gap-4" {onsubmit}>
-			<!-- TODO: if current frame if source frame, just say 'Paste cell(s) here' -->
 			<Dialog.Header>
 				<Dialog.Title>Paste {single ? 'cell' : 'cells'}...</Dialog.Title>
 			</Dialog.Header>
 
-			<RadioGroup.Root bind:value={target} class="w-full">
-				<div class="flex items-center space-x-2">
-					<RadioGroup.Item value="here" id="r2" />
-					<Label for="r2">here</Label>
-				</div>
-				<div class="flex items-center space-x-2">
-					<RadioGroup.Item
-						value="source"
-						id="r1"
-						disabled={sourceFrame >= projectState.frameCount}
+			<div class="grid gap-2">
+				<Label for="{uid}-frame">
+					{sourceFrames.length > 1 ? 'Starting at frame' : 'Frame'}
+				</Label>
+				<div class="flex gap-2">
+					<Input
+						id="{uid}-frame"
+						type="number"
+						min="0"
+						step="1"
+						bind:value={startFrame}
+						required
+						aria-invalid={start === null}
 					/>
-					<Label for="r1">on frame {sourceFrame}</Label>
+					<Button
+						variant="secondary"
+						disabled={start === firstFrame}
+						onclick={() => (startFrame = firstFrame)}
+					>
+						{sourceFrames.length > 1 ? 'Source frames' : 'Source frame'}
+					</Button>
 				</div>
-			</RadioGroup.Root>
+				<p class="text-muted-foreground text-sm">{sourceHint}</p>
+			</div>
 
 			<!-- Several cells keep each their own track ID and class -->
 			<div class="grid grid-cols-[auto_auto_1fr] items-center gap-x-3 gap-y-4">

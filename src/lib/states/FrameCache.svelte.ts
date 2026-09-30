@@ -1,9 +1,11 @@
 import { watch } from 'runed';
+import { projectState } from './ProjectState.svelte';
 import { SettingState } from './SettingState.svelte';
+import { videoDisplayState } from './VideoDisplayState.svelte';
 
 type CacheEntry = {
+	blob: Blob;
 	objectUrl: string;
-	size: number;
 };
 
 const MAX_PARALLEL_FETCHES = 4;
@@ -26,7 +28,7 @@ class FrameCache {
 
 	/** Cache entries; insertion order doubles as LRU order. */
 	#entries = new Map<string, CacheEntry>();
-	#inflight = new Set<string>();
+	#inflight = new Map<string, Promise<Blob>>();
 	#failed = new Set<string>();
 	#queue: string[] = [];
 	#activeFetches = 0;
@@ -52,10 +54,37 @@ class FrameCache {
 		return url;
 	}
 
-	/**
-	 * Replaces the prefetch queue with the given URLs (most important first).
-	 */
-	prefetch(urls: string[]) {
+	load(url: string): Promise<Blob> {
+		const entry = this.#entries.get(url);
+		if (entry) {
+			this.#touch(url);
+			return Promise.resolve(entry.blob);
+		}
+		return this.#inflight.get(url) ?? this.#fetch(url);
+	}
+
+	/** Replaces the prefetch queue based on the current needs */
+	prefetchWindow(start: number, count: number) {
+		const frameCount = projectState.frameCount;
+		if (frameCount === 0) return;
+
+		const channelVisibility = videoDisplayState.channels.map((channel) => channel.visible);
+		const urls: string[] = [];
+		const addFrame = (frameIndex: number, visibleChannelsOnly: boolean) => {
+			if (frameIndex < 0 || frameIndex >= frameCount) return;
+			channelVisibility.forEach((visible, channelIndex) => {
+				if (visibleChannelsOnly && !visible) return;
+				const url = projectState.getChannelFrameUrl(frameIndex, channelIndex);
+				if (url) urls.push(url);
+			});
+		};
+
+		for (let i = 0; i < count; i++) addFrame(start + i, false);
+		for (let distance = 1; distance <= this.prefetchRadius.current; distance++) {
+			addFrame(start + count - 1 + distance, true);
+			addFrame(start - distance, true);
+		}
+
 		this.#queue = urls.filter((url) => this.#isFetchable(url));
 		this.#pump();
 	}
@@ -81,34 +110,37 @@ class FrameCache {
 
 	#pump() {
 		while (this.#activeFetches < MAX_PARALLEL_FETCHES && this.#queue.length > 0) {
-			this.#fetch(this.#queue.shift()!);
+			const url = this.#queue.shift()!;
+			if (this.#isFetchable(url)) void this.#fetch(url);
 		}
 	}
 
-	#fetch(url: string) {
-		if (!this.#isFetchable(url)) return;
-		this.#inflight.add(url);
+	#fetch(url: string): Promise<Blob> {
+		const loading = fetch(url, { credentials: 'include' }).then(async (response) => {
+			if (!response.ok) throw new Error(`Fetching frame failed: ${response.status}`);
+			const blob = await response.blob();
+			this.#insert(url, blob);
+			return blob;
+		});
+		this.#inflight.set(url, loading);
 		this.#activeFetches++;
-		fetch(url, { credentials: 'include' })
-			.then(async (response) => {
-				if (!response.ok) throw new Error(`Fetching frame failed: ${response.status}`);
-				this.#insert(url, await response.blob());
-			})
-			.catch(() => {
-				// The display still shows the frame through its network URL;
-				// clear() forgets the failure
-				this.#failed.add(url);
-			})
+		loading
+			.then(
+				() => this.#failed.delete(url),
+				// The display still shows the frame through its network URL, clear() forgets the failure
+				() => this.#failed.add(url)
+			)
 			.finally(() => {
 				this.#inflight.delete(url);
 				this.#activeFetches--;
 				this.#pump();
 			});
+		return loading;
 	}
 
 	#insert(url: string, blob: Blob) {
 		const objectUrl = URL.createObjectURL(blob);
-		this.#entries.set(url, { objectUrl, size: blob.size });
+		this.#entries.set(url, { blob, objectUrl });
 		this.totalBytes += blob.size;
 		this.#evict();
 
@@ -133,7 +165,7 @@ class FrameCache {
 			if (this.totalBytes <= this.maxBytes.current) break;
 			URL.revokeObjectURL(entry.objectUrl);
 			this.#entries.delete(url);
-			this.totalBytes -= entry.size;
+			this.totalBytes -= entry.blob.size;
 		}
 	}
 }

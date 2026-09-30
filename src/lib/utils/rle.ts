@@ -437,3 +437,41 @@ export function rleToPolygons(rle: RLEType): Polygon[] {
 	polygonCache.set(rle, { counts: rle.counts, polygons });
 	return polygons;
 }
+
+/** How much two masks overlap, as intersection over union. */
+export function rleIoU(a: RLEType, b: RLEType): number {
+	// Return 0 when the masks have different sizes
+	if (a.size[0] !== b.size[0] || a.size[1] !== b.size[1]) return 0;
+	const countsA = stringToCounts(a.counts);
+	const countsB = stringToCounts(b.counts);
+
+	// Runs alternate between background and cell, background first
+	let i = 0;
+	let j = 0;
+	let restA = countsA[0] ?? 0;
+	let restB = countsB[0] ?? 0;
+	let intersection = 0;
+	while (i < countsA.length && j < countsB.length) {
+		if (restA === 0) {
+			restA = countsA[++i] ?? 0;
+			continue;
+		}
+		if (restB === 0) {
+			restB = countsB[++j] ?? 0;
+			continue;
+		}
+		const run = Math.min(restA, restB);
+		if (i % 2 === 1 && j % 2 === 1) intersection += run;
+		restA -= run;
+		restB -= run;
+	}
+
+	const union = cellArea(countsA) + cellArea(countsB) - intersection;
+	return union > 0 ? intersection / union : 0;
+}
+
+function cellArea(counts: Int32Array): number {
+	let area = 0;
+	for (let i = 1; i < counts.length; i += 2) area += counts[i];
+	return area;
+}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { _ } from 'svelte-i18n';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { cn } from '$lib/utils/shadcn';

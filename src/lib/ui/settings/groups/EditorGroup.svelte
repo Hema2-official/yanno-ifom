@@ -9,9 +9,10 @@
 		vertexSpacing: 'Vertex spacing resample distance',
 		pointerLock: 'Pointer lock while panning cursor drag',
 		zoomSpeed: 'Zoom speed wheel scroll',
-		toolAfterPaste: 'Tool to switch to after pasting cells',
+		toolAfterPaste: 'Tool after paste switch clipboard copy cells',
 		prefetch: 'Frames to prefetch preload cache bandwidth',
-		cacheSize: 'Frame cache size memory RAM'
+		cacheSize: 'Frame cache size memory RAM',
+		snapshotSize: 'Stack turning cache size memory RAM'
 	};
 	const search = searchRows(rows);
 
@@ -26,6 +27,7 @@
 <script lang="ts">
 	import { Switch } from '$lib/components/ui/switch';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
+	import { frameSnapshots } from '$lib/states/FrameSnapshots.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { GroupProps } from '../group';
@@ -122,7 +124,7 @@
 	</SettingsSection>
 {/if}
 
-{#if any('prefetch', 'cacheSize')}
+{#if any('prefetch', 'cacheSize', 'snapshotSize')}
 	<SettingsSection heading="Video">
 		{#if shown.includes('prefetch')}
 			<SliderRow
@@ -140,6 +142,18 @@
 				label="Frame cache"
 				description="Memory reserved for caching frames ({currentUsage} in use)"
 				bind:value={frameCache.maxBytes.current}
+				min={64 * MiB}
+				max={2048 * MiB}
+				step={64 * MiB}
+				format={size}
+			/>
+		{/if}
+		{#if shown.includes('snapshotSize')}
+			{@const currentUsage = size(frameSnapshots.totalBytes)}
+			<SliderRow
+				label="Stack turning cache"
+				description="Memory reserved for the frames drawn ahead, which show while the stack turns ({currentUsage} in use)"
+				bind:value={frameSnapshots.maxBytes.current}
 				min={64 * MiB}
 				max={2048 * MiB}
 				step={64 * MiB}

@@ -96,6 +96,18 @@ class KeybindingState {
 		return first === undefined ? '' : comboLabel(first);
 	}
 
+	/** Whether a press action would run now. */
+	isEnabled(id: ActionId): boolean {
+		const action = actions[id];
+		return action.kind === 'press' && (action.enabled?.() ?? true);
+	}
+
+	/** Runs a press action as its shortcut would, for the menus. */
+	run(id: ActionId) {
+		const action = actions[id];
+		if (action.kind === 'press' && this.isEnabled(id)) action.run();
+	}
+
 	/** Whether a hold action's keys are down. */
 	isHeld(id: ActionId): boolean {
 		return this.#held.has(id);
@@ -137,7 +149,7 @@ class KeybindingState {
 			if (action.kind === 'hold') {
 				this.#held.set(id, combo);
 				handled = true;
-			} else if (!ran && (action.enabled?.() ?? true)) {
+			} else if (!ran && this.isEnabled(id)) {
 				action.run();
 				ran = handled = true;
 			}

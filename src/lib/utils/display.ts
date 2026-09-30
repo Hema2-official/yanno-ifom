@@ -1,10 +1,29 @@
+import type { PointerRecord } from '$lib/states/InputState.svelte';
 import type { Point, Polygon } from '$lib/types/geometry.type';
 
 export function cellBodyToPath(body: Polygon) {
-	let path = `M${body[0].x},${body[0].y} `;
-	for (let i = 1; i < body.length; i++) path += `L${body[i].x},${body[i].y} `;
-	path += 'z';
-	return path;
+	const points = withoutRepeats(body);
+	const n = points.length;
+	let path = '';
+	for (let i = 0; i < n; i++) {
+		const a = points[(i + n - 1) % n];
+		const b = points[i];
+		const c = points[(i + 1) % n];
+		const [abX, abY, bcX, bcY] = [b.x - a.x, b.y - a.y, c.x - b.x, c.y - b.y];
+		// Going straight on, not turning back
+		const straight = abX * bcY === abY * bcX && abX * bcX + abY * bcY > 0;
+		if (n > 2 && straight) continue;
+		path += `${path ? 'L' : 'M'}${b.x},${b.y} `;
+	}
+	return path + 'z';
+}
+
+function withoutRepeats(body: Polygon): Polygon {
+	const points = body.filter((point, i) => {
+		const previous = body[(i + body.length - 1) % body.length];
+		return point.x !== previous.x || point.y !== previous.y;
+	});
+	return points.length > 0 ? points : body.slice(0, 1);
 }
 
 const pathCache = new WeakMap<Polygon, string>();
@@ -17,12 +36,29 @@ export function cellBodyToPathCached(body: Polygon): string {
 	return path;
 }
 
-export function getPointerViewBoxCoords(e: MouseEvent, svgElement: SVGSVGElement): Point {
+/** A position on the screen, as pointer events and `elementsFromPoint` take it. */
+export type ClientPoint = { clientX: number; clientY: number };
+
+export function getPointerViewBoxCoords(e: ClientPoint, svgElement: SVGSVGElement): Point {
 	const ctm = svgElement.getScreenCTM();
 	if (!ctm) return { x: 0, y: 0 };
 
 	const point = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
 	return { x: point.x, y: point.y };
+}
+
+export function frameTileAt(root: Element, e: ClientPoint): PointerRecord | null {
+	const tiles = root.querySelectorAll<SVGSVGElement>('svg[data-frame-index]');
+	for (let i = tiles.length - 1; i >= 0; i--) {
+		const tile = tiles[i];
+		if (!tile.getScreenCTM()) continue;
+		const { x, y } = getPointerViewBoxCoords(e, tile);
+		const box = tile.viewBox.baseVal;
+		if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
+			return { frameIndex: Number(tile.dataset.frameIndex), x, y };
+		}
+	}
+	return null;
 }
 
 export type Measurable = {

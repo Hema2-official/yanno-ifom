@@ -1,9 +1,18 @@
 import type { ChangeType, RLEType, TrackType, VersionManaged } from '$lib/types/annotation.type';
 import type { Polygon } from '$lib/types/geometry.type';
-import { cellsLabel, withMask, withOutline } from '$lib/utils/tracks';
+import {
+	cellsLabel,
+	framesLabel,
+	occupiedFrames,
+	sharedFrames,
+	withMask,
+	withOutline
+} from '$lib/utils/tracks';
+import { gapsBetween, interpolatedCell } from '$lib/utils/interpolate';
 import { toastError } from '$lib/api/errors';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
 import { projectState } from './ProjectState.svelte';
+import { videoDisplayState } from './VideoDisplayState.svelte';
 import { toast } from 'svelte-sonner';
 
 /** How long a commit waits for further commits before it is persisted. */
@@ -41,7 +50,17 @@ export function stateBefore(data: VersionManaged<TrackType[]>, count: number): T
 class AnnotationState {
 	/** The data as saved on the server (or in the local database). */
 	saved: VersionManaged<TrackType[]> | null = $state.raw(null);
-	currentFrameIndex = $state(0);
+
+	// Kept beyond the last place the window fits, so a narrower one brings it back
+	#currentFrameIndex = $state(0);
+
+	/** The first of the shown frames. */
+	get currentFrameIndex(): number {
+		return Math.min(this.#currentFrameIndex, videoDisplayState.maxFrameIndex);
+	}
+	set currentFrameIndex(value: number) {
+		this.#currentFrameIndex = value;
+	}
 
 	// Undos stay local: they count back until something new is committed or saved
 	undoneCount = $state(0);
@@ -178,6 +197,89 @@ class AnnotationState {
 			`Delete ${label}`
 		);
 		toast(`Deleted ${label}`, { action: { label: 'Undo', onClick: () => this.undo() } });
+	}
+
+	/** Assigns the TrackID to the given cells with the first ancestor found in the track's cells. */
+	setTrackId(cells: TrackType[], trackId: number): boolean {
+		const data = this.data;
+		if (!data || cells.length === 0) return false;
+
+		const crowded = sharedFrames(cells).concat(occupiedFrames(data.current, cells, trackId));
+		if (crowded.length > 0) {
+			toastError(`Track ${trackId} would have two cells in ${framesLabel(crowded)}`);
+			return false;
+		}
+
+		const ids = new Set(cells.map((cell) => cell.ObjectID));
+		const memberWithAncestor = data.current.find(
+			(cell) => cell.TrackID === trackId && !ids.has(cell.ObjectID) && cell.AncestorID != null
+		);
+		const ancestorId =
+			memberWithAncestor?.AncestorID ??
+			cells.find((cell) => cell.AncestorID != null)?.AncestorID ??
+			null;
+		if (ancestorId === trackId) {
+			toastError(`Track ${trackId} would be its own ancestor`);
+			return false;
+		}
+
+		const next = data.current.map((cell) => {
+			if (!ids.has(cell.ObjectID)) return cell;
+			return { ...cell, TrackID: trackId, AncestorID: ancestorId };
+		});
+		this.commitData(next, `Set track ${trackId} on ${cellsLabel(cells)}`);
+		return true;
+	}
+
+	/**
+	 * Fills each frame between the cells with a cell blended from the nearest
+	 * ones before and after, and returns the new cells.
+	 */
+	interpolateCells(cells: TrackType[]): TrackType[] | null {
+		if (!this.data) return null;
+
+		const shared = sharedFrames(cells);
+		if (shared.length > 0) {
+			toastError(
+				`Select one cell per frame to interpolate, not several in ${framesLabel(shared)}`
+			);
+			return null;
+		}
+		const gaps = gapsBetween(cells);
+		if (gaps.length === 0) {
+			toastError('There are no frames between the selected cells to fill');
+			return null;
+		}
+		const crowded = gaps.filter(({ frame, before, after }) => {
+			const trackId = before.TrackID;
+			if (trackId === null || after.TrackID !== trackId) return false;
+			return (this.getFrame(frame) ?? []).some((cell) => cell.TrackID === trackId);
+		});
+		if (crowded.length > 0) {
+			const frames = crowded.map((gap) => gap.frame);
+			toastError(`The track already has a cell in ${framesLabel(frames)}`);
+			return null;
+		}
+
+		const label = (added: TrackType[]) =>
+			`${cellsLabel(added)} in ${framesLabel(added.map((cell) => cell.Frame))}`;
+		const added = this.addCells(
+			(tracks) => {
+				const next = tracks.slice();
+				return gaps.map((gap) => {
+					const cell = interpolatedCell(gap, next);
+					next.push(cell);
+					return cell;
+				});
+			},
+			(added) => `Interpolate ${label(added)}`
+		);
+		if (added) {
+			toast(`Interpolated ${label(added)}`, {
+				action: { label: 'Undo', onClick: () => this.undo() }
+			});
+		}
+		return added;
 	}
 
 	#replaceCells(build: () => TrackType[], message: string): boolean {

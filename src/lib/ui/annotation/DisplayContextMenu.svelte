@@ -1,9 +1,12 @@
 <script module lang="ts">
 	import type { TrackType } from '$lib/types/annotation.type';
+	import type { Measurable } from '$lib/utils/display';
 
 	export type DisplayTarget =
 		| { kind: 'cell'; cell: TrackType }
 		| { kind: 'background'; frameIndex: number };
+
+	export type DisplayMenu = { anchor: Measurable; target: DisplayTarget };
 </script>
 
 <script lang="ts">
@@ -11,25 +14,24 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
+	import type { ActionId } from '$lib/keybindings/actions';
 	import { comboLabel } from '$lib/keybindings/keys';
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
-	import type { Measurable } from '$lib/utils/display';
 	import { cellsLabel } from '$lib/utils/tracks';
 
 	type Props = {
-		open: boolean;
-		anchor: Measurable | null;
-		target: DisplayTarget | null;
+		/** Null while it's closed. */
+		menu: DisplayMenu | null;
 		onClose: () => void;
 	};
 
-	let { open, anchor, target, onClose }: Props = $props();
+	let { menu, onClose }: Props = $props();
 
 	// bits-ui only notices outside clicks that bubble up to the document, and
 	// the tools and toolbar stop theirs, so any pointerdown outside the menu
 	// closes it here in the capture phase
 	useEventListener(
-		() => (open ? document : null),
+		() => (menu ? document : null),
 		'pointerdown',
 		(e) => {
 			if (!(e.target instanceof Element && e.target.closest('[role="menu"]'))) onClose();
@@ -37,42 +39,42 @@
 		{ capture: true }
 	);
 
-	/**	When target is nulled, this keeps the content open so it doesn't just disappear. */
-	let lastTarget: DisplayTarget | null = $state(null);
-	watch([() => target], ([_target]) => {
-		if (_target) lastTarget = _target;
+	// Keeps the content up while the menu fades out
+	let shown = $state.raw<DisplayMenu | null>(null);
+	watch([() => menu], ([next]) => {
+		if (next) shown = next;
 	});
+	const target = $derived(shown?.target);
 </script>
 
-<ContextMenu.Root {open} onOpenChange={(next) => !next && onClose()}>
-	<ContextMenu.Content class="w-52" customAnchor={anchor} preventScroll={false}>
-		{#if lastTarget?.kind === 'cell'}
+{#snippet actionItem(id: ActionId, title: string)}
+	<ContextMenu.Item
+		inset
+		onSelect={() => keybindings.run(id)}
+		disabled={!keybindings.isEnabled(id)}
+	>
+		{title}
+		<ContextMenu.Shortcut>{keybindings.label(id)}</ContextMenu.Shortcut>
+	</ContextMenu.Item>
+{/snippet}
+
+<ContextMenu.Root open={menu !== null} onOpenChange={(open) => !open && onClose()}>
+	<ContextMenu.Content class="w-52" customAnchor={menu?.anchor ?? null} preventScroll={false}>
+		{#if target?.kind === 'cell'}
 			<!-- A right-clicked cell is always selected, so the items act on the whole selection -->
 			<ContextMenu.Label class="text-center font-bold">
 				{cellsLabel(editorState.selectedCells)}
 			</ContextMenu.Label>
 			<ContextMenu.Separator />
-			<ContextMenu.Item inset onSelect={() => void editorState.cutSelection()}>
-				Cut
-				<ContextMenu.Shortcut>{keybindings.label('cut')}</ContextMenu.Shortcut>
-			</ContextMenu.Item>
-			<ContextMenu.Item inset onSelect={() => void editorState.copySelection()}>
-				Copy
-				<ContextMenu.Shortcut>{keybindings.label('copy')}</ContextMenu.Shortcut>
-			</ContextMenu.Item>
-			<ContextMenu.Item
-				inset
-				onSelect={() => annotationState.deleteCells(editorState.selectedCells)}
-			>
-				Delete
-				<ContextMenu.Shortcut>{keybindings.label('selection.delete')}</ContextMenu.Shortcut>
-			</ContextMenu.Item>
-		{:else if lastTarget?.kind === 'background'}
-			{@const frameIndex = lastTarget.frameIndex}
-			<ContextMenu.Item inset onSelect={() => (editorState.tool = 'draw')}>
-				New cell
-				<ContextMenu.Shortcut>{keybindings.label('tool.draw')}</ContextMenu.Shortcut>
-			</ContextMenu.Item>
+			{@render actionItem('selection.setTrackId', 'Set track ID...')}
+			{@render actionItem('selection.interpolate', 'Interpolate gaps')}
+			<ContextMenu.Separator />
+			{@render actionItem('cut', 'Cut')}
+			{@render actionItem('copy', 'Copy')}
+			{@render actionItem('selection.delete', 'Delete')}
+		{:else if target?.kind === 'background'}
+			{@const frameIndex = target.frameIndex}
+			{@render actionItem('tool.draw', 'New cell')}
 			<ContextMenu.Item inset onSelect={() => void editorState.pasteText(frameIndex)}>
 				Paste...
 				<ContextMenu.Shortcut>{comboLabel('Mod+v')}</ContextMenu.Shortcut>

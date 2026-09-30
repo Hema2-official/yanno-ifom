@@ -3,14 +3,11 @@ export type DragHandlers = {
 	onEnd: (event: PointerEvent) => void;
 };
 
-/**
- * Claims the gesture that `event` (a pointerdown) started: move and release
- * events reach the handlers until the button is released, the pointer is
- * cancelled or the capture is lost, even outside the window. Capture goes on
- * `root`, never on a handle, because handles get unmounted mid-gesture.
- * Returns false, doing nothing, when the pointer can't be captured.
- */
-export function startDrag(root: SVGElement, event: PointerEvent, handlers: DragHandlers): boolean {
+export function startDrag(
+	root: Element & GlobalEventHandlers,
+	event: PointerEvent,
+	handlers: DragHandlers
+): boolean {
 	const { pointerId, button } = event;
 
 	function onMove(e: PointerEvent) {

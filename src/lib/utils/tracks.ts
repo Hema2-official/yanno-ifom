@@ -25,6 +25,11 @@ export function newTrackId(tracks: TrackType[]): number | null {
 	return max === null ? null : max + 1;
 }
 
+export function trackAncestor(cells: TrackType[], trackId: number): number | null {
+	const member = cells.find((cell) => cell.TrackID === trackId && cell.AncestorID != null);
+	return member?.AncestorID ?? null;
+}
+
 /** A new cell of the frame with the given outline, shaped like the cells the backend writes. */
 export function newCell(
 	frame: number,
@@ -58,4 +63,45 @@ export function withMask(cell: TrackType, mask: RLEType): TrackType {
 	const polygons = rleToPolygons(mask);
 	if (polygons.length === 0) throw new Error('The cell would have no outline');
 	return { ...cell, SegmentationRLE: mask };
+}
+
+/** Sorted numbers as a compact list, e.g. "3, 5–8, 12". */
+export function formatRanges(numbers: number[]): string {
+	const ranges: string[] = [];
+	for (let i = 0; i < numbers.length; i++) {
+		let end = i;
+		while (end + 1 < numbers.length && numbers[end + 1] === numbers[end] + 1) end++;
+		ranges.push(end > i ? `${numbers[i]}–${numbers[end]}` : String(numbers[i]));
+		i = end;
+	}
+	return ranges.join(', ');
+}
+
+/** "frame 4" or "frames 2–3, 7", for messages. */
+export function framesLabel(frames: number[]): string {
+	const sorted = Array.from(new Set(frames)).sort((a, b) => a - b);
+	return `frame${sorted.length > 1 ? 's' : ''} ${formatRanges(sorted)}`;
+}
+
+/** The frames holding more than one of the cells. */
+export function sharedFrames(cells: TrackType[]): number[] {
+	const counts = new Map<number, number>();
+	for (const { Frame } of cells) counts.set(Frame, (counts.get(Frame) ?? 0) + 1);
+	return Array.from(counts)
+		.filter(([, count]) => count > 1)
+		.map(([frame]) => frame)
+		.sort((a, b) => a - b);
+}
+
+/** The frames of the cells where the track has another cell. */
+export function occupiedFrames(tracks: TrackType[], cells: TrackType[], trackId: number): number[] {
+	const ids = new Set(cells.map((cell) => cell.ObjectID));
+	const frames = new Set(cells.map((cell) => cell.Frame));
+	const occupied = new Set<number>();
+	for (const track of tracks) {
+		if (track.TrackID === trackId && frames.has(track.Frame) && !ids.has(track.ObjectID)) {
+			occupied.add(track.Frame);
+		}
+	}
+	return Array.from(occupied).sort((a, b) => a - b);
 }

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
+	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { Point } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { getPolygonsBounds, type Bounds } from '$lib/utils/geometry';
 	import { watch } from 'runed';
-	import { startDrag } from './drag';
+	import { startDrag } from '$lib/utils/drag';
 	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
 	import type { EditorToolProps } from './types';
 
@@ -37,8 +38,7 @@
 	const light = '#ffffff';
 	const dark = '#0f172a';
 
-	// One "screen unit" in viewBox coordinates keeps the handles the same size at any zoom
-	const u = $derived(100 / svgState.svgScalePercent);
+	const u = $derived(zoomState.screenUnit);
 	const handleHalf = $derived(4 * u);
 	const handleStroke = $derived(1.5 * u);
 	const cornerHit = $derived(7 * u);

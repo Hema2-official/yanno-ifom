@@ -1,5 +1,6 @@
 import type { VideoComponentMetadata, VideoMetadata } from '$lib/types/api.type';
 import createColormap from 'colormap';
+import { clamp } from './math';
 
 type LinearLUT = {
 	type: 'linear';
@@ -94,6 +95,40 @@ export function getAdjustFunctions(
 		offset: brightness + 0.5 * (1 - contrast)
 	};
 	return { r: lut, g: lut, b: lut };
+}
+
+/** An 8-bit color value through one `feComponentTransfer` function, by the SVG spec's formulas. */
+function transferTable(lut: SVGComponentTransferLUT): Uint8Array {
+	const values =
+		lut.type === 'table' ? lut.tableValues.split(/\s+/).filter(Boolean).map(Number) : [];
+	const table = new Uint8Array(256);
+	for (let i = 0; i < 256; i++) {
+		const c = i / 255;
+		let value = c;
+		if (lut.type === 'linear') value = lut.slope * c + lut.intercept;
+		else if (lut.type === 'gamma') value = lut.amplitude * c ** lut.exponent + lut.offset;
+		else if (values.length === 1) value = values[0];
+		else if (values.length > 1) {
+			const n = values.length - 1;
+			const k = Math.min(Math.floor(c * n), n - 1);
+			value = values[k] + (c * n - k) * (values[k + 1] - values[k]);
+		}
+		table[i] = Math.round(clamp(value, 0, 1) * 255);
+	}
+	return table;
+}
+
+/** A chain of transfer functions, one table per color channel. */
+export function transferTables(chain: RGBFunctions[]): [Uint8Array, Uint8Array, Uint8Array] {
+	const channel = (key: keyof RGBFunctions) => {
+		const table = Uint8Array.from({ length: 256 }, (_, i) => i);
+		for (const functions of chain) {
+			const step = transferTable(functions[key]);
+			for (let i = 0; i < 256; i++) table[i] = step[table[i]];
+		}
+		return table;
+	};
+	return [channel('r'), channel('g'), channel('b')];
 }
 
 export type ColorMapType = (typeof AVAILABLE_COLORMAPS)[number];

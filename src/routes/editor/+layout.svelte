@@ -25,6 +25,8 @@
 	import { editSession } from '$lib/states/EditSessionState.svelte';
 	import EditLockStatus from '$lib/ui/annotation/EditLockStatus.svelte';
 	import PasteDialog from '$lib/ui/annotation/PasteDialog.svelte';
+	import TrackIdDialog from '$lib/ui/annotation/TrackIdDialog.svelte';
+	import { inputState } from '$lib/states/InputState.svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/types/api.type';
@@ -54,7 +56,8 @@
 		if (projectState.readOnly || !annotationState.data) return;
 		if (isTypingTarget(e) || isDialogOpen()) return;
 		const text = e.clipboardData?.getData('text/plain') ?? '';
-		editorState.pasteText(annotationState.currentFrameIndex, text);
+		const frameIndex = inputState.pointer?.frameIndex ?? annotationState.currentFrameIndex;
+		editorState.pasteText(frameIndex, text);
 	};
 
 	// Leaving the editor frees the version's edit lock for others
@@ -219,6 +222,9 @@
 						>
 							Paste... <Menubar.Shortcut>{comboLabel('Mod+v')}</Menubar.Shortcut>
 						</Menubar.Item>
+						<Menubar.Separator />
+						{@render actionItem('selection.setTrackId', 'Set Track ID...')}
+						{@render actionItem('selection.interpolate', 'Interpolate Gaps')}
 					</Menubar.Content>
 				</Menubar.Menu>
 			{/if}
@@ -237,3 +243,4 @@
 </div>
 
 <PasteDialog />
+<TrackIdDialog />

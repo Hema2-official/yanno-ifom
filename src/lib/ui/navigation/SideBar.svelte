@@ -8,17 +8,21 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
-	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
+	import {
+		STACK_PITCH,
+		STACK_YAW,
+		videoDisplayState,
+		type DisplayMode
+	} from '$lib/states/VideoDisplayState.svelte';
+	import type { SettingState } from '$lib/states/SettingState.svelte';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import ColorMapSelect from '$lib/ui/common/ColorMapSelect.svelte';
 	import HistoryList from '$lib/ui/common/HistoryList.svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { RotateCcwIcon } from '@lucide/svelte';
 
 	const primaryChannelIndex = $derived(projectState.videoConfig?.start_period ?? 0);
-	const maxConcurrentFrames = $derived(Math.max(1, Math.min(6, projectState.frameCount)));
-	const maxFrameIndex = $derived(
-		Math.max(0, projectState.frameCount - videoDisplayState.concurrentFrames)
-	);
+	const isStack = $derived(videoDisplayState.displayMode.current === 'stack');
 	const lastShownFrameIndex = $derived(
 		annotationState.currentFrameIndex + videoDisplayState.concurrentFrames - 1
 	);
@@ -27,14 +31,16 @@
 		return key.replace(/([a-z])([A-Z])/g, '$1 $2');
 	}
 
-	type ChannelSlider = {
-		key: 'opacity' | 'brightness' | 'contrast' | 'gamma';
+	type Slider = {
 		format: (value: number) => string;
 		min: number;
 		max: number;
 		step: number;
 	};
+
 	const percent = (value: number) => (value * 100).toFixed(0) + '%';
+
+	type ChannelSlider = Slider & { key: 'opacity' | 'brightness' | 'contrast' | 'gamma' };
 	const channelSliders: ChannelSlider[] = [
 		{ key: 'opacity', format: percent, min: 0, max: 1, step: 0.01 },
 		{ key: 'brightness', format: percent, min: -1, max: 1, step: 0.01 },
@@ -42,11 +48,47 @@
 		{ key: 'gamma', format: (v) => v.toFixed(2), min: 0.2, max: 4, step: 0.05 }
 	];
 
-	// Keep the frame window in range when the grid grows
-	$effect(() => {
-		if (annotationState.currentFrameIndex > maxFrameIndex)
-			annotationState.currentFrameIndex = maxFrameIndex;
-	});
+	// We lie about the accurate angles to prevent snapping after turns
+	const roundDegrees = (value: number) => `${Math.round(value)}°`;
+
+	type StackSlider = Slider & { label: string; setting: SettingState<number> };
+	const stackSliders: StackSlider[] = [
+		{
+			label: 'Angle',
+			setting: videoDisplayState.stackYaw,
+			format: roundDegrees,
+			...STACK_YAW,
+			step: 0.1
+		},
+		{
+			label: 'Tilt',
+			setting: videoDisplayState.stackPitch,
+			format: roundDegrees,
+			...STACK_PITCH,
+			step: 0.1
+		},
+		{
+			label: 'Spacing',
+			setting: videoDisplayState.stackSpacing,
+			format: percent,
+			min: 0.01,
+			max: 1,
+			step: 0.01
+		},
+		{
+			label: 'Fade',
+			setting: videoDisplayState.stackFade,
+			format: percent,
+			min: 0,
+			max: 0.9,
+			step: 0.01
+		}
+	];
+
+	const selectLayout = (mode: DisplayMode | undefined) => {
+		// Pressing the active item would deselect it
+		if (mode) videoDisplayState.displayMode.current = mode;
+	};
 </script>
 
 <aside
@@ -82,6 +124,10 @@
 					step={1}
 				/>
 			</div>
+
+			<Label for="annotation-switch" class="cursor-pointer">
+				<Switch id="annotation-switch" bind:checked={svgState.isAnnotationShown} /> Show annotation
+			</Label>
 
 			<div class="flex items-center gap-2">
 				<Switch id="labels-switch" bind:checked={svgState.labelSwitch.current} />
@@ -141,6 +187,19 @@
 				</div>
 			{/each}
 
+			<div class="flex items-center justify-between gap-2">
+				<Label>Layout</Label>
+				<ToggleGroup.Root
+					type="single"
+					variant="outline"
+					size="sm"
+					bind:value={() => videoDisplayState.displayMode.current, selectLayout}
+				>
+					<ToggleGroup.Item value="grid">Grid</ToggleGroup.Item>
+					<ToggleGroup.Item value="stack">Stack</ToggleGroup.Item>
+				</ToggleGroup.Root>
+			</div>
+
 			<div class="flex flex-col gap-2">
 				<Label for="concurrent-frames" class="text-nowrap tabular-nums">
 					Concurrent frames: {videoDisplayState.concurrentFrames}
@@ -150,11 +209,24 @@
 					type="single"
 					bind:value={videoDisplayState.concurrentFrames}
 					min={1}
-					max={maxConcurrentFrames}
+					max={videoDisplayState.maxConcurrentFrames}
 					step={1}
-					disabled={maxConcurrentFrames < 2}
+					disabled={videoDisplayState.maxConcurrentFrames < 2}
 				/>
 			</div>
+
+			{#if isStack}
+				<div class="flex flex-col gap-2">
+					{#each stackSliders as { label, setting, format, ...range } (label)}
+						<div class="grid grid-cols-[6.5rem_1fr] items-center gap-2">
+							<span class="text-muted-foreground text-sm tabular-nums">
+								{label}: {format(setting.current)}
+							</span>
+							<Slider type="single" bind:value={setting.current} {...range} />
+						</div>
+					{/each}
+				</div>
+			{/if}
 
 			<div class="flex flex-col gap-2">
 				<Label for="current-frame-index" class="text-nowrap tabular-nums">
@@ -169,7 +241,7 @@
 					type="single"
 					bind:value={annotationState.currentFrameIndex}
 					min={0}
-					max={maxFrameIndex}
+					max={videoDisplayState.maxFrameIndex}
 					step={1}
 					disabled={projectState.frameCount === 0}
 				/>

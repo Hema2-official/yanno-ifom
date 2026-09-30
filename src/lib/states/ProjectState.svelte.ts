@@ -31,6 +31,7 @@ import { annotationState, stateBefore } from './AnnotationState.svelte';
 import { editorState } from './EditorState.svelte';
 import { editSession } from './EditSessionState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
+import { zoomState } from './zoom.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
 import { extractError, toastError } from '$lib/api/errors';
 import * as geotiff from 'geotiff';
@@ -128,7 +129,8 @@ class ProjectState {
 		annotationState.load(null);
 		annotationState.currentFrameIndex = 0;
 		editorState.reset();
-		videoDisplayState.concurrentFrames = 1;
+		videoDisplayState.reset();
+		zoomState.scalePercent = zoomState.minScale;
 	}
 
 	async loadCloudProject(projectId: string, versionId: string, signal?: AbortSignal) {
