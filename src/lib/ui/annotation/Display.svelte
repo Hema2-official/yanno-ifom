@@ -25,6 +25,7 @@
 	import FrameAnnotation from './FrameAnnotation.svelte';
 	import FrameImages from './FrameImages.svelte';
 	import FrameTile from './FrameTile.svelte';
+	import HoverHighlight from './HoverHighlight.svelte';
 	import StandInCanvas from './StandInCanvas.svelte';
 	import { startPan, startTurn } from './gestures';
 
@@ -174,6 +175,25 @@
 		if (!videoDisplayState.isTurning) inputState.pointer = frameTileAt(stageElement, e);
 	};
 
+	/** The cell under the pointer, by the tile that drew it. */
+	let hovered = $state.raw<{ id: string; frameIndex: number } | null>(null);
+
+	const hoverAt = (e: PointerEvent) => {
+		const target = e.target as Element;
+		const id = target.closest('[data-cell-id]')?.getAttribute('data-cell-id');
+		const tile = target.closest<SVGSVGElement>('svg[data-frame-index]');
+		hovered = id && tile ? { id, frameIndex: Number(tile.dataset.frameIndex) } : null;
+	};
+
+	// Drawn outside the tiles: a change inside one makes Firefox repaint the stack (see CLAUDE.md)
+	const highlight = $derived.by(() => {
+		if (!hovered || videoDisplayState.isTurning) return null;
+		const cell = annotationState.getCell(hovered.id);
+		const offset = hovered.frameIndex - annotationState.currentFrameIndex;
+		if (!cell || offset < 0 || offset >= placement.matrices.length) return null;
+		return { cell, matrix: placement.matrices[offset] };
+	});
+
 	/** What a click there does to the selection, if anything. */
 	const clickAt = (e: PointerEvent): (() => void) | null => {
 		const target = targetAt(e);
@@ -200,7 +220,9 @@
 			},
 			onEnd: (turned, e) => {
 				rightDown = false;
-				videoDisplayState.endTurn();
+				// A click that began turning leaves the stack as it was
+				if (turned) videoDisplayState.endTurn();
+				else videoDisplayState.cancelTurn();
 
 				const menu = pendingMenu;
 				pendingMenu = null;
@@ -286,7 +308,11 @@
 	class="bg-empty-background relative isolate flex size-full max-h-full max-w-full items-center overflow-hidden"
 	role="presentation"
 	oncontextmenu={handleContextMenu}
-	onpointerleave={() => (inputState.pointer = null)}
+	onpointerleave={() => {
+		inputState.pointer = null;
+		hovered = null;
+	}}
+	onpointerover={hoverAt}
 	onpointerup={updatePointer}
 	onpointermove={updatePointer}
 	onpointerdown={displayPointerDown}
@@ -327,6 +353,11 @@
 					<FrameImages {frameIndex} />
 				</FrameTile>
 			{/each}
+
+			<!-- The hovered cell's fill, under the outlines as the tiles drew it -->
+			{#if highlight}
+				<HoverHighlight cell={highlight.cell} matrix={highlight.matrix} />
+			{/if}
 
 			<!-- Only what a tile draws takes the pointer, as inside a single svg; hidden, it draws nothing -->
 			{#each layout.tiles as tile (tile.offset)}

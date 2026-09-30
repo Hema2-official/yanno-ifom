@@ -6,6 +6,8 @@ import { startDrag } from '$lib/utils/drag';
 const CLICK_SLOP = 3;
 /** Threshold to trigger a turn when dragging */
 const TURN_SLOP = 6;
+/** A right press this short is a click even past the slop: a hand still moving onto a cell drifts */
+const QUICK_CLICK = { ms: 300, px: 24 };
 
 type PanHandlers = {
 	/** Locks the pointer, so it can travel on past the screen's edge. */
@@ -72,6 +74,11 @@ export function startTurn(
 			onTurn(e.clientX - previous.x, e.clientY - previous.y);
 			previous = { x: e.clientX, y: e.clientY };
 		},
-		onEnd: (e) => onEnd(turned, e)
+		onEnd(e) {
+			const quick =
+				e.timeStamp - press.timeStamp <= QUICK_CLICK.ms &&
+				Math.hypot(e.clientX - start.x, e.clientY - start.y) <= QUICK_CLICK.px;
+			onEnd(turned && !quick, e);
+		}
 	});
 }

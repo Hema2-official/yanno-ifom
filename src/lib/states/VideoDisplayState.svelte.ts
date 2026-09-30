@@ -141,6 +141,10 @@ class VideoDisplayState {
 		this.#turn = null;
 	}
 
+	cancelTurn() {
+		this.#turn = null;
+	}
+
 	/** Back to one frame shown. */
 	reset() {
 		this.#concurrentFrames = 1;

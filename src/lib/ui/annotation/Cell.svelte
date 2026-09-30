@@ -45,10 +45,6 @@
 <style lang="scss">
 	path {
 		cursor: default;
-
-		&:hover {
-			fill: #ff0000;
-		}
 	}
 
 	text {
