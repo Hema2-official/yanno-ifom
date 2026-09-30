@@ -3,6 +3,7 @@ import type { TrackType } from '$lib/types/annotation.type';
 import { cellBodyToPathCached } from './display';
 import { getCenterOfPolygonsCached } from './geometry';
 import { transferTables, type RGBFunctions } from './imaging';
+import type { Matrix } from './layout';
 import { rleToPolygons } from './rle';
 
 export const MAX_SNAPSHOT_SIZE = 2048; // px
@@ -102,5 +103,37 @@ export function drawOutlines(
 			context.fillStyle = 'black';
 			context.fillText(label, x, y);
 		}
+	}
+}
+
+/** A snapshot where a tile shows its frame: `matrix` maps the frame's box into the stage. */
+export type StandIn = { image: CanvasImageSource; matrix: Matrix; opacity: number };
+
+/** The area a canvas covers, in CSS pixels, `ratio` canvas pixels each, with the stage's origin at `x`, `y`. */
+export type StandInView = { width: number; height: number; ratio: number; x: number; y: number };
+
+/** Draws the stand-ins in order, each over its tile's place, on a canvas covering the view. */
+export function drawStandIns(
+	canvas: HTMLCanvasElement,
+	standIns: StandIn[],
+	frame: { width: number; height: number },
+	view: StandInView
+) {
+	const w = Math.max(1, Math.round(view.width * view.ratio));
+	const h = Math.max(1, Math.round(view.height * view.ratio));
+	if (canvas.width !== w) canvas.width = w;
+	if (canvas.height !== h) canvas.height = h;
+	const context = canvas.getContext('2d');
+	if (!context) return;
+
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	context.clearRect(0, 0, w, h);
+	const [sx, sy] = [w / view.width, h / view.height];
+	for (const { image, matrix, opacity } of standIns) {
+		if (opacity <= 0) continue;
+		const [a, b, c, d, e, f] = matrix;
+		context.globalAlpha = opacity;
+		context.setTransform(sx * a, sy * b, sx * c, sy * d, sx * (view.x + e), sy * (view.y + f));
+		context.drawImage(image, 0, 0, frame.width, frame.height);
 	}
 }

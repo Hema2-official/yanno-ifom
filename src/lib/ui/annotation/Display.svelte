@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { getAbortSignal, onDestroy, untrack } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
+	import { getAbortSignal, onDestroy } from 'svelte';
 	import { watch } from 'runed';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
@@ -13,7 +12,6 @@
 	import { videoDisplayState, type StackAngles } from '$lib/states/VideoDisplayState.svelte';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import { frameSnapshots } from '$lib/states/FrameSnapshots.svelte';
-	import { drawOutlines, MAX_SNAPSHOT_SIZE } from '$lib/utils/snapshots';
 	import { frameTileAt, toMeasurable, type ClientPoint } from '$lib/utils/display';
 	import { gridLayout, placeTiles, stackLayout } from '$lib/utils/layout';
 	import { clamp } from '$lib/utils/math';
@@ -27,6 +25,7 @@
 	import FrameAnnotation from './FrameAnnotation.svelte';
 	import FrameImages from './FrameImages.svelte';
 	import FrameTile from './FrameTile.svelte';
+	import StandInCanvas from './StandInCanvas.svelte';
 	import { startPan, startTurn } from './gestures';
 
 	// The current tool is mounted in every frame tile, when editing is on
@@ -40,6 +39,8 @@
 	});
 
 	let viewportElement: HTMLDivElement;
+	let viewportWidth = $state(0);
+	let viewportHeight = $state(0);
 	let stageElement: HTMLDivElement;
 	let stageWidth = $state(0);
 	let stageHeight = $state(0);
@@ -69,16 +70,24 @@
 	const placement = $derived(placeTiles(layout, stageWidth, stageHeight));
 
 	// The hidden svg tiles wait where the turn began, so Firefox redraws them only on release
-	const restingTransforms = $derived.by(() => {
-		if (!videoDisplayState.isTurning) return placement.transforms;
+	const restingMatrices = $derived.by(() => {
+		if (!videoDisplayState.isTurning) return placement.matrices;
 		const resting = layoutAt(videoDisplayState.restingAngles);
-		return placeTiles(resting, stageWidth, stageHeight).transforms;
+		return placeTiles(resting, stageWidth, stageHeight).matrices;
 	});
 
 	const annotationOpacity = $derived(
 		svgState.isAnnotationShown && !keybindings.isHeld('display.hideAnnotation')
 			? svgState.annotationOpacity.current
 			: 0
+	);
+
+	/** The shown frames, by their offset in the window. */
+	const shownFrames = $derived(
+		Array.from(
+			{ length: videoDisplayState.concurrentFrames },
+			(_, offset) => annotationState.currentFrameIndex + offset
+		)
 	);
 
 	// Bake the shown frames while the stack stands still, ready for a turn
@@ -88,42 +97,23 @@
 			return;
 		}
 		if (videoDisplayState.isTurning) return;
-		const first = annotationState.currentFrameIndex;
-		const count = videoDisplayState.concurrentFrames;
-		const frames = Array.from({ length: count }, (_, offset) => first + offset);
-		frameSnapshots.prepare(frames, getAbortSignal());
+		frameSnapshots.prepare(shownFrames, getAbortSignal());
 	});
 	onDestroy(() => frameSnapshots.clear());
 
-	const drawCopy =
-		(source: HTMLCanvasElement): Attachment<HTMLCanvasElement> =>
-		(canvas) => {
-			canvas.width = source.width;
-			canvas.height = source.height;
-			canvas.getContext('2d')?.drawImage(source, 0, 0);
-		};
+	/** The shown frames' baked images from the right press on, null where one isn't ready. */
+	const imageSnapshots = $derived(
+		armed ? shownFrames.map((frameIndex) => frameSnapshots.get(frameIndex)) : []
+	);
 
-	const drawAnnotation =
-		(frameIndex: number): Attachment<HTMLCanvasElement> =>
-		(canvas) => {
-			const style = getComputedStyle(canvas);
-			const hideLabels = keybindings.isHeld('display.hideLabels');
-			// As sharp as the frame is shown when the turn starts
-			const scale = untrack(() =>
-				Math.min(
-					placement.scale * devicePixelRatio,
-					MAX_SNAPSHOT_SIZE / Math.max(vb.width, vb.height)
-				)
-			);
-			const size = { width: vb.width, height: vb.height, scale };
-			drawOutlines(canvas, size, annotationState.getFrame(frameIndex) ?? [], {
-				...svgState.cellLook,
-				selectedStroke: style.getPropertyValue('--accent-color').trim(),
-				isSelected: (cell) => editorState.isSelected(cell),
-				label: (cell) => (hideLabels ? null : svgState.cellLabel(cell)),
-				fontFamily: style.fontFamily
-			});
-		};
+	// The stand-in canvas covers the viewport, with the stage centred in it, then panned
+	const standInView = $derived({
+		width: viewportWidth,
+		height: viewportHeight,
+		ratio: devicePixelRatio,
+		x: (viewportWidth - stageWidth) / 2 + translateX,
+		y: (viewportHeight - stageHeight) / 2 + translateY
+	});
 
 	/** Pans by screen pixels, as far as the frames reach past the display. */
 	const panBy = (deltaX: number, deltaY: number) => {
@@ -312,6 +302,8 @@
 		role="presentation"
 		style:cursor={isPanning || armed ? 'grabbing' : 'grab'}
 		bind:this={viewportElement}
+		bind:clientWidth={viewportWidth}
+		bind:clientHeight={viewportHeight}
 	>
 		<div
 			class="absolute origin-center select-none"
@@ -324,15 +316,13 @@
 		>
 			<!-- All images under all outlines, so every outline shown can be clicked -->
 			{#each layout.tiles as tile (tile.offset)}
-				{@const frameIndex = annotationState.currentFrameIndex + tile.offset}
-				<!-- A frame not baked yet keeps its svg image through the turn -->
-				{@const snapshot = armed ? frameSnapshots.get(frameIndex) : null}
+				{@const frameIndex = shownFrames[tile.offset]}
+				<!-- A frame not baked yet keeps its svg image through the turn, under the stand-ins -->
 				<FrameTile
-					transform={placement.transforms[tile.offset]}
-					restingTransform={restingTransforms[tile.offset]}
+					matrix={placement.matrices[tile.offset]}
+					restingMatrix={restingMatrices[tile.offset]}
 					opacity={tile.fade}
-					standIn={snapshot && drawCopy(snapshot)}
-					turning={videoDisplayState.isTurning}
+					replaced={videoDisplayState.isTurning && !!imageSnapshots[tile.offset]}
 				>
 					<FrameImages {frameIndex} />
 				</FrameTile>
@@ -340,15 +330,14 @@
 
 			<!-- Only what a tile draws takes the pointer, as inside a single svg; hidden, it draws nothing -->
 			{#each layout.tiles as tile (tile.offset)}
-				{@const frameIndex = annotationState.currentFrameIndex + tile.offset}
+				{@const frameIndex = shownFrames[tile.offset]}
 				<FrameTile
 					class={annotationOpacity > 0 ? '*:pointer-events-auto' : undefined}
 					{frameIndex}
-					transform={placement.transforms[tile.offset]}
-					restingTransform={restingTransforms[tile.offset]}
+					matrix={placement.matrices[tile.offset]}
+					restingMatrix={restingMatrices[tile.offset]}
 					opacity={annotationOpacity}
-					standIn={armed ? drawAnnotation(frameIndex) : null}
-					turning={videoDisplayState.isTurning}
+					replaced={videoDisplayState.isTurning && armed}
 				>
 					<FrameAnnotation {frameIndex}>
 						{#if Tool}
@@ -361,6 +350,18 @@
 				</FrameTile>
 			{/each}
 		</div>
+
+		<!-- Drawn on the right press, shown once it turns the stack -->
+		{#if armed}
+			<StandInCanvas
+				{layout}
+				{placement}
+				frames={shownFrames}
+				images={imageSnapshots}
+				{annotationOpacity}
+				view={standInView}
+			/>
+		{/if}
 	</div>
 
 	<!-- The editing controls: viewers only look -->

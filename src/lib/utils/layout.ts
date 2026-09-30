@@ -16,8 +16,8 @@ export type TileLayout = {
 /** The shown frames in draw order, and the box around them all. */
 export type FrameLayout = { viewBox: SvgViewBoxType; tiles: TileLayout[] };
 
-/** A layout fitted into a box: its scale there, and each tile's CSS transform by its offset. */
-export type Placement = { scale: number; transforms: string[] };
+/** A layout fitted into a box: its scale there, and each tile's matrix by its offset. */
+export type Placement = { scale: number; matrices: Matrix[] };
 
 /** Letterboxes the layout into a `width` × `height` box, centred like an svg viewBox. */
 export function placeTiles(
@@ -29,10 +29,10 @@ export function placeTiles(
 	const x = (width - viewBox.width * scale) / 2 - viewBox.minX * scale;
 	const y = (height - viewBox.height * scale) / 2 - viewBox.minY * scale;
 
-	const placement: Placement = { scale, transforms: [] };
+	const placement: Placement = { scale, matrices: [] };
 	for (const { offset, matrix } of tiles) {
 		const [a, b, c, d, e, f] = matrix.map((value) => value * scale);
-		placement.transforms[offset] = `matrix(${a}, ${b}, ${c}, ${d}, ${x + e}, ${y + f})`;
+		placement.matrices[offset] = [a, b, c, d, x + e, y + f];
 	}
 	return placement;
 }
