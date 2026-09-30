@@ -81,15 +81,6 @@ export function getPolygonsBounds(polygons: Polygon[]): Bounds {
 	};
 }
 
-export function getCenterOfPolygons(polygons: Polygon[]): Point {
-	const bounds = getPolygonsBounds(polygons);
-	return { x: bounds.midX, y: bounds.midY };
-}
-
-export function getCenterOfPolygon(polygon: Polygon): Point {
-	return getCenterOfPolygons([polygon]);
-}
-
 const boundsCache = new WeakMap<Polygon[], Bounds>();
 /** `getPolygonsBounds` memoized on the array's identity: only for polygons that are never mutated. */
 export function getPolygonsBoundsCached(polygons: Polygon[]): Bounds {
