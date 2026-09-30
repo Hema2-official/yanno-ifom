@@ -21,24 +21,16 @@ type GammaLUT = {
 
 type SVGComponentTransferLUT = LinearLUT | TableLUT | GammaLUT;
 
-export type RGBFuntions = {
+export type RGBFunctions = {
 	r: SVGComponentTransferLUT;
 	g: SVGComponentTransferLUT;
 	b: SVGComponentTransferLUT;
 };
 
-const svgTableCache = new Map<string, RGBFuntions>();
+const svgTableCache = new Map<string, RGBFunctions>();
 
-/**
- * Generates SVG `feComponentTransfer` table values for R, G, and B channels
- * from a given colormap. These can be used as the `tableValues` attribute
- * on `feFuncR`, `feFuncG`, and `feFuncB` elements with `type="table"`.
- *
- * @param colormap - The name of the colormap to sample.
- * @param nshades - Number of samples to take (default 256).
- * @returns An object with `r`, `g`, and `b` strings for use as `tableValues`.
- */
-export function colormapToRgbFunctions(colormap: ColorMapType, nshades: number = 256): RGBFuntions {
+/** The colormap sampled into `feComponentTransfer` tables. */
+export function colormapToRgbFunctions(colormap: ColorMapType, nshades = 256): RGBFunctions {
 	const cacheKey = `${colormap}-${nshades}`;
 	const cached = svgTableCache.get(cacheKey);
 	if (cached) return cached;
@@ -59,7 +51,7 @@ export function colormapToRgbFunctions(colormap: ColorMapType, nshades: number =
 		g += sep + colors[i][1];
 		b += sep + colors[i][2];
 	}
-	const result: RGBFuntions = {
+	const result: RGBFunctions = {
 		r: { type: 'table', tableValues: r },
 		g: { type: 'table', tableValues: g },
 		b: { type: 'table', tableValues: b }
@@ -77,7 +69,7 @@ function getLinearLUT(componentMetadata: VideoComponentMetadata): LinearLUT {
 export function getNormalizeFunctions(
 	videoMetadata: VideoMetadata,
 	channelIndex: number
-): RGBFuntions {
+): RGBFunctions {
 	const channelMetadata = videoMetadata.channels[channelIndex];
 	return {
 		r: getLinearLUT(channelMetadata.r),
@@ -94,7 +86,7 @@ export function getAdjustFunctions(
 	brightness: number,
 	contrast: number,
 	gamma: number
-): RGBFuntions {
+): RGBFunctions {
 	const lut: GammaLUT = {
 		type: 'gamma',
 		amplitude: contrast,
