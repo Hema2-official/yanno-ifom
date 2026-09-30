@@ -17,19 +17,15 @@
 	const center = $derived(getCenterOfPolygonsCached(cellPolygons));
 </script>
 
+<!-- `drawOutlines` draws the same on a canvas -->
 <g data-cell-id={cellId}>
 	{#each cellPolygons as body, index (index)}
+		<!-- Transparent rather than none, so the whole cell takes clicks -->
 		<path
 			d={cellBodyToPathCached(body)}
-			fill={svgState.svgFillSwitch.current ? svgState.svgFill.current : 'transparent'}
-			stroke={selected
-				? 'var(--accent-color)'
-				: svgState.svgStrokeSwitch.current
-					? svgState.svgStroke.current
-					: 'none'}
-			stroke-width={selected
-				? svgState.outlineWidth.current + 1
-				: svgState.outlineWidth.current}
+			fill={svgState.cellLook.fill ?? 'transparent'}
+			stroke={selected ? 'var(--accent-color)' : (svgState.cellLook.stroke ?? 'none')}
+			stroke-width={svgState.cellLook.width + (selected ? 1 : 0)}
 		/>
 	{/each}
 </g>
@@ -41,7 +37,7 @@
 		text-anchor="middle"
 		dominant-baseline="middle"
 		fill="black"
-		font-size={svgState.labelSize.current}
+		font-size={svgState.cellLook.labelSize}
 		font-weight="bold">{label}</text
 	>
 {/if}

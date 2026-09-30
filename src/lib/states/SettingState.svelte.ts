@@ -22,6 +22,12 @@ const sameTypeAs = (initial: unknown) => (value: unknown) =>
 	typeof value === typeof initial &&
 	Array.isArray(value) === Array.isArray(initial);
 
+/** A `validate` for settings that take one of a few strings. */
+export const oneOf =
+	<T extends string>(values: readonly T[]) =>
+	(value: unknown): value is T =>
+		values.includes(value as T);
+
 /**
  * Keeps every `SettingState`-declared state in localStorage.
  * If logged in, also synchronizes with account preferences.

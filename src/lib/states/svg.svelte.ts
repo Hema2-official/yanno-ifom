@@ -1,7 +1,7 @@
 import type { TrackType } from '$lib/types/annotation.type';
 import { AVAILABLE_COLORMAPS, type ColorMapType } from '$lib/utils/imaging';
 import { projectState } from './ProjectState.svelte';
-import { SettingState } from './SettingState.svelte';
+import { oneOf, SettingState } from './SettingState.svelte';
 
 export type SvgViewBoxType = {
 	minX: number;
@@ -13,10 +13,12 @@ export type SvgViewBoxType = {
 export const labelKeys = ['ObjectID', 'TrackID', 'Class'] as const;
 export type LabelKey = Extract<keyof TrackType, (typeof labelKeys)[number]>;
 
-const oneOf =
-	<T extends string>(values: readonly T[]) =>
-	(value: unknown): value is T =>
-		values.includes(value as T);
+export type CellLook = {
+	fill: string | null;
+	stroke: string | null;
+	width: number;
+	labelSize: number;
+};
 
 class SvgState {
 	isSvgShown = $state(true);
@@ -33,6 +35,13 @@ class SvgState {
 	annotationOpacity = new SettingState('annotationOpacity', 1);
 
 	svgScalePercent = $state(100);
+
+	cellLook: CellLook = $derived({
+		fill: this.svgFillSwitch.current ? this.svgFill.current : null,
+		stroke: this.svgStrokeSwitch.current ? this.svgStroke.current : null,
+		width: this.outlineWidth.current,
+		labelSize: this.labelSize.current
+	});
 
 	svgViewBox: SvgViewBoxType = $derived({
 		minX: 0,
