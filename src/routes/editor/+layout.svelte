@@ -4,6 +4,7 @@
 	import KeybindingScope from '$lib/keybindings/KeybindingScope.svelte';
 	import { annotationState } from '$lib/states/AnnotationState.svelte';
 	import { editorState } from '$lib/states/EditorState.svelte';
+	import type { ActionId } from '$lib/keybindings/actions';
 	import { comboLabel } from '$lib/keybindings/keys';
 	import { isDialogOpen, isTypingTarget, keybindings } from '$lib/states/KeybindingState.svelte';
 	import type { Snippet } from 'svelte';
@@ -83,6 +84,13 @@
 
 <KeybindingScope scope="editor" />
 <svelte:window onpaste={handlePaste} />
+
+{#snippet actionItem(id: ActionId, title: string)}
+	<Menubar.Item onSelect={() => keybindings.run(id)} disabled={!keybindings.isEnabled(id)}>
+		{title}
+		<Menubar.Shortcut>{keybindings.label(id)}</Menubar.Shortcut>
+	</Menubar.Item>
+{/snippet}
 
 <div class="flex h-screen w-full flex-col items-center justify-start">
 	<TopBar>
@@ -186,23 +194,10 @@
 				<Menubar.Menu>
 					<Menubar.Trigger>Edit</Menubar.Trigger>
 					<Menubar.Content>
-						<Menubar.Item
-							onSelect={() => annotationState.undo()}
-							disabled={!annotationState.canUndo}
-						>
-							Undo <Menubar.Shortcut>{keybindings.label('undo')}</Menubar.Shortcut>
-						</Menubar.Item>
-						<Menubar.Item
-							onSelect={() => annotationState.redo()}
-							disabled={!annotationState.canRedo}
-						>
-							Redo <Menubar.Shortcut>{keybindings.label('redo')}</Menubar.Shortcut>
-						</Menubar.Item>
+						{@render actionItem('undo', 'Undo')}
+						{@render actionItem('redo', 'Redo')}
 						<Menubar.Separator />
-						<Menubar.Item onSelect={() => (editorState.tool = 'draw')}>
-							New Cell
-							<Menubar.Shortcut>{keybindings.label('tool.draw')}</Menubar.Shortcut>
-						</Menubar.Item>
+						{@render actionItem('tool.draw', 'New Cell')}
 						<Menubar.Separator />
 						<Menubar.Sub>
 							<Menubar.SubTrigger>Find</Menubar.SubTrigger>
@@ -215,18 +210,8 @@
 							</Menubar.SubContent>
 						</Menubar.Sub>
 						<Menubar.Separator />
-						<Menubar.Item
-							onSelect={() => void editorState.cutSelection()}
-							disabled={editorState.selectedCells.length === 0}
-						>
-							Cut <Menubar.Shortcut>{keybindings.label('cut')}</Menubar.Shortcut>
-						</Menubar.Item>
-						<Menubar.Item
-							onSelect={() => void editorState.copySelection()}
-							disabled={editorState.selectedCells.length === 0}
-						>
-							Copy <Menubar.Shortcut>{keybindings.label('copy')}</Menubar.Shortcut>
-						</Menubar.Item>
+						{@render actionItem('cut', 'Cut')}
+						{@render actionItem('copy', 'Copy')}
 						<Menubar.Item
 							onSelect={() =>
 								void editorState.pasteText(annotationState.currentFrameIndex)}
