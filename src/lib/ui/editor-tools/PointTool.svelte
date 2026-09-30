@@ -27,7 +27,7 @@
 		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
 
 		handle = { body: Number(body), point: Number(point) };
-		working = new WorkingCell(cell);
+		working = new WorkingCell(cell, { resample: false });
 	}
 
 	function handleDragMove(e: PointerEvent) {

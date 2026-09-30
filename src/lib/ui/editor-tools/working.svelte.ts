@@ -21,10 +21,10 @@ export class WorkingCell implements OutlineEntry {
 	readonly cell: TrackType;
 	bodies: Polygon[] = $state([]);
 
-	constructor(cell: TrackType) {
+	constructor(cell: TrackType, { resample = optionsState.autoResample.current } = {}) {
 		this.cell = cell;
 		const polygons = structuredClone(rleToPolygons(cell.SegmentationRLE));
-		this.bodies = optionsState.autoResample.current
+		this.bodies = resample
 			? resampleCellBodies(polygons, optionsState.resampleSegmentLength.current)
 			: polygons;
 	}
