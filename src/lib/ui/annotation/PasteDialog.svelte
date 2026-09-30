@@ -14,14 +14,9 @@
 	import type { TrackType } from '$lib/types/annotation.type';
 	import { optionsState } from '$lib/states/options.svelte';
 
-	type Props = {
-		paste: PendingPaste | null;
-		onClose: () => void;
-	};
-
-	let { paste, onClose }: Props = $props();
-
 	const uid = $props.id();
+
+	const close = () => (editorState.pendingPaste = null);
 
 	// Keeps the content up while the dialog fades out
 	let shown = $state.raw<PendingPaste | null>(null);
@@ -44,7 +39,7 @@
 		typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value);
 
 	// Each paste starts from the cells' own values
-	watch([() => paste], ([next]) => {
+	watch([() => editorState.pendingPaste], ([next]) => {
 		if (!next) return;
 		shown = next;
 		const [cell] = next.cells;
@@ -135,11 +130,11 @@
 		toast(`Pasted ${cellsLabel(pasted)} to frame ${frame}`, {
 			action: { label: 'Undo', onClick: () => annotationState.undo() }
 		});
-		onClose();
+		close();
 	}
 </script>
 
-<Dialog.Root open={paste !== null} onOpenChange={(open) => !open && onClose()}>
+<Dialog.Root open={editorState.pendingPaste !== null} onOpenChange={(open) => !open && close()}>
 	<Dialog.Content>
 		<form class="grid gap-4" {onsubmit}>
 			<!-- TODO: if current frame if source frame, just say 'Paste cell(s) here' -->

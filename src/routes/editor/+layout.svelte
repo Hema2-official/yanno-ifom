@@ -236,4 +236,4 @@
 	{@render children()}
 </div>
 
-<PasteDialog paste={editorState.pendingPaste} onClose={() => (editorState.pendingPaste = null)} />
+<PasteDialog />
