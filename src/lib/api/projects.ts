@@ -1,4 +1,4 @@
-import { http, BASE_URL } from './kyConfig';
+import { http } from './kyConfig';
 import type { Options } from 'ky';
 import type {
 	CopyProjectVersionBody,
@@ -101,17 +101,9 @@ export async function downloadVideo(project_id: string, options?: Options) {
 	}
 }
 
-export function getWebFrameUrl(project: Project, frameIndex: number) {
-	if (!Number.isInteger(frameIndex)) throw new Error('Frame index must be an integer');
-	if (frameIndex < 0) throw new Error('Frame index must be positive');
-	const frameCount = project.video_metadata?.frame_count ?? Infinity;
-	if (frameIndex >= frameCount) throw new Error('Frame index is out of range');
-	return `${BASE_URL}api/v0/projects/${project.id}/web_frames/${frameIndex}`;
-}
-
-export async function downloadWebFrame(project: Project, frameIndex: number, options?: Options) {
+export async function downloadWebFrame(projectId: string, imageIndex: number, options?: Options) {
 	try {
-		return await http.blob(getWebFrameUrl(project, frameIndex), options);
+		return await http.blob(`api/v0/projects/${projectId}/web_frames/${imageIndex}`, options);
 	} catch (error) {
 		throw await handleError(error);
 	}

@@ -41,6 +41,12 @@ class LocalProjectsDB extends Dexie {
 
 export const localProjectsDb = new LocalProjectsDB();
 
+export async function readLocalFrame(projectId: number, imageIndex: number): Promise<Blob> {
+	const frame = await localProjectsDb.frames.get([projectId, imageIndex]);
+	if (!frame) throw new Error(`Image ${imageIndex} of local project ${projectId} isn't stored`);
+	return frame.image;
+}
+
 export async function compressJson(value: unknown): Promise<Blob> {
 	const stream = new Blob([JSON.stringify(value)])
 		.stream()

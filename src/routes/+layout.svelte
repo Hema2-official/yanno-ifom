@@ -4,7 +4,6 @@
 	import type { Snippet } from 'svelte';
 	import { accountState } from '$lib/states/AccountState.svelte';
 	import KeybindingListener from '$lib/keybindings/KeybindingListener.svelte';
-	import { registerFrameServiceWorker } from '$lib/workers/frameServiceWorker';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
@@ -29,7 +28,6 @@
 	});
 
 	onMount(() => {
-		registerFrameServiceWorker();
 		accountState.refresh();
 	});
 

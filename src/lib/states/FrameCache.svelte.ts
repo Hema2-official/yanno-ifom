@@ -1,20 +1,17 @@
 import { watch } from 'runed';
+import { SvelteMap } from 'svelte/reactivity';
 import { projectState } from './ProjectState.svelte';
 import { SettingState } from './SettingState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 
-type CacheEntry = {
-	blob: Blob;
-	objectUrl: string;
-};
+type ImageReader = (imageIndex: number) => Promise<Blob>;
 
-const MAX_PARALLEL_FETCHES = 4;
+const MAX_PARALLEL_READS = 4;
 
 /**
- * In-memory LRU cache of frame images, keyed by their network URL (which is
- * unique across projects and frame sources). Cached frames are exposed as
- * object URLs backed by the downloaded WebP blobs, so revisiting a frame
- * never touches the network or the service worker again.
+ * In-memory LRU cache of the open project's frame images, by their index in the
+ * video. Cached images are exposed as object URLs backed by the WebP blobs, so
+ * revisiting a frame never reads it again.
  */
 class FrameCache {
 	/** Maximum memory the cached frames may occupy, in bytes. */
@@ -26,12 +23,14 @@ class FrameCache {
 	/** Current memory usage of the cache, in bytes. */
 	totalBytes = $state(0);
 
-	/** Cache entries; insertion order doubles as LRU order. */
-	#entries = new Map<string, CacheEntry>();
-	#inflight = new Map<string, Promise<Blob>>();
-	#failed = new Set<string>();
-	#queue: string[] = [];
-	#activeFetches = 0;
+	#source: { id: string; read: ImageReader } | null = null;
+	/** Insertion order doubles as LRU order. */
+	#blobs = new Map<number, Blob>();
+	/** Reactive, so a tile draws again once its image lands. */
+	#urls = new SvelteMap<number, string>();
+	#inflight = new Map<number, Promise<Blob>>();
+	#queue: number[] = [];
+	#activeReads = 0;
 
 	constructor() {
 		// A smaller budget drops frames at once
@@ -40,42 +39,35 @@ class FrameCache {
 		});
 	}
 
-	/**
-	 * Returns the in-memory object URL of a frame, falling back to the
-	 * network URL (and caching the frame in the background) on a miss.
-	 */
-	getUrl(url: string): string {
-		const entry = this.#entries.get(url);
-		if (entry) {
-			this.#touch(url);
-			return entry.objectUrl;
-		}
-		this.#enqueueFront(url);
-		return url;
+	/** Reads another project's images from now on; the same project keeps its cache. */
+	open(id: string, read: ImageReader) {
+		if (this.#source?.id !== id) this.clear();
+		this.#source = { id, read };
 	}
 
-	load(url: string): Promise<Blob> {
-		const entry = this.#entries.get(url);
-		if (entry) {
-			this.#touch(url);
-			return Promise.resolve(entry.blob);
+	/** The image's object URL, once it's read. */
+	url(imageIndex: number): string | null {
+		return this.#urls.get(imageIndex) ?? null;
+	}
+
+	load(imageIndex: number): Promise<Blob> {
+		const blob = this.#blobs.get(imageIndex);
+		if (blob) {
+			this.#touch(imageIndex);
+			return Promise.resolve(blob);
 		}
-		return this.#inflight.get(url) ?? this.#fetch(url);
+		return this.#inflight.get(imageIndex) ?? this.#read(imageIndex);
 	}
 
 	/** Replaces the prefetch queue based on the current needs */
 	prefetchWindow(start: number, count: number) {
-		const frameCount = projectState.frameCount;
-		if (frameCount === 0) return;
-
 		const channelVisibility = videoDisplayState.channels.map((channel) => channel.visible);
-		const urls: string[] = [];
+		const images: number[] = [];
 		const addFrame = (frameIndex: number, visibleChannelsOnly: boolean) => {
-			if (frameIndex < 0 || frameIndex >= frameCount) return;
 			channelVisibility.forEach((visible, channelIndex) => {
 				if (visibleChannelsOnly && !visible) return;
-				const url = projectState.getChannelFrameUrl(frameIndex, channelIndex);
-				if (url) urls.push(url);
+				const imageIndex = projectState.imageIndex(frameIndex, channelIndex);
+				if (imageIndex !== null) images.push(imageIndex);
 			});
 		};
 
@@ -85,87 +77,85 @@ class FrameCache {
 			addFrame(start - distance, true);
 		}
 
-		this.#queue = urls.filter((url) => this.#isFetchable(url));
+		// Just used, so eviction takes the ones wanted longest ago
+		for (const imageIndex of images.toReversed()) this.#touch(imageIndex);
+		this.#queue = images.filter((imageIndex) => this.#isMissing(imageIndex));
 		this.#pump();
 	}
 
 	clear() {
-		for (const entry of this.#entries.values()) URL.revokeObjectURL(entry.objectUrl);
-		this.#entries.clear();
-		this.#failed.clear();
+		for (const url of this.#urls.values()) URL.revokeObjectURL(url);
+		this.#blobs.clear();
+		this.#urls.clear();
+		this.#inflight.clear();
 		this.#queue = [];
 		this.totalBytes = 0;
 	}
 
-	#isFetchable(url: string): boolean {
-		return !this.#entries.has(url) && !this.#inflight.has(url) && !this.#failed.has(url);
-	}
-
-	#enqueueFront(url: string) {
-		if (!this.#isFetchable(url)) return;
-		if (this.#queue[0] === url) return;
-		this.#queue = [url, ...this.#queue.filter((queued) => queued !== url)];
-		this.#pump();
+	#isMissing(imageIndex: number): boolean {
+		return !this.#blobs.has(imageIndex) && !this.#inflight.has(imageIndex);
 	}
 
 	#pump() {
-		while (this.#activeFetches < MAX_PARALLEL_FETCHES && this.#queue.length > 0) {
-			const url = this.#queue.shift()!;
-			if (this.#isFetchable(url)) void this.#fetch(url);
+		while (this.#activeReads < MAX_PARALLEL_READS && this.#queue.length > 0) {
+			const imageIndex = this.#queue.shift()!;
+			if (this.#isMissing(imageIndex)) void this.#read(imageIndex);
 		}
 	}
 
-	#fetch(url: string): Promise<Blob> {
-		const loading = fetch(url, { credentials: 'include' }).then(async (response) => {
-			if (!response.ok) throw new Error(`Fetching frame failed: ${response.status}`);
-			const blob = await response.blob();
-			this.#insert(url, blob);
+	#read(imageIndex: number): Promise<Blob> {
+		const source = this.#source;
+		if (!source) return Promise.reject(new Error('No project is open'));
+
+		const reading = source.read(imageIndex).then((blob) => {
+			// Another project may have opened meanwhile
+			if (this.#source?.id === source.id) this.#insert(imageIndex, blob);
 			return blob;
 		});
-		this.#inflight.set(url, loading);
-		this.#activeFetches++;
-		loading
-			.then(
-				() => this.#failed.delete(url),
-				// The display still shows the frame through its network URL, clear() forgets the failure
-				() => this.#failed.add(url)
-			)
+		this.#inflight.set(imageIndex, reading);
+		this.#activeReads++;
+		reading
+			// A failed image is read again when it's next wanted
+			.catch(() => {})
 			.finally(() => {
-				this.#inflight.delete(url);
-				this.#activeFetches--;
+				if (this.#inflight.get(imageIndex) === reading) this.#inflight.delete(imageIndex);
+				this.#activeReads--;
 				this.#pump();
 			});
-		return loading;
+		return reading;
 	}
 
-	#insert(url: string, blob: Blob) {
-		const objectUrl = URL.createObjectURL(blob);
-		this.#entries.set(url, { blob, objectUrl });
+	#insert(imageIndex: number, blob: Blob) {
+		const url = URL.createObjectURL(blob);
+		this.#blobs.set(imageIndex, blob);
+		this.#urls.set(imageIndex, url);
 		this.totalBytes += blob.size;
 		this.#evict();
 
 		// Warm the browser's decoded-image cache, so the frame's first
 		// display doesn't have to decode the WebP during paint
 		const image = new Image();
-		image.src = objectUrl;
+		image.src = url;
 		image.decode().catch(() => {});
 	}
 
-	/** Moves an entry to the back of the LRU order. */
-	#touch(url: string) {
-		const entry = this.#entries.get(url);
-		if (!entry) return;
-		this.#entries.delete(url);
-		this.#entries.set(url, entry);
+	/** Moves an image to the back of the LRU order. */
+	#touch(imageIndex: number) {
+		const blob = this.#blobs.get(imageIndex);
+		if (!blob) return;
+		this.#blobs.delete(imageIndex);
+		this.#blobs.set(imageIndex, blob);
 	}
 
-	/** Drops the least recently used entries until the cache fits the budget. */
+	/** Drops the least recently used images until the cache fits the budget. */
 	#evict() {
-		for (const [url, entry] of this.#entries) {
+		for (const [imageIndex, blob] of this.#blobs) {
 			if (this.totalBytes <= this.maxBytes.current) break;
-			URL.revokeObjectURL(entry.objectUrl);
-			this.#entries.delete(url);
-			this.totalBytes -= entry.blob.size;
+			const url = this.#urls.get(imageIndex);
+			if (url) URL.revokeObjectURL(url);
+			this.#blobs.delete(imageIndex);
+			this.#urls.delete(imageIndex);
+			this.totalBytes -= blob.size;
 		}
 	}
 }

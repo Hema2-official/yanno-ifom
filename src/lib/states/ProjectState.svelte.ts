@@ -1,9 +1,9 @@
 import {
 	createProject,
 	createProjectVersion,
+	downloadWebFrame,
 	getProject,
 	getVersionData,
-	getWebFrameUrl,
 	updateVersionData
 } from '$lib/api/projects';
 import {
@@ -23,13 +23,14 @@ import {
 	compressJson,
 	decompressJson,
 	localProjectsDb,
+	readLocalFrame,
 	type DBProject
 } from '$lib/utils/indexeddb';
 import { WebPConverter } from '$lib/utils/webp';
-import { ensureFrameServiceWorkerReady, getLocalFrameUrl } from '$lib/workers/frameServiceWorker';
 import { annotationState, stateBefore } from './AnnotationState.svelte';
 import { editorState } from './EditorState.svelte';
 import { editSession } from './EditSessionState.svelte';
+import { frameCache } from './FrameCache.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { zoomState } from './zoom.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
@@ -62,16 +63,12 @@ class ProjectState {
 	// Viewers never edit, editors only while their session holds the version's lock
 	readOnly = $derived(!!this.cloudProject && !editSession.canEdit);
 
-	getChannelFrameUrl(frameIndex: number, channelIndex: number): string | null {
+	/** A frame's channel as an image of the video, as `frameCache` takes it; null past the end. */
+	imageIndex(frameIndex: number, channelIndex: number): number | null {
+		if (frameIndex < 0 || frameIndex >= this.frameCount) return null;
 		const imageIndex = getImageIndex(this.videoConfig, frameIndex, channelIndex);
 		const imageCount = this.videoMetadata?.frame_count;
-		if (imageCount !== undefined && imageIndex >= imageCount) return null;
-		if (this.cloudProject) {
-			return getWebFrameUrl(this.cloudProject, imageIndex);
-		} else if (this.localProject?.id) {
-			return getLocalFrameUrl(this.localProject.id, imageIndex);
-		}
-		return null; // no project loaded (e.g. while switching)
+		return imageCount !== undefined && imageIndex >= imageCount ? null : imageIndex;
 	}
 
 	saveData(data: VersionManaged<TrackType[]>): Promise<void> {
@@ -144,6 +141,9 @@ class ProjectState {
 
 		this.cloudProject = project;
 		this.cloudVersion = version;
+		frameCache.open(`cloud:${projectId}`, (imageIndex) =>
+			downloadWebFrame(projectId, imageIndex)
+		);
 
 		// Check if it is ready
 		if (!version.ready) throw new Error('Version is not ready');
@@ -161,14 +161,14 @@ class ProjectState {
 	async loadLocalProject(localProjectId: number, signal?: AbortSignal) {
 		this.#clearStates();
 
-		// Wait for the local frame service worker to initialize
-		await ensureFrameServiceWorkerReady();
-
 		// Load project from indexeddb
 		const project = await localProjectsDb.projects.get(localProjectId);
 		signal?.throwIfAborted();
 		if (!project) throw new Error("Couldn't find project");
 		this.localProject = project;
+		frameCache.open(`local:${localProjectId}`, (imageIndex) =>
+			readLocalFrame(localProjectId, imageIndex)
+		);
 
 		const annotation = await decompressJson<VersionManaged<TrackType[]>>(project.annotation);
 		signal?.throwIfAborted();

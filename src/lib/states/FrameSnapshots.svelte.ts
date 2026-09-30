@@ -8,8 +8,8 @@ import { SettingState } from './SettingState.svelte';
 import { svgState } from './svg.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 
-/** A visible channel of a frame: where its image is, and how the display draws it. */
-type Layer = { url: string; opacity: number; transfer: RGBFunctions[] };
+/** A visible channel of a frame: its image in the video, and how the display draws it. */
+type Layer = { imageIndex: number; opacity: number; transfer: RGBFunctions[] };
 
 /** The memory a canvas of this size takes, in bytes. */
 const bytesOf = ({ width, height }: { width: number; height: number }) => width * height * 4;
@@ -98,20 +98,22 @@ class FrameSnapshots {
 	/** A frame's channels as its image tile draws them. */
 	#layers(frameIndex: number): Layer[] {
 		return this.#looks.flatMap((look, channelIndex) => {
-			const url = look && projectState.getChannelFrameUrl(frameIndex, channelIndex);
-			return look && url ? [{ url, ...look }] : [];
+			const imageIndex = look && projectState.imageIndex(frameIndex, channelIndex);
+			return look && imageIndex !== null ? [{ imageIndex, ...look }] : [];
 		});
 	}
 
 	/** Tells the image of these layers from any other. */
 	#key(layers: Layer[]): string {
-		return [this.#lookKey, ...layers.map(({ url }) => url)].join('\n');
+		return [this.#lookKey, ...layers.map(({ imageIndex }) => imageIndex)].join('\n');
 	}
 
 	async #bake(layers: Layer[], width: number, height: number) {
 		// Decoded from the files, so even a cloud frame's pixels stay readable
 		const images = await Promise.all(
-			layers.map(async ({ url }) => createImageBitmap(await frameCache.load(url)))
+			layers.map(async ({ imageIndex }) =>
+				createImageBitmap(await frameCache.load(imageIndex))
+			)
 		);
 		try {
 			const drawn = layers.map((layer, i) => ({ ...layer, image: images[i] }));

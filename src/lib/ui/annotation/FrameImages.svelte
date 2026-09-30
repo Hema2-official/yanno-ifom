@@ -16,10 +16,8 @@
 
 <!-- The frame's visible channels in viewBox units, each through its filters (defined by DisplayDefs) -->
 {#each videoDisplayState.channels as channel, channelIndex (channelIndex)}
-	{@const url = channel.visible
-		? projectState.getChannelFrameUrl(frameIndex, channelIndex)
-		: null}
-	{@const href = url ? frameCache.getUrl(url) : null}
+	{@const image = channel.visible ? projectState.imageIndex(frameIndex, channelIndex) : null}
+	{@const href = image === null ? null : frameCache.url(image)}
 	{#if href}
 		<image
 			{href}
