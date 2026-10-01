@@ -1,10 +1,11 @@
 import type { CellLook } from '$lib/states/svg.svelte';
 import type { TrackType } from '$lib/types/annotation.type';
-import { cellBodyToPathCached } from './display';
+import { arrowPath, cellBodyToPathCached } from './display';
 import { getCenterOfPolygonsCached } from './geometry';
 import { transferTables, type RGBFunctions } from './imaging';
 import type { FrameLayout, Matrix, Placement } from './layout';
 import { rleToPolygons } from './rle';
+import { ancestryArrows } from './tracks';
 
 export const MAX_SNAPSHOT_SIZE = 2048; // px
 
@@ -44,7 +45,7 @@ export function bakeImage(layers: ImageLayer[], w: number, h: number): HTMLCanva
 	return canvas;
 }
 
-/** How the display draws a frame's cells (see `Cell`), to draw them alike on a canvas. */
+/** How the display draws a frame's cells (see `Cell` and `FrameAnnotation`), to draw them alike on a canvas. */
 export type OutlineLook = CellLook & {
 	selectedStroke: string;
 	isSelected: (cell: TrackType) => boolean;
@@ -107,6 +108,18 @@ export function drawCells(
 			context.strokeText(label, x, y);
 			context.fillStyle = 'black';
 			context.fillText(label, x, y);
+		}
+	}
+
+	if (look.arrows) {
+		const { color, width, only } = look.arrows;
+		context.fillStyle = color;
+		context.strokeStyle = color;
+		context.lineWidth = width;
+		for (const { from, to } of ancestryArrows(cells, look.labelSize, only)) {
+			const path = new Path2D(arrowPath(from, to, width));
+			context.fill(path);
+			context.stroke(path);
 		}
 	}
 }

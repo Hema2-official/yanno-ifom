@@ -36,6 +36,20 @@ export function cellBodyToPathCached(body: Polygon): string {
 	return path;
 }
 
+/** An arrow to stroke and fill: the shaft, then the head at `to`, sized by the stroke's width. */
+export function arrowPath(from: Point, to: Point, width: number): string {
+	const length = Math.hypot(to.x - from.x, to.y - from.y);
+	if (length === 0) return '';
+	const head = Math.min(4 * width, length);
+	const [alongX, alongY] = [((to.x - from.x) / length) * head, ((to.y - from.y) / length) * head];
+	const [baseX, baseY] = [to.x - alongX, to.y - alongY];
+	const [sideX, sideY] = [-alongY / 2, alongX / 2];
+	return (
+		`M${from.x},${from.y} L${baseX},${baseY} ` +
+		`M${to.x},${to.y} L${baseX + sideX},${baseY + sideY} L${baseX - sideX},${baseY - sideY} z`
+	);
+}
+
 /** A position on the screen, as pointer events and `elementsFromPoint` take it. */
 export type ClientPoint = { clientX: number; clientY: number };
 

@@ -10,6 +10,10 @@
 		fill: 'Fill cells',
 		fillColor: 'Fill color',
 		labelSize: 'Label size font text',
+		arrows: 'Draw ancestry arrows lineage',
+		arrowColor: 'Arrow color ancestry',
+		arrowWidth: 'Arrow width ancestry thickness',
+		arrowsOnce: 'One arrow per ancestry in the stack first frame',
 		opacity: 'Opacity transparency'
 	};
 	const search = searchRows(rows);
@@ -103,6 +107,45 @@
 				max={40}
 				format={px}
 			/>
+		{/if}
+	</SettingsSection>
+{/if}
+
+{#if any('arrows', 'arrowColor', 'arrowWidth', 'arrowsOnce')}
+	<SettingsSection heading="Ancestry">
+		{#if shown.includes('arrows')}
+			<SettingsRow
+				label="Draw ancestry arrows"
+				description="From each ancestor to its descendants in the same frame"
+				for="{uid}-arrows"
+			>
+				<Switch id="{uid}-arrows" bind:checked={svgState.ancestrySwitch.current} />
+			</SettingsRow>
+		{/if}
+		{#if shown.includes('arrowColor')}
+			<SettingsRow label="Arrow color" for="{uid}-arrow-color">
+				<ColorPicker id="{uid}-arrow-color" bind:value={svgState.ancestryColor.current} />
+			</SettingsRow>
+		{/if}
+		{#if shown.includes('arrowWidth')}
+			<SliderRow
+				label="Arrow width"
+				description="In image pixels"
+				bind:value={svgState.ancestryWidth.current}
+				min={0.5}
+				max={8}
+				step={0.5}
+				format={px}
+			/>
+		{/if}
+		{#if shown.includes('arrowsOnce')}
+			<SettingsRow
+				label="One arrow per ancestry in the stack"
+				description="Only in the first of the shown frames that has it"
+				for="{uid}-arrows-once"
+			>
+				<Switch id="{uid}-arrows-once" bind:checked={svgState.ancestryFirstOnly.current} />
+			</SettingsRow>
 		{/if}
 	</SettingsSection>
 {/if}

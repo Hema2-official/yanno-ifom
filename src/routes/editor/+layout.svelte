@@ -234,6 +234,7 @@
 						<Menubar.Separator />
 						{@render actionItem('selection.setTrackId', 'Set Track ID...')}
 						{@render actionItem('selection.interpolate', 'Interpolate Gaps')}
+						{@render actionItem('selection.clearAncestor', 'Clear Ancestor')}
 					</Menubar.Content>
 				</Menubar.Menu>
 			{/if}

@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import AncestryTool from './AncestryTool.svelte';
 import DrawTool from './DrawTool.svelte';
 import BrushTool from './BrushTool.svelte';
 import PointTool from './PointTool.svelte';
@@ -8,7 +9,7 @@ import type { EditorToolProps } from './types';
 import { _ } from 'svelte-i18n';
 import { get } from 'svelte/store';
 
-export type ToolId = 'cursor' | 'point' | 'whole' | 'smooth' | 'brush' | 'draw';
+export type ToolId = 'cursor' | 'point' | 'whole' | 'smooth' | 'brush' | 'draw' | 'ancestry';
 
 // The tools' shortcuts are the `tool.<id>` actions in `keybindings/actions.ts`
 export type ToolDefinition = {
@@ -26,7 +27,8 @@ export const toolRegistry: Record<ToolId, ToolDefinition> = {
 	whole: { label: 'whole_tool', component: WholeTool },
 	smooth: { label: 'smooth_tool', component: SmoothTool },
 	brush: { label: 'brush_tool', component: BrushTool, rightButton: true },
-	draw: { label: 'draw_tool', component: DrawTool }
+	draw: { label: 'draw_tool', component: DrawTool },
+	ancestry: { label: 'ancestry_tool', component: AncestryTool }
 };
 
 export const toolRegistryEntries = Object.entries(toolRegistry) as [ToolId, ToolDefinition][];

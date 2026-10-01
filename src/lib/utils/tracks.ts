@@ -1,5 +1,6 @@
 import type { RLEType, TrackType } from '$lib/types/annotation.type';
-import type { Polygon } from '$lib/types/geometry.type';
+import type { Point, Polygon } from '$lib/types/geometry.type';
+import { getCenterOfPolygonsCached } from './geometry';
 import { polygonsToRle, rleToPolygons } from './rle';
 
 /** ObjectIDs look like FFFFNNNN: the frame number, then the cell's number within the frame. */
@@ -16,6 +17,14 @@ export function cellsLabel(cells: TrackType[]): string {
 	return cells.length === 1 ? `cell ${cells[0].ObjectID}` : `${cells.length} cells`;
 }
 
+/** "track 4" or "tracks 2–3, 7", or the cells themselves when one has no track. */
+export function tracksLabel(cells: TrackType[]): string {
+	const ids = new Set(cells.map((cell) => cell.TrackID));
+	if (ids.has(null)) return cellsLabel(cells);
+	const sorted = (Array.from(ids) as number[]).sort((a, b) => a - b);
+	return `track${sorted.length > 1 ? 's' : ''} ${formatRanges(sorted)}`;
+}
+
 /** The next unused track ID, or null while the data isn't tracked at all. */
 export function newTrackId(tracks: TrackType[]): number | null {
 	let max: number | null = null;
@@ -28,6 +37,69 @@ export function newTrackId(tracks: TrackType[]): number | null {
 export function trackAncestor(cells: TrackType[], trackId: number): number | null {
 	const member = cells.find((cell) => cell.TrackID === trackId && cell.AncestorID != null);
 	return member?.AncestorID ?? null;
+}
+
+/** The track's ancestors, nearest first, as far as they go without looping. */
+export function ancestorsOf(cells: TrackType[], trackId: number): number[] {
+	const chain: number[] = [];
+	let id = trackAncestor(cells, trackId);
+	while (id !== null && !chain.includes(id)) {
+		chain.push(id);
+		id = trackAncestor(cells, id);
+	}
+	return chain;
+}
+
+export function cellCenter(cell: TrackType): Point {
+	return getCenterOfPolygonsCached(rleToPolygons(cell.SegmentationRLE));
+}
+
+/** Each cell of the frame whose ancestor has a cell there, with that cell. */
+function ancestryLinks(frame: TrackType[]): { ancestor: TrackType; cell: TrackType }[] {
+	const byTrack = new Map(frame.map((cell) => [cell.TrackID, cell]));
+	return frame.flatMap((cell) => {
+		const ancestor = cell.AncestorID == null ? undefined : byTrack.get(cell.AncestorID);
+		return ancestor && ancestor !== cell ? { ancestor, cell } : [];
+	});
+}
+
+/** Of the frames' ancestry links, in order, the cells of the first one between each two tracks. */
+export function firstLinkedCells(frames: TrackType[][]): Set<string> {
+	const seen = new Set<string>();
+	const first = new Set<string>();
+	for (const frame of frames) {
+		for (const { cell } of ancestryLinks(frame)) {
+			const link = `${cell.TrackID ?? cell.ObjectID}<${cell.AncestorID}`;
+			if (!seen.has(link)) first.add(cell.ObjectID);
+			seen.add(link);
+		}
+	}
+	return first;
+}
+
+/**
+ * An arrow per cell of the frame whose ancestor has a cell there (of `only`
+ * those cells, unless it's null), between their centers and short of both,
+ * leaving labels of that size readable.
+ */
+export function ancestryArrows(
+	frame: TrackType[],
+	labelSize: number,
+	only: ReadonlySet<string> | null
+): { id: string; from: Point; to: Point }[] {
+	return ancestryLinks(frame).flatMap(({ ancestor, cell }) => {
+		if (only && !only.has(cell.ObjectID)) return [];
+
+		const [from, to] = [cellCenter(ancestor), cellCenter(cell)];
+		const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+		const gap = Math.min(0.75 * labelSize, length / 4) / length;
+		const [gapX, gapY] = [(to.x - from.x) * gap, (to.y - from.y) * gap];
+		return {
+			id: cell.ObjectID,
+			from: { x: from.x + gapX, y: from.y + gapY },
+			to: { x: to.x - gapX, y: to.y - gapY }
+		};
+	});
 }
 
 /** A new cell of the frame with the given mask, shaped like the cells the backend writes. */

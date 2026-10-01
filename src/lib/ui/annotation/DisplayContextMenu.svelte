@@ -68,6 +68,7 @@
 			<ContextMenu.Separator />
 			{@render actionItem('selection.setTrackId', 'Set track ID...')}
 			{@render actionItem('selection.interpolate', 'Interpolate gaps')}
+			{@render actionItem('selection.clearAncestor', 'Clear ancestor')}
 			<ContextMenu.Separator />
 			{@render actionItem('cut', 'Cut')}
 			{@render actionItem('copy', 'Copy')}

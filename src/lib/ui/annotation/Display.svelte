@@ -12,9 +12,11 @@
 	import { videoDisplayState, type StackAngles } from '$lib/states/VideoDisplayState.svelte';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import { frameSnapshots } from '$lib/states/FrameSnapshots.svelte';
-	import { frameTileAt, toMeasurable, type ClientPoint } from '$lib/utils/display';
+	import { arrowPath, frameTileAt, toMeasurable, type ClientPoint } from '$lib/utils/display';
 	import { gridLayout, placeTiles, stackLayout } from '$lib/utils/layout';
 	import { clamp } from '$lib/utils/math';
+	import type { Point } from '$lib/types/geometry.type';
+	import { ancestryDrag } from '$lib/ui/editor-tools/AncestryTool.svelte';
 	import { toolRegistry } from '$lib/ui/editor-tools/registry';
 	import DisplayContextMenu, {
 		type DisplayMenu,
@@ -298,6 +300,12 @@
 		contextMenu = { anchor: toMeasurable(e), target };
 	};
 
+	/** A client position on the overlay that covers the viewport. */
+	const onViewport = ({ x, y }: Point): Point => {
+		const { left, top } = viewportElement.getBoundingClientRect();
+		return { x: x - left, y: y - top };
+	};
+
 	// Read on demand, so the viewport export costs nothing while turning
 	onMount(() => {
 		videoDisplayState.readView = () => ({
@@ -407,6 +415,20 @@
 				{annotationOpacity}
 				view={standInView}
 			/>
+		{/if}
+
+		<!-- The arrow the ancestry tool drags, over all the tiles and as thick as the one it leaves -->
+		{#if ancestryDrag.arrow}
+			{@const { from, to } = ancestryDrag.arrow}
+			{@const width = svgState.ancestryWidth.current * placement.scale}
+			<svg class="pointer-events-none absolute inset-0 size-full">
+				<path
+					d={arrowPath(onViewport(from), onViewport(to), width)}
+					fill={svgState.ancestryColor.current}
+					stroke={svgState.ancestryColor.current}
+					stroke-width={width}
+				/>
+			</svg>
 		{/if}
 	</div>
 

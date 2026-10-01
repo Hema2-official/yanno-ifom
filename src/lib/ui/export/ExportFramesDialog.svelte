@@ -70,6 +70,8 @@
 	let labels = $state(true);
 	let labelKey = $state<LabelKey>('ObjectID');
 	let labelSize = $state(12);
+	let arrows = $state(true);
+	let arrowColor = $state('#f97316');
 	let opacity = $state(1);
 
 	const showAll = () => {
@@ -100,6 +102,8 @@
 		labels = look.labelKey !== null;
 		labelKey = svgState.labelKey.current;
 		labelSize = look.labelSize;
+		arrows = look.arrows !== null;
+		arrowColor = svgState.ancestryColor.current;
 		opacity = look.opacity;
 	});
 
@@ -147,22 +151,24 @@
 		e.preventDefault();
 		if (busy || problem !== null || !frames) return;
 
+		const arrowLook = { color: arrowColor, width: svgState.ancestryWidth.current, only: null };
+		const annotationLook = {
+			stroke: outlines ? outlineColor : null,
+			width: outlineWidth,
+			fill: fill ? fillColor : null,
+			labelKey: labels ? labelKey : null,
+			labelSize,
+			arrows: arrows ? arrowLook : null,
+			opacity
+		};
+
 		const render: FrameRender = {
 			scale,
 			background: { color: background.color, alpha: keepsAlpha ? background.alpha : 1 },
 			looks: video
 				? channelLooks(videoDisplayState.filtersFor({ normalized, colormapped }))
 				: null,
-			annotation: annotation
-				? {
-						stroke: outlines ? outlineColor : null,
-						width: outlineWidth,
-						fill: fill ? fillColor : null,
-						labelKey: labels ? labelKey : null,
-						labelSize,
-						opacity
-					}
-				: null
+			annotation: annotation ? annotationLook : null
 		};
 		const range = frames.length === 1 ? `frame${frames[0]}` : `frames${first}-${last}`;
 
@@ -305,6 +311,10 @@
 								format={px}
 							/>
 						{/if}
+						<SettingsRow label="Ancestry arrows" for="{uid}-arrows">
+							<ColorPicker bind:value={arrowColor} disabled={!arrows} />
+							<Switch id="{uid}-arrows" bind:checked={arrows} />
+						</SettingsRow>
 						<SliderRow
 							label="Opacity"
 							bind:value={opacity}

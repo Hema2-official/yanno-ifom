@@ -124,6 +124,18 @@ const table = {
 		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 1,
 		run: () => editorState.interpolateSelection()
 	},
+	'selection.clearAncestor': {
+		label: 'Clear the ancestor of the selected cells',
+		description: 'On their whole tracks',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: [],
+		enabled: () =>
+			!projectState.readOnly &&
+			editorState.selectedCells.some((cell) => cell.AncestorID != null),
+		run: () => annotationState.setAncestor(editorState.selectedCells, null)
+	},
 	'tool.cursor': {
 		label: 'Cursor tool',
 		description: 'Also clears the selection',
@@ -169,6 +181,14 @@ const table = {
 		scope: 'editor',
 		defaults: ['n'],
 		...selectTool('draw')
+	},
+	'tool.ancestry': {
+		label: 'Ancestry tool',
+		description: 'Drags an arrow from an ancestor onto its descendant',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['a'],
+		...selectTool('ancestry')
 	},
 	'whole.scaleFromCenter': {
 		label: 'Resize around the center',

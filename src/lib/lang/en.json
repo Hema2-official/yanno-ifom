@@ -8,6 +8,7 @@
 	"smooth_tool": "Smooth tool\nEnables the quick editing of the cell's border by dragging a portion of it.",
 	"draw_tool": "Draw tool\nDraws a new cell by tracing its outline.",
 	"brush_tool": "Brush tool\nPaints the selected cell's mask, or a new cell's while none is selected. The right button erases.",
+	"ancestry_tool": "Ancestry tool\nDrag an arrow from a tracked ancestor onto its descendant.",
 	"unsupported_tiff": "The TIF/TIFF file used is not supported by this application.\nPlease contact the developer, or report a bug.",
 	"multiple_bodies": "Currently, this operation only supports cells with a single body.\nPlease join the bodies and try again.\nAffected cell:",
 	"auto_resample": "Auto-resample"

@@ -1,10 +1,12 @@
 import type { ChangeType, RLEType, TrackType, VersionManaged } from '$lib/types/annotation.type';
 import type { Polygon } from '$lib/types/geometry.type';
 import {
+	ancestorsOf,
 	cellsLabel,
 	framesLabel,
 	occupiedFrames,
 	sharedFrames,
+	tracksLabel,
 	withMask,
 	withOutline
 } from '$lib/utils/tracks';
@@ -232,6 +234,38 @@ class AnnotationState {
 			return { ...cell, TrackID: trackId, AncestorID: ancestorId };
 		});
 		this.commitData(next, `Set track ${trackId} on ${cellsLabel(cells)}`);
+		return true;
+	}
+
+	/** Sets the ancestor of the cells' whole tracks, and of the untracked cells themselves (null clears). */
+	setAncestor(cells: TrackType[], ancestorId: number | null): boolean {
+		const data = this.data;
+		if (!data || cells.length === 0) return false;
+
+		const ids = new Set(cells.map((cell) => cell.ObjectID));
+		const trackIds = new Set(cells.flatMap((cell) => cell.TrackID ?? []));
+		if (ancestorId !== null) {
+			const lineage = [ancestorId, ...ancestorsOf(data.current, ancestorId)];
+			const looping = lineage.find((id) => trackIds.has(id));
+			if (looping !== undefined) {
+				toastError(`Track ${looping} would be its own ancestor`);
+				return false;
+			}
+		}
+
+		const next = data.current.map((cell) => {
+			const member =
+				ids.has(cell.ObjectID) || (cell.TrackID !== null && trackIds.has(cell.TrackID));
+			if (!member || (cell.AncestorID ?? null) === ancestorId) return cell;
+			return { ...cell, AncestorID: ancestorId };
+		});
+		const label = tracksLabel(cells);
+		this.commitData(
+			next,
+			ancestorId === null
+				? `Clear the ancestor of ${label}`
+				: `Set ancestor ${ancestorId} on ${label}`
+		);
 		return true;
 	}
 

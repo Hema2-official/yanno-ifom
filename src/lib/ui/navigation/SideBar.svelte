@@ -143,6 +143,11 @@
 					</Select.Content>
 				</Select.Root>
 			</div>
+
+			<Label for="ancestry-switch" class="cursor-pointer">
+				<Switch id="ancestry-switch" bind:checked={svgState.ancestrySwitch.current} />
+				Ancestry arrows
+			</Label>
 		</div>
 
 		<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Video</h2>
