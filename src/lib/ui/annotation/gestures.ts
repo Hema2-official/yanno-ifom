@@ -7,7 +7,7 @@ const CLICK_SLOP = 3;
 /** Threshold to trigger a turn when dragging */
 const TURN_SLOP = 6;
 /** A right press this short is a click even past the slop: a hand still moving onto a cell drifts */
-const QUICK_CLICK = { ms: 300, px: 24 };
+const QUICK_CLICK = { ms: 300, px: 12 };
 
 type PanHandlers = {
 	/** Locks the pointer, so it can travel on past the screen's edge. */
