@@ -21,6 +21,12 @@ class EditorState {
 	/** Selected ObjectIDs. Stale ids are ignored until their cells come back (undo). */
 	#selection = new SvelteSet<string>();
 
+	getLastSelected() {
+		let last: string | null = null;
+		for (const value of this.#selection) last = value;
+		return last;
+	}
+
 	/** The last cell clicked into the selection; the starting point of a range. */
 	#anchor: string | null = $state(null);
 
@@ -46,7 +52,7 @@ class EditorState {
 	toggle(cell: TrackType) {
 		if (this.#selection.has(cell.ObjectID)) {
 			this.#selection.delete(cell.ObjectID);
-			if (this.#anchor === cell.ObjectID) this.#anchor = null;
+			if (this.#anchor === cell.ObjectID) this.#anchor = this.getLastSelected();
 		} else {
 			this.#selection.add(cell.ObjectID);
 			this.#anchor = cell.ObjectID;
@@ -71,8 +77,8 @@ class EditorState {
 
 	selectAll(cells: TrackType[]) {
 		this.#selection.clear();
-		this.#anchor = null;
 		for (const cell of cells) this.#selection.add(cell.ObjectID);
+		this.#anchor = cells.at(-1)?.ObjectID ?? null;
 	}
 
 	clearSelection() {
