@@ -5,6 +5,7 @@ import {
 	type RGBFunctions
 } from '$lib/utils/imaging';
 import { clamp } from '$lib/utils/math';
+import type { DisplayView } from '$lib/utils/snapshots';
 import { projectState } from './ProjectState.svelte';
 import { oneOf, SettingState } from './SettingState.svelte';
 import { svgState } from './svg.svelte';
@@ -34,6 +35,8 @@ export class ChannelDisplaySettings {
 /** A filter an image goes through: its `<filter>`'s id and what it does to the colors. */
 export type FilterStep = { id: string; functions: RGBFunctions };
 
+export type FilterSwitches = { normalized: boolean; colormapped: boolean };
+
 export const displayModes = ['grid', 'stack'] as const;
 export type DisplayMode = (typeof displayModes)[number];
 
@@ -60,10 +63,16 @@ class VideoDisplayState {
 		);
 	});
 
-	channelFilters: FilterStep[][] = $derived.by(() => {
+	channelFilters: FilterStep[][] = $derived(
+		this.filtersFor({
+			normalized: svgState.normalizeSwitch.current,
+			colormapped: svgState.colormapSwitch.current
+		})
+	);
+
+	filtersFor({ normalized, colormapped }: FilterSwitches): FilterStep[][] {
 		const metadata = projectState.videoMetadata;
-		const normalized = svgState.normalizeSwitch.current;
-		const colormap: FilterStep | null = svgState.colormapSwitch.current
+		const colormap: FilterStep | null = colormapped
 			? {
 					id: 'colormap-f',
 					functions: colormapToRgbFunctions(
@@ -86,7 +95,7 @@ class VideoDisplayState {
 			if (colormap) steps.push(colormap);
 			return steps;
 		});
-	});
+	}
 
 	displayMode = new SettingState<DisplayMode>('displayMode', 'grid', {
 		validate: oneOf(displayModes)
@@ -114,6 +123,8 @@ class VideoDisplayState {
 
 	/** The last frame the shown window can start at. */
 	maxFrameIndex = $derived(Math.max(0, projectState.frameCount - this.concurrentFrames));
+
+	readView: (() => DisplayView) | null = $state.raw(null);
 
 	#turn: StackAngles | null = $state.raw(null);
 	isTurning = $derived(this.#turn !== null);

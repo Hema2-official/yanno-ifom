@@ -20,12 +20,15 @@
 		CloudOffIcon,
 		CloudSyncIcon
 	} from '@lucide/svelte';
-	import { download, tracksToText } from '$lib/utils/data.svelte';
+	import { download, tracksToText } from '$lib/utils/export';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { editSession } from '$lib/states/EditSessionState.svelte';
 	import EditLockStatus from '$lib/ui/annotation/EditLockStatus.svelte';
 	import PasteDialog from '$lib/ui/annotation/PasteDialog.svelte';
 	import TrackIdDialog from '$lib/ui/annotation/TrackIdDialog.svelte';
+	import ExportFramesDialog from '$lib/ui/export/ExportFramesDialog.svelte';
+	import ExportViewportDialog from '$lib/ui/export/ExportViewportDialog.svelte';
+	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -63,22 +66,22 @@
 	// Leaving the editor frees the version's edit lock for others
 	onDestroy(() => void editSession.stop());
 
+	/** The exported files' name, without the extension. */
+	const exportName = $derived(
+		`${projectState.name}_${projectState.versionName ?? 'local project'}`
+	);
+
+	let exportFramesOpen = $state(false);
+	let exportViewportOpen = $state(false);
+
 	const exportAsJSON = () => {
 		if (!annotationState.data) return;
-		download(
-			JSON.stringify(annotationState.data),
-			projectState.name + '_' + (projectState.versionName ?? 'local project') + '.json',
-			'application/json'
-		);
+		download(JSON.stringify(annotationState.data), `${exportName}.json`, 'application/json');
 	};
 
 	const exportAsTXT = () => {
 		if (!annotationState.data) return;
-		download(
-			tracksToText(annotationState.data.current),
-			projectState.name + '_' + (projectState.versionName ?? 'local project') + '.txt',
-			'text/plain'
-		);
+		download(tracksToText(annotationState.data.current), `${exportName}.txt`, 'text/plain');
 	};
 
 	const versionHref = (project: Project, versionId: string): PathnameWithSearchOrHash =>
@@ -190,6 +193,12 @@
 			<Menubar.Item onSelect={exportAsTXT} disabled={!annotationState.data}>
 				Export as TXT
 			</Menubar.Item>
+			<Menubar.Item
+				onSelect={() => (exportFramesOpen = true)}
+				disabled={projectState.frameCount === 0}
+			>
+				Export frames...
+			</Menubar.Item>
 		{/snippet}
 
 		{#snippet extraMenus()}
@@ -234,6 +243,14 @@
 					<Menubar.Item inset>Zoom In</Menubar.Item>
 					<Menubar.Item inset>Zoom Out</Menubar.Item>
 					<Menubar.Item inset>Reset Zoom</Menubar.Item>
+					<Menubar.Separator />
+					<Menubar.Item
+						inset
+						onSelect={() => (exportViewportOpen = true)}
+						disabled={!videoDisplayState.readView}
+					>
+						Export current viewport...
+					</Menubar.Item>
 				</Menubar.Content>
 			</Menubar.Menu>
 		{/snippet}
@@ -244,3 +261,5 @@
 
 <PasteDialog />
 <TrackIdDialog />
+<ExportFramesDialog bind:open={exportFramesOpen} name={exportName} />
+<ExportViewportDialog bind:open={exportViewportOpen} name={exportName} />

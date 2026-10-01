@@ -3,7 +3,7 @@ import type { TrackType } from '$lib/types/annotation.type';
 import { cellBodyToPathCached } from './display';
 import { getCenterOfPolygonsCached } from './geometry';
 import { transferTables, type RGBFunctions } from './imaging';
-import type { Matrix } from './layout';
+import type { FrameLayout, Matrix, Placement } from './layout';
 import { rleToPolygons } from './rle';
 
 export const MAX_SNAPSHOT_SIZE = 2048; // px
@@ -16,12 +16,8 @@ export function snapshotSize(width: number, height: number): [width: number, hei
 
 export type ImageLayer = { image: CanvasImageSource; opacity: number; transfer: RGBFunctions[] };
 
-export function bakeImage(
-	layers: ImageLayer[],
-	width: number,
-	height: number
-): HTMLCanvasElement | null {
-	const [w, h] = snapshotSize(width, height);
+/** The layers through their filters, stacked on a canvas of `w` × `h`. */
+export function bakeImage(layers: ImageLayer[], w: number, h: number): HTMLCanvasElement | null {
 	const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
 	const layer = Object.assign(document.createElement('canvas'), { width: w, height: h });
 	const context = canvas.getContext('2d');
@@ -70,6 +66,15 @@ export function drawOutlines(
 	if (!context) return;
 
 	context.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+	drawCells(context, cells, look);
+}
+
+/** Draws the cells through the context's transform, in image pixels. */
+export function drawCells(
+	context: CanvasRenderingContext2D,
+	cells: TrackType[],
+	look: OutlineLook
+) {
 	// Svg's defaults
 	context.lineJoin = 'miter';
 	context.miterLimit = 4;
@@ -112,12 +117,26 @@ export type StandIn = { image: CanvasImageSource; matrix: Matrix; opacity: numbe
 /** The area a canvas covers, in CSS pixels, `ratio` canvas pixels each, with the stage's origin at `x`, `y`. */
 export type StandInView = { width: number; height: number; ratio: number; x: number; y: number };
 
+/** What the display shows, for export rendering. */
+export type DisplayView = {
+	layout: FrameLayout;
+	placement: Placement;
+	/** The shown frames, by their offset in the window. */
+	frames: number[];
+	view: StandInView;
+	annotationOpacity: number;
+};
+
+/** A color under all that's drawn, `alpha` from 0 to 1. */
+export type Background = { color: string; alpha: number };
+
 /** Draws the stand-ins in order, each over its tile's place, on a canvas covering the view. */
 export function drawStandIns(
 	canvas: HTMLCanvasElement,
 	standIns: StandIn[],
 	frame: { width: number; height: number },
-	view: StandInView
+	view: StandInView,
+	background?: Background
 ) {
 	const w = Math.max(1, Math.round(view.width * view.ratio));
 	const h = Math.max(1, Math.round(view.height * view.ratio));
@@ -128,12 +147,31 @@ export function drawStandIns(
 
 	context.setTransform(1, 0, 0, 1, 0, 0);
 	context.clearRect(0, 0, w, h);
-	const [sx, sy] = [w / view.width, h / view.height];
+	if (background) fillBackground(context, background);
 	for (const { image, matrix, opacity } of standIns) {
 		if (opacity <= 0) continue;
-		const [a, b, c, d, e, f] = matrix;
 		context.globalAlpha = opacity;
-		context.setTransform(sx * a, sy * b, sx * c, sy * d, sx * (view.x + e), sy * (view.y + f));
+		setTileTransform(context, matrix, view);
 		context.drawImage(image, 0, 0, frame.width, frame.height);
 	}
+}
+
+/** Draws in a tile's frame, in image pixels, on a canvas covering the view. */
+export function setTileTransform(
+	context: CanvasRenderingContext2D,
+	[a, b, c, d, e, f]: Matrix,
+	view: StandInView
+) {
+	const sx = context.canvas.width / view.width;
+	const sy = context.canvas.height / view.height;
+	context.setTransform(sx * a, sy * b, sx * c, sy * d, sx * (view.x + e), sy * (view.y + f));
+}
+
+export function fillBackground(context: CanvasRenderingContext2D, { color, alpha }: Background) {
+	context.save();
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	context.globalAlpha = alpha;
+	context.fillStyle = color;
+	context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+	context.restore();
 }

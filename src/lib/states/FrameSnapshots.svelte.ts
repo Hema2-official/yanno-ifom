@@ -6,10 +6,55 @@ import { frameCache } from './FrameCache.svelte';
 import { projectState } from './ProjectState.svelte';
 import { SettingState } from './SettingState.svelte';
 import { svgState } from './svg.svelte';
-import { videoDisplayState } from './VideoDisplayState.svelte';
+import { videoDisplayState, type FilterStep } from './VideoDisplayState.svelte';
 
-/** A visible channel of a frame: its image in the video, and how the display draws it. */
+/** How a channel is drawn, null while it's hidden. */
+export type ChannelLook = { opacity: number; transfer: RGBFunctions[] } | null;
+
+/** A visible channel of a frame: its image in the video, and how it's drawn. */
 type Layer = { imageIndex: number; opacity: number; transfer: RGBFunctions[] };
+
+/** The channels as the sidebar shows them, through these filters. */
+export function channelLooks(filters: FilterStep[][]): ChannelLook[] {
+	return videoDisplayState.channels.map(({ visible, opacity }, channelIndex) => {
+		if (!visible) return null;
+		return { opacity, transfer: filters[channelIndex].map(({ functions }) => functions) };
+	});
+}
+
+/** A frame's visible channels, bottom first. */
+function frameLayers(frameIndex: number, looks: ChannelLook[]): Layer[] {
+	return looks.flatMap((look, channelIndex) => {
+		const imageIndex = look && projectState.imageIndex(frameIndex, channelIndex);
+		return look && imageIndex !== null ? [{ imageIndex, ...look }] : [];
+	});
+}
+
+/** The frame's visible channels baked into a `w` × `h` canvas. */
+export function bakeFrame(
+	frameIndex: number,
+	looks: ChannelLook[],
+	size: [w: number, h: number],
+	read: (imageIndex: number) => Promise<Blob>
+): Promise<HTMLCanvasElement | null> {
+	return bakeLayers(frameLayers(frameIndex, looks), size, read);
+}
+
+async function bakeLayers(
+	layers: Layer[],
+	[w, h]: [w: number, h: number],
+	read: (imageIndex: number) => Promise<Blob>
+) {
+	const images = await Promise.all(
+		layers.map(async ({ imageIndex }) => createImageBitmap(await read(imageIndex)))
+	);
+	try {
+		const drawn = layers.map((layer, i) => ({ ...layer, image: images[i] }));
+		return bakeImage(drawn, w, h);
+	} finally {
+		for (const image of images) image.close();
+	}
+}
 
 /** The memory a canvas of this size takes, in bytes. */
 const bytesOf = ({ width, height }: { width: number; height: number }) => width * height * 4;
@@ -34,13 +79,7 @@ class FrameSnapshots {
 		});
 	}
 
-	#looks = $derived(
-		videoDisplayState.channels.map(({ visible, opacity }, channelIndex) => {
-			if (!visible) return null;
-			const filters = videoDisplayState.channelFilters[channelIndex];
-			return { opacity, transfer: filters.map(({ functions }) => functions) };
-		})
-	);
+	#looks = $derived(channelLooks(videoDisplayState.channelFilters));
 	#lookKey = $derived(JSON.stringify(this.#looks));
 
 	/** The frame's baked image, if it's ready with its current look. */
@@ -76,7 +115,7 @@ class FrameSnapshots {
 			this.#evict(budget - size, shown);
 			if (this.totalBytes + size > budget) return;
 
-			this.#bake(job.layers, width, height)
+			bakeLayers(job.layers, [w, h], (imageIndex) => frameCache.load(imageIndex))
 				.then((canvas) => {
 					if (signal.aborted) return;
 					if (canvas) this.#store(job.frameIndex, job.key, canvas);
@@ -97,30 +136,12 @@ class FrameSnapshots {
 
 	/** A frame's channels as its image tile draws them. */
 	#layers(frameIndex: number): Layer[] {
-		return this.#looks.flatMap((look, channelIndex) => {
-			const imageIndex = look && projectState.imageIndex(frameIndex, channelIndex);
-			return look && imageIndex !== null ? [{ imageIndex, ...look }] : [];
-		});
+		return frameLayers(frameIndex, this.#looks);
 	}
 
 	/** Tells the image of these layers from any other. */
 	#key(layers: Layer[]): string {
 		return [this.#lookKey, ...layers.map(({ imageIndex }) => imageIndex)].join('\n');
-	}
-
-	async #bake(layers: Layer[], width: number, height: number) {
-		// Decoded from the files, so even a cloud frame's pixels stay readable
-		const images = await Promise.all(
-			layers.map(async ({ imageIndex }) =>
-				createImageBitmap(await frameCache.load(imageIndex))
-			)
-		);
-		try {
-			const drawn = layers.map((layer, i) => ({ ...layer, image: images[i] }));
-			return bakeImage(drawn, width, height);
-		} finally {
-			for (const image of images) image.close();
-		}
 	}
 
 	#store(frameIndex: number, key: string, canvas: HTMLCanvasElement) {

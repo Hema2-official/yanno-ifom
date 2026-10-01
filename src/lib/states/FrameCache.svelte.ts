@@ -59,6 +59,14 @@ class FrameCache {
 		return this.#inflight.get(imageIndex) ?? this.#read(imageIndex);
 	}
 
+	/** Like `load`, but keeps nothing new, so exports leave the display's images cached. */
+	readUncached(imageIndex: number): Promise<Blob> {
+		const cached = this.#blobs.get(imageIndex) ?? this.#inflight.get(imageIndex);
+		if (cached) return Promise.resolve(cached);
+		if (!this.#source) return Promise.reject(new Error('No project is open'));
+		return this.#source.read(imageIndex);
+	}
+
 	/** Replaces the prefetch queue based on the current needs */
 	prefetchWindow(start: number, count: number) {
 		const channelVisibility = videoDisplayState.channels.map((channel) => channel.visible);

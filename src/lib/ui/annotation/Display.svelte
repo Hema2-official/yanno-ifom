@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getAbortSignal, onDestroy } from 'svelte';
+	import { getAbortSignal, onDestroy, onMount } from 'svelte';
 	import { watch } from 'runed';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
@@ -297,6 +297,18 @@
 		}
 		contextMenu = { anchor: toMeasurable(e), target };
 	};
+
+	// Read on demand, so the viewport export costs nothing while turning
+	onMount(() => {
+		videoDisplayState.readView = () => ({
+			layout,
+			placement,
+			frames: shownFrames,
+			view: standInView,
+			annotationOpacity
+		});
+		return () => (videoDisplayState.readView = null);
+	});
 
 	// The frames around the shown ones load ahead
 	watch(

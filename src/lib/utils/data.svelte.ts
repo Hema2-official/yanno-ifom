@@ -169,24 +169,3 @@ export function tracksToText(tracks: TrackType[], pos: number = 0): string {
 
 	return text;
 }
-
-/**
- * Downloads (saves) a file with the given data.
- *
- * @param data - The data to be downloaded.
- * @param filename - The name of the file to be downloaded.
- * @param type - The MIME type of the file (default: "text/plain").
- */
-export function download(data: BlobPart, filename: string, type: string) {
-	const url = URL.createObjectURL(new Blob([data], { type }));
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	a.tabIndex = -1;
-	document.body.appendChild(a);
-	a.click();
-	setTimeout(function () {
-		a.remove();
-		URL.revokeObjectURL(url);
-	}, 0);
-}
