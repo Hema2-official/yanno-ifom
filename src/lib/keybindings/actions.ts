@@ -224,6 +224,16 @@ const table = {
 		enabled: () => projectState.frameCount > 0,
 		run: () => stepFrame(1)
 	},
+	'reports.open': {
+		label: 'Open the reports',
+		description: 'Statistics, checks, tracks and lineage of the annotation',
+		group: 'View',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['r'],
+		enabled: () => annotationState.data !== null,
+		run: () => (editorState.reportsOpen = true)
+	},
 	'display.hideAnnotation': {
 		label: 'Hide the annotation',
 		description: 'While held',

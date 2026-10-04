@@ -49,6 +49,27 @@ export function stateBefore(data: VersionManaged<TrackType[]>, count: number): T
 	return result;
 }
 
+/**
+ * The frame of every cell each change added, removed or edited, read off its
+ * delta while walking the history back.
+ */
+export function framesOfChanges(data: VersionManaged<TrackType[]>): number[][] {
+	const frames: number[][] = data.changes.map(() => []);
+	let state = structuredClone(data.current); // patch() mutates in place
+	for (let i = data.changes.length - 1; i >= 0; i--) {
+		const reverse = structuredClone(data.changes[i].reverse);
+		const isArrayDelta = (reverse as Record<string, unknown>)._t === 'a';
+		const keys = isArrayDelta ? Object.keys(reverse).filter((key) => key !== '_t') : [];
+		const add = (cell: TrackType | undefined) => cell && frames[i].push(cell.Frame);
+
+		// "_N" is a cell's index after the change (one it added or moved), "N" its index before
+		for (const key of keys) if (key.startsWith('_')) add(state[Number(key.slice(1))]);
+		state = jsondiffer.patch(state, reverse) as TrackType[];
+		for (const key of keys) if (!key.startsWith('_')) add(state[Number(key)]);
+	}
+	return frames;
+}
+
 class AnnotationState {
 	/** The data as saved on the server (or in the local database). */
 	saved: VersionManaged<TrackType[]> | null = $state.raw(null);

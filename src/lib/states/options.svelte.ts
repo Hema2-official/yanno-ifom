@@ -11,6 +11,10 @@ class OptionsState {
 	resampleSegmentLength = new SettingState('resampleSegmentLength', 0.8);
 
 	toolAfterPaste = new SettingState<ToolId | 'none'>('toolAfterPaste', 'whole');
+
+	// Limits for reports
+	reportJump = new SettingState('reportJump', 30);
+	reportAreaFactor = new SettingState('reportAreaFactor', 2);
 }
 
 export const optionsState = new OptionsState();

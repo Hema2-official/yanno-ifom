@@ -438,6 +438,36 @@ export function rleToPolygons(rle: RLEType): Polygon[] {
 	return polygons;
 }
 
+type RleMeasure = { area: number; x: number; y: number };
+
+const measureCache = new WeakMap<RLEType, { counts: string; measure: RleMeasure }>();
+/** A mask's pixel count and the center of its pixels, read off the runs. */
+export function rleMeasure(rle: RLEType): RleMeasure {
+	const cached = measureCache.get(rle);
+	if (cached && cached.counts === rle.counts) return cached.measure;
+
+	const counts = stringToCounts(rle.counts);
+	const rows = rle.size[0];
+	let [area, sumX, sumY, pos] = [0, 0, 0, 0];
+	for (let i = 0; i < counts.length; i++) {
+		// Odd runs are the cell's, going down a column and on into the next
+		for (let p = pos, rest = i % 2 === 1 ? counts[i] : 0; rest > 0; ) {
+			const col = Math.floor(p / rows);
+			const row = p - col * rows;
+			const n = Math.min(rest, rows - row);
+			area += n;
+			sumX += n * (col + 0.5);
+			sumY += n * row + (n * n) / 2;
+			p += n;
+			rest -= n;
+		}
+		pos += counts[i];
+	}
+	const measure = { area, x: area ? sumX / area : 0, y: area ? sumY / area : 0 };
+	measureCache.set(rle, { counts: rle.counts, measure });
+	return measure;
+}
+
 /** How much two masks overlap, as intersection over union. */
 export function rleIoU(a: RLEType, b: RLEType): number {
 	// Return 0 when the masks have different sizes

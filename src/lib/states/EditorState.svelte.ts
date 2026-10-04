@@ -6,6 +6,8 @@ import { parseCells, readClipboardText, writeCells } from '$lib/utils/clipboard'
 import { rangeBetween } from '$lib/utils/selection';
 import { cellsLabel } from '$lib/utils/tracks';
 import { annotationState } from './AnnotationState.svelte';
+import { videoDisplayState } from './VideoDisplayState.svelte';
+import { getMin } from '$lib/utils/data.svelte';
 
 export type PendingPaste = { cells: TrackType[]; frameIndex: number };
 
@@ -17,6 +19,7 @@ class EditorState {
 	pendingPaste: PendingPaste | null = $state.raw(null);
 
 	trackIdDialogOpen = $state(false);
+	reportsOpen = $state(false);
 
 	/** Selected ObjectIDs. Stale ids are ignored until their cells come back (undo). */
 	#selection = new SvelteSet<string>();
@@ -84,6 +87,18 @@ class EditorState {
 	clearSelection() {
 		this.#selection.clear();
 		this.#anchor = null;
+	}
+
+	/** Selects the cells and brings the earliest one's frame into the shown ones. */
+	reveal(cells: TrackType[]) {
+		this.selectAll(cells);
+		if (cells.length > 0) this.showFrame(getMin(cells.map((cell) => cell.Frame)));
+	}
+
+	showFrame(frame: number) {
+		const first = annotationState.currentFrameIndex;
+		const shown = frame >= first && frame < first + videoDisplayState.concurrentFrames;
+		if (!shown) annotationState.currentFrameIndex = frame;
 	}
 
 	async copySelection() {

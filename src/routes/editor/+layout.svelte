@@ -28,6 +28,7 @@
 	import TrackIdDialog from '$lib/ui/annotation/TrackIdDialog.svelte';
 	import ExportFramesDialog from '$lib/ui/export/ExportFramesDialog.svelte';
 	import ExportViewportDialog from '$lib/ui/export/ExportViewportDialog.svelte';
+	import ReportsDialog from '$lib/ui/reports/ReportsDialog.svelte';
 	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
@@ -252,6 +253,8 @@
 					>
 						Export current viewport...
 					</Menubar.Item>
+					<Menubar.Separator />
+					{@render actionItem('reports.open', 'Reports...')}
 				</Menubar.Content>
 			</Menubar.Menu>
 		{/snippet}
@@ -264,3 +267,4 @@
 <TrackIdDialog />
 <ExportFramesDialog bind:open={exportFramesOpen} name={exportName} />
 <ExportViewportDialog bind:open={exportViewportOpen} name={exportName} />
+<ReportsDialog name={exportName} />
