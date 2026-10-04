@@ -108,7 +108,7 @@ export function newCell(frame: number, tracks: TrackType[], mask: RLEType): Trac
 		Frame: frame,
 		ObjectID: newObjectId(frame, tracks),
 		SegmentationRLE: mask,
-		TrackID: newTrackId(tracks),
+		TrackID: null,
 		Interpolated: false,
 		Class: null,
 		AncestorID: null
