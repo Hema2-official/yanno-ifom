@@ -11,8 +11,8 @@ import { oneOf, SettingState } from './SettingState.svelte';
 import { svgState } from './svg.svelte';
 
 export class ChannelDisplaySettings {
-	visible = $state(false);
-	opacity = $state(1); // 0-1
+	// Each layout has its own
+	#shown: Record<DisplayMode, { visible: boolean; opacity: number }>;
 
 	// Applied after the normalization, before the colormap
 	brightness = $state(0); // -1 to 1, a fraction of the full range
@@ -22,7 +22,29 @@ export class ChannelDisplaySettings {
 	isAdjusted = $derived(this.brightness !== 0 || this.contrast !== 1 || this.gamma !== 1);
 
 	constructor(visible: boolean) {
-		this.visible = visible;
+		this.#shown = $state({
+			grid: { visible, opacity: 1 },
+			stack: { visible, opacity: 1 }
+		});
+	}
+
+	get #layout() {
+		return this.#shown[videoDisplayState.displayMode.current];
+	}
+
+	get visible(): boolean {
+		return this.#layout.visible;
+	}
+	set visible(value: boolean) {
+		this.#layout.visible = value;
+	}
+
+	/** From 0 to 1. */
+	get opacity(): number {
+		return this.#layout.opacity;
+	}
+	set opacity(value: number) {
+		this.#layout.opacity = value;
 	}
 
 	resetAdjustments() {
@@ -109,16 +131,16 @@ class VideoDisplayState {
 		clamp(projectState.frameCount, 1, MAX_FRAMES[this.displayMode.current])
 	);
 
-	// TODO: remember separately for grid and stack
-	// Kept beyond the grid's cap, so switching back to the stack restores it
-	#concurrentFrames = $state(1);
+	// Each layout has its own
+	#concurrentFrames: Record<DisplayMode, number> = $state({ grid: 1, stack: 1 });
 
 	/** Number of consecutive frames displayed at once. */
 	get concurrentFrames(): number {
-		return Math.min(this.#concurrentFrames, this.maxConcurrentFrames);
+		const count = this.#concurrentFrames[this.displayMode.current];
+		return Math.min(count, this.maxConcurrentFrames);
 	}
 	set concurrentFrames(value: number) {
-		this.#concurrentFrames = value;
+		this.#concurrentFrames[this.displayMode.current] = value;
 	}
 
 	/** The last frame the shown window can start at. */
@@ -158,7 +180,7 @@ class VideoDisplayState {
 
 	/** Back to one frame shown. */
 	reset() {
-		this.#concurrentFrames = 1;
+		this.#concurrentFrames = { grid: 1, stack: 1 };
 	}
 }
 
