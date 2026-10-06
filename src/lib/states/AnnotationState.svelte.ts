@@ -4,6 +4,7 @@ import {
 	ancestorsOf,
 	cellsLabel,
 	framesLabel,
+	newCell,
 	occupiedFrames,
 	sharedFrames,
 	tracksLabel,
@@ -11,6 +12,7 @@ import {
 	withOutline
 } from '$lib/utils/tracks';
 import { gapsBetween, interpolatedCell } from '$lib/utils/interpolate';
+import { mergeMasks } from '$lib/utils/masks';
 import { toastError } from '$lib/api/errors';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
 import { projectState } from './ProjectState.svelte';
@@ -224,6 +226,54 @@ class AnnotationState {
 			`Delete ${label}`
 		);
 		toast(`Deleted ${label}`, { action: { label: 'Undo', onClick: () => this.undo() } });
+	}
+
+	/** Merges the cells of one frame into `into`, which keeps its IDs. */
+	mergeCells(cells: TrackType[], into: TrackType): boolean {
+		const others = cells.filter((cell) => cell.ObjectID !== into.ObjectID);
+		if (others.length === 0) return false;
+		if (others.some((cell) => cell.Frame !== into.Frame)) {
+			toastError('Only cells of the same frame can be merged');
+			return false;
+		}
+
+		const masks = others.concat(into).map((cell) => cell.SegmentationRLE);
+		return this.#replaceCells(
+			() => [withMask(into, mergeMasks(masks))],
+			`Merge ${cellsLabel(others)} into cell ${into.ObjectID}`,
+			new Set(others.map((cell) => cell.ObjectID))
+		);
+	}
+
+	/**
+	 * Replaces each cell by the pieces it was cut into: the first keeps the
+	 * cell's IDs, the others become new, untracked cells. Returns all the pieces.
+	 */
+	splitCells(splits: { cell: TrackType; pieces: RLEType[] }[]): TrackType[] | null {
+		const data = this.data;
+		if (!data || splits.length === 0) return null;
+
+		const built = this.#tryBuild(() => {
+			const next = data.current.slice();
+			const cells: TrackType[] = [];
+			for (const { cell, pieces } of splits) {
+				const [kept, ...rest] = pieces;
+				const index = next.findIndex((track) => track.ObjectID === cell.ObjectID);
+				next[index] = withMask(cell, kept);
+				cells.push(next[index]);
+				for (const mask of rest) {
+					const piece = newCell(cell.Frame, next, mask);
+					next.push(piece);
+					cells.push(piece);
+				}
+			}
+			return { next, cells };
+		});
+		if (!built) return null;
+
+		const label = cellsLabel(splits.map(({ cell }) => cell));
+		this.commitData(built.next, `Split ${label} into ${built.cells.length} cells`);
+		return built.cells;
 	}
 
 	/**

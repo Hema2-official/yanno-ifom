@@ -61,6 +61,7 @@
 <ContextMenu.Root open={menu !== null} onOpenChange={(open) => !open && onClose()}>
 	<ContextMenu.Content class="w-52" customAnchor={menu?.anchor ?? null} preventScroll={false}>
 		{#if target?.kind === 'cell'}
+			{@const cell = target.cell}
 			<!-- A right-clicked cell is always selected, so the items act on the whole selection -->
 			<ContextMenu.Label class="text-center font-bold">
 				{cellsLabel(editorState.selectedCells)}
@@ -73,6 +74,16 @@
 			{@render actionItem('selection.setTrackId', 'Set track ID...')}
 			{@render actionItem('selection.interpolate', 'Interpolate gaps')}
 			{@render actionItem('selection.clearAncestor', 'Clear ancestor')}
+			<ContextMenu.Separator />
+			<ContextMenu.Item
+				inset
+				onSelect={() => editorState.mergeSelection(cell)}
+				disabled={!keybindings.isEnabled('selection.merge')}
+			>
+				Merge into cell {cell.ObjectID}
+				<ContextMenu.Shortcut>{keybindings.label('selection.merge')}</ContextMenu.Shortcut>
+			</ContextMenu.Item>
+			{@render actionItem('tool.split', 'Split...')}
 			<ContextMenu.Separator />
 			{@render actionItem('cut', 'Cut')}
 			{@render actionItem('copy', 'Copy')}

@@ -26,6 +26,11 @@ function withoutRepeats(body: Polygon): Polygon {
 	return points.length > 0 ? points : body.slice(0, 1);
 }
 
+/** An open path through the points, such as a stroke being drawn. */
+export function polylineToPath(points: Point[]): string {
+	return points.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ');
+}
+
 const pathCache = new WeakMap<Polygon, string>();
 export function cellBodyToPathCached(body: Polygon): string {
 	let path = pathCache.get(body);

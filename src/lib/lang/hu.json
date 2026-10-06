@@ -6,6 +6,7 @@
 	"point_tool": "Pont eszköz\n\nLehetővé teszi a cella pontos szerkesztését az egyes pontok húzásával.",
 	"whole_tool": "Teljes eszköz\nLehetővé teszi az egész sejt szerkesztését mozgatással, átméretezéssel és elforgatással.",
 	"smooth_tool": "Sima eszköz\nLehetővé teszi a sejt szegélyének gyors szerkesztését egy részének húzásával.",
+	"split_tool": "Vágó eszköz\nSejtek kettévágása egy rajtuk áthúzott vonal mentén.",
 	"draw_tool": "Rajz eszköz\nÚj sejt rajzolása a körvonalának megrajzolásával.",
 	"brush_tool": "Ecset eszköz\nA kijelölt sejt maszkjának festése, vagy új sejté, ha nincs kijelölés. A jobb gomb töröl.",
 	"ancestry_tool": "Leszármazás eszköz\nNyíl húzása egy ősről a leszármazottjára.",

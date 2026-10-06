@@ -84,6 +84,12 @@ class EditorState {
 		}
 	}
 
+	/** Merges the selected cells into `into`, by default the last one clicked into the selection. */
+	mergeSelection(into?: TrackType) {
+		const target = into ?? (this.#anchor ? annotationState.getCell(this.#anchor) : undefined);
+		if (target && annotationState.mergeCells(this.selectedCells, target)) this.select(target);
+	}
+
 	interpolateSelection() {
 		const added = annotationState.interpolateCells(this.selectedCells);
 		for (const cell of added ?? []) this.#selection.add(cell.ObjectID);

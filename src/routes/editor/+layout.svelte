@@ -211,6 +211,7 @@
 						{@render actionItem('redo', 'Redo')}
 						<Menubar.Separator />
 						{@render actionItem('tool.draw', 'New Cell')}
+						{@render actionItem('tool.split', 'Split Cells')}
 						<Menubar.Separator />
 						<Menubar.Sub>
 							<Menubar.SubTrigger>Find</Menubar.SubTrigger>
@@ -239,6 +240,7 @@
 						<Menubar.Separator />
 						{@render actionItem('selection.setTrackId', 'Set Track ID...')}
 						{@render actionItem('selection.interpolate', 'Interpolate Gaps')}
+						{@render actionItem('selection.merge', 'Merge Cells')}
 						{@render actionItem('selection.clearAncestor', 'Clear Ancestor')}
 					</Menubar.Content>
 				</Menubar.Menu>

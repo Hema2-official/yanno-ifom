@@ -7,7 +7,7 @@
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { RLEType, TrackType } from '$lib/types/annotation.type';
 	import type { Point } from '$lib/types/geometry.type';
-	import { getPointerViewBoxCoords } from '$lib/utils/display';
+	import { getPointerViewBoxCoords, polylineToPath } from '$lib/utils/display';
 	import { startDrag } from '$lib/utils/drag';
 	import { getPolygonsBoundsCached } from '$lib/utils/geometry';
 	import { clamp } from '$lib/utils/math';
@@ -167,9 +167,7 @@
 		storedRadius.current = clamp(radius * factor, MIN_RADIUS, maxRadius);
 	}
 
-	const strokePath = $derived(
-		stroke.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ')
-	);
+	const strokePath = $derived(polylineToPath(stroke));
 	const brush = $derived(stroke.at(-1) ?? inputState.pointer);
 </script>
 

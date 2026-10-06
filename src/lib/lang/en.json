@@ -6,6 +6,7 @@
 	"point_tool": "Point tool\nEnables editing the cell accurately by draggig each point.",
 	"whole_tool": "Whole tool\nEnables editing the entire cell by moving, resizing and rotating it.",
 	"smooth_tool": "Smooth tool\nEnables the quick editing of the cell's border by dragging a portion of it.",
+	"split_tool": "Split tool\nCuts cells in two along a line dragged across them.",
 	"draw_tool": "Draw tool\nDraws a new cell by tracing its outline.",
 	"brush_tool": "Brush tool\nPaints the selected cell's mask, or a new cell's while none is selected. The right button erases.",
 	"ancestry_tool": "Ancestry tool\nDrag an arrow from a tracked ancestor onto its descendant.",

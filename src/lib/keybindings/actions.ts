@@ -153,6 +153,19 @@ const table = {
 		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 1,
 		run: () => editorState.interpolateSelection()
 	},
+	'selection.merge': {
+		label: 'Merge the selected cells',
+		description: 'Of one frame, into the last one clicked',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['m'],
+		enabled: () =>
+			!projectState.readOnly &&
+			editorState.selectedCells.length > 1 &&
+			editorState.selectedByFrame.size === 1,
+		run: () => editorState.mergeSelection()
+	},
 	'selection.clearAncestor': {
 		label: 'Clear the ancestor of the selected cells',
 		description: 'On their whole tracks',
@@ -202,6 +215,14 @@ const table = {
 		scope: 'editor',
 		defaults: ['b'],
 		...selectTool('brush')
+	},
+	'tool.split': {
+		label: 'Split tool',
+		description: 'Cuts cells in two along a dragged line',
+		group: 'Tools',
+		scope: 'editor',
+		defaults: ['k'],
+		...selectTool('split')
 	},
 	'tool.draw': {
 		label: 'Draw tool',
