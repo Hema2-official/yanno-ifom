@@ -226,7 +226,10 @@ class AnnotationState {
 		toast(`Deleted ${label}`, { action: { label: 'Undo', onClick: () => this.undo() } });
 	}
 
-	/** Assigns the TrackID to the given cells with the first ancestor found in the track's cells. */
+	/**
+	 * Assigns the TrackID to the given cells with the first ancestor found in the track's cells.
+	 * If the renaming was exhaustive, the descendants follow it with their ancestor ID.
+	 */
 	setTrackId(cells: TrackType[], trackId: number): boolean {
 		const data = this.data;
 		if (!data || cells.length === 0) return false;
@@ -245,15 +248,31 @@ class AnnotationState {
 			memberWithAncestor?.AncestorID ??
 			cells.find((cell) => cell.AncestorID != null)?.AncestorID ??
 			null;
-		if (ancestorId === trackId) {
+
+		const remaining = new Set(
+			data.current.flatMap((cell) => (ids.has(cell.ObjectID) ? [] : (cell.TrackID ?? [])))
+		);
+		const emptied = new Set(
+			cells.flatMap(({ TrackID }) =>
+				TrackID === null || TrackID === trackId || remaining.has(TrackID) ? [] : TrackID
+			)
+		);
+
+		const next = data.current.map((cell) => {
+			if (ids.has(cell.ObjectID)) {
+				return { ...cell, TrackID: trackId, AncestorID: ancestorId };
+			}
+			if (cell.AncestorID == null || !emptied.has(cell.AncestorID)) return cell;
+			return { ...cell, AncestorID: trackId };
+		});
+		// Moved into its own ancestor or descendant, the track would descend from itself
+		const ownAncestors = next.flatMap((cell) =>
+			cell.TrackID === trackId ? (cell.AncestorID ?? []) : []
+		);
+		if (ownAncestors.includes(trackId) || ancestorsOf(next, trackId).includes(trackId)) {
 			toastError(`Track ${trackId} would be its own ancestor`);
 			return false;
 		}
-
-		const next = data.current.map((cell) => {
-			if (!ids.has(cell.ObjectID)) return cell;
-			return { ...cell, TrackID: trackId, AncestorID: ancestorId };
-		});
 		this.commitData(next, `Set track ${trackId} on ${cellsLabel(cells)}`);
 		return true;
 	}
