@@ -66,6 +66,10 @@
 				{cellsLabel(editorState.selectedCells)}
 			</ContextMenu.Label>
 			<ContextMenu.Separator />
+			{@render actionItem('selection.track', 'Select whole track')}
+			{@render actionItem('selection.trackForward', 'Select track from here on')}
+			{@render actionItem('selection.trackBackward', 'Select track up to here')}
+			<ContextMenu.Separator />
 			{@render actionItem('selection.setTrackId', 'Set track ID...')}
 			{@render actionItem('selection.interpolate', 'Interpolate gaps')}
 			{@render actionItem('selection.clearAncestor', 'Clear ancestor')}

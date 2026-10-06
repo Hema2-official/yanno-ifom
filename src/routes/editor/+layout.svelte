@@ -233,6 +233,10 @@
 							Paste... <Menubar.Shortcut>{comboLabel('Mod+v')}</Menubar.Shortcut>
 						</Menubar.Item>
 						<Menubar.Separator />
+						{@render actionItem('selection.track', 'Select Whole Tracks')}
+						{@render actionItem('selection.trackForward', 'Select Tracks Forward')}
+						{@render actionItem('selection.trackBackward', 'Select Tracks Backward')}
+						<Menubar.Separator />
 						{@render actionItem('selection.setTrackId', 'Set Track ID...')}
 						{@render actionItem('selection.interpolate', 'Interpolate Gaps')}
 						{@render actionItem('selection.clearAncestor', 'Clear Ancestor')}

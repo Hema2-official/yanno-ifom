@@ -26,6 +26,12 @@ const selectTool = (tool: ToolId) => ({
 	enabled: () => !projectState.readOnly
 });
 
+const selectTracks = (direction: -1 | 0 | 1) => ({
+	kind: 'press' as const,
+	run: () => editorState.selectTracks(direction),
+	enabled: () => editorState.selectedCells.some((cell) => cell.TrackID !== null)
+});
+
 /** Moves the frame window by `delta`, staying within the video. */
 const stepFrame = (delta: number) => {
 	const target = annotationState.currentFrameIndex + delta;
@@ -104,6 +110,29 @@ const table = {
 		scope: 'editor',
 		kind: 'hold',
 		defaults: ['Shift']
+	},
+	'selection.track': {
+		label: 'Select the tracks of the selected cells',
+		group: 'Editing',
+		scope: 'editor',
+		defaults: [],
+		...selectTracks(0)
+	},
+	'selection.trackForward': {
+		label: 'Select the tracks from the selected cells on',
+		description: 'From the first selected cell of each track',
+		group: 'Editing',
+		scope: 'editor',
+		defaults: [],
+		...selectTracks(1)
+	},
+	'selection.trackBackward': {
+		label: 'Select the tracks up to the selected cells',
+		description: 'Up to the last selected cell of each track',
+		group: 'Editing',
+		scope: 'editor',
+		defaults: [],
+		...selectTracks(-1)
 	},
 	'selection.setTrackId': {
 		label: 'Set the track ID of the selected cells',

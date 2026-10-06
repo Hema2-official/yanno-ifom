@@ -73,6 +73,17 @@ class EditorState {
 		this.#anchor = cell.ObjectID;
 	}
 
+	/** Adds the selected cells' tracks from each on (1), up to each (-1) or whole (0). */
+	selectTracks(direction: -1 | 0 | 1) {
+		const byTrack = Map.groupBy(annotationState.data?.current ?? [], (cell) => cell.TrackID);
+		for (const from of this.selectedCells) {
+			if (from.TrackID === null) continue;
+			for (const cell of byTrack.get(from.TrackID) ?? []) {
+				if ((cell.Frame - from.Frame) * direction >= 0) this.#selection.add(cell.ObjectID);
+			}
+		}
+	}
+
 	interpolateSelection() {
 		const added = annotationState.interpolateCells(this.selectedCells);
 		for (const cell of added ?? []) this.#selection.add(cell.ObjectID);
