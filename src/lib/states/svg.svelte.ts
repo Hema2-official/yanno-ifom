@@ -92,7 +92,7 @@ class SvgState {
 	videoColormap = new SettingState<ColorMapType>('videoColormap', 'viridis', {
 		validate: oneOf(AVAILABLE_COLORMAPS)
 	});
-	videoColormapShades = new SettingState('videoColormapShades', 64);
+	videoColormapShades = new SettingState('videoColormapShades', 64, { local: true });
 
 	cellLabel(cell: TrackType): string | null {
 		if (!this.labelSwitch.current) return null;

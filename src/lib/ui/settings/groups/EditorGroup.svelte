@@ -12,7 +12,8 @@
 		toolAfterPaste: 'Tool after paste switch clipboard copy cells',
 		prefetch: 'Frames to prefetch preload cache bandwidth',
 		cacheSize: 'Frame cache size memory RAM',
-		snapshotSize: 'Stack turning cache size memory RAM'
+		snapshotSize: 'Stack turning cache size memory RAM',
+		colormapShades: 'Colormap shades levels sampling performance'
 	};
 	const search = searchRows(rows);
 
@@ -28,6 +29,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import { frameSnapshots } from '$lib/states/FrameSnapshots.svelte';
+	import { svgState } from '$lib/states/svg.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { GroupProps } from '../group';
@@ -124,7 +126,7 @@
 	</SettingsSection>
 {/if}
 
-{#if any('prefetch', 'cacheSize', 'snapshotSize')}
+{#if any('prefetch', 'cacheSize', 'snapshotSize', 'colormapShades')}
 	<SettingsSection heading="Video">
 		{#if shown.includes('prefetch')}
 			<SliderRow
@@ -158,6 +160,15 @@
 				max={2048 * MiB}
 				step={64 * MiB}
 				format={size}
+			/>
+		{/if}
+		{#if shown.includes('colormapShades')}
+			<SliderRow
+				label="Colormap shades"
+				description="Levels every colormap is sampled at"
+				bind:value={svgState.videoColormapShades.current}
+				min={16}
+				max={256}
 			/>
 		{/if}
 	</SettingsSection>

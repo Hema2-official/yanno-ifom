@@ -111,20 +111,6 @@
 				<ColorMapSelect bind:value={svgState.videoColormap.current} />
 			</div>
 
-			<div class="flex flex-col gap-2">
-				<Label for="colormap-shades" class="text-nowrap">
-					Shades: {svgState.videoColormapShades.current}
-				</Label>
-				<Slider
-					id="colormap-shades"
-					type="single"
-					bind:value={svgState.videoColormapShades.current}
-					min={16}
-					max={256}
-					step={1}
-				/>
-			</div>
-
 			<Label for="annotation-switch" class="cursor-pointer">
 				<Switch id="annotation-switch" bind:checked={svgState.isAnnotationShown} /> Show annotation
 			</Label>
