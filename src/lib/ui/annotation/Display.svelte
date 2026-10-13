@@ -138,31 +138,37 @@
 
 	const MAX_ZOOM_DELTA = 10;
 
+	/** Zooms to the scale, keeping the point at the client position in place. */
+	const zoomTo = (scale: number, { clientX, clientY }: ClientPoint) => {
+		const oldScale = zoomState.scalePercent;
+		const newScale = clamp(scale, zoomState.minScale, zoomState.maxScale);
+		if (newScale === oldScale) return;
+		contextMenu = null;
+		zoomState.scalePercent = newScale;
+
+		const { width, height, top, left } = stageElement.getBoundingClientRect();
+		const scaleDiff = newScale / oldScale - 1;
+		panBy((width / 2 - clientX + left) * scaleDiff, (height / 2 - clientY + top) * scaleDiff);
+	};
+
 	const displayWheel = (e: WheelEvent) => {
 		e.preventDefault();
 		if (!e.ctrlKey) return; // plain wheel is left to the tools
 
 		const delta = clamp(e.deltaY, -MAX_ZOOM_DELTA, MAX_ZOOM_DELTA);
 		const rate = zoomState.scrollMultiplier.current * 0.01;
-
-		const oldScale = zoomState.scalePercent;
-		const newScale = clamp(
-			oldScale * Math.exp(-delta * rate),
-			zoomState.minScale,
-			zoomState.maxScale
-		);
-		if (newScale === oldScale) return;
-		contextMenu = null;
-		zoomState.scalePercent = newScale;
-
-		// Keep the point under the pointer in place
-		const { width, height, top, left } = stageElement.getBoundingClientRect();
-		const scaleDiff = newScale / oldScale - 1;
-		panBy(
-			(width / 2 - e.clientX + left) * scaleDiff,
-			(height / 2 - e.clientY + top) * scaleDiff
-		);
+		zoomTo(zoomState.scalePercent * Math.exp(-delta * rate), e);
 	};
+
+	// The View menu's zoom keeps the display's center in place
+	onMount(() => {
+		zoomState.zoomBy = (factor) => {
+			const { left, top, width, height } = viewportElement.getBoundingClientRect();
+			const center = { clientX: left + width / 2, clientY: top + height / 2 };
+			zoomTo(zoomState.scalePercent * factor, center);
+		};
+		return () => (zoomState.zoomBy = null);
+	});
 
 	let isPanning = $state(false);
 

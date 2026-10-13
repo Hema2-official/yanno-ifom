@@ -248,12 +248,11 @@
 			<Menubar.Menu>
 				<Menubar.Trigger>View</Menubar.Trigger>
 				<Menubar.Content>
-					<Menubar.Item inset>Zoom In</Menubar.Item>
-					<Menubar.Item inset>Zoom Out</Menubar.Item>
-					<Menubar.Item inset>Reset Zoom</Menubar.Item>
+					{@render actionItem('view.zoomIn', 'Zoom In')}
+					{@render actionItem('view.zoomOut', 'Zoom Out')}
+					{@render actionItem('view.zoomReset', 'Reset Zoom')}
 					<Menubar.Separator />
 					<Menubar.Item
-						inset
 						onSelect={() => (exportViewportOpen = true)}
 						disabled={!videoDisplayState.readView}
 					>

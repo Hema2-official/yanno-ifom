@@ -9,6 +9,9 @@ class ZoomState {
 
 	/** A length in viewBox units that keeps its size on screen at any zoom. */
 	screenUnit = $derived(100 / this.scalePercent);
+
+	/** Zooms the display around its center by the factor, while it's shown. */
+	zoomBy: ((factor: number) => void) | null = $state.raw(null);
 }
 
 export const zoomState = new ZoomState();

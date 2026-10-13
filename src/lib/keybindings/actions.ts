@@ -3,6 +3,7 @@ import { editorState } from '$lib/states/EditorState.svelte';
 import { projectState } from '$lib/states/ProjectState.svelte';
 import { settingsState } from '$lib/states/settings.svelte';
 import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
+import { zoomState } from '$lib/states/zoom.svelte';
 import type { ToolId } from '$lib/ui/editor-tools/registry';
 import { clamp } from '$lib/utils/math';
 import type { KeyCombo } from './keys';
@@ -30,6 +31,16 @@ const selectTracks = (direction: -1 | 0 | 1) => ({
 	kind: 'press' as const,
 	run: () => editorState.selectTracks(direction),
 	enabled: () => editorState.selectedCells.some((cell) => cell.TrackID !== null)
+});
+
+/** Each zoom step of the View menu multiplies or divides the scale by this. */
+const ZOOM_STEP = 1.25;
+
+const zoomBy = (factor: () => number) => ({
+	kind: 'press' as const,
+	// Taken from the browser even at the limits, so the page itself doesn't zoom
+	enabled: () => zoomState.zoomBy !== null,
+	run: () => zoomState.zoomBy?.(factor())
 });
 
 /** Moves the frame window by `delta`, staying within the video. */
@@ -273,6 +284,27 @@ const table = {
 		defaults: ['ArrowRight'],
 		enabled: () => projectState.frameCount > 0,
 		run: () => stepFrame(1)
+	},
+	'view.zoomIn': {
+		label: 'Zoom in',
+		group: 'View',
+		scope: 'editor',
+		defaults: ['Mod+Plus', 'Mod+=', 'Mod+Shift+Plus'],
+		...zoomBy(() => ZOOM_STEP)
+	},
+	'view.zoomOut': {
+		label: 'Zoom out',
+		group: 'View',
+		scope: 'editor',
+		defaults: ['Mod+-'],
+		...zoomBy(() => 1 / ZOOM_STEP)
+	},
+	'view.zoomReset': {
+		label: 'Reset the zoom',
+		group: 'View',
+		scope: 'editor',
+		defaults: ['Mod+0'],
+		...zoomBy(() => zoomState.minScale / zoomState.scalePercent)
 	},
 	'reports.open': {
 		label: 'Open the reports',
