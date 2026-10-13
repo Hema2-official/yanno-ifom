@@ -177,6 +177,14 @@ export type FilterSwitches = { normalized: boolean; colormapped: boolean };
 /** How many frames each layout shows at most: the stack's overlap keeps it compact. */
 const MAX_FRAMES: Record<DisplayMode, number> = { grid: 6, stack: 24 };
 
+const concurrentFramesSchema = z.object({
+	grid: z.number().int().min(1),
+	stack: z.number().int().min(1)
+});
+
+const validateConcurrentFrames = (value: unknown): value is Record<DisplayMode, number> =>
+	concurrentFramesSchema.safeParse(value).success;
+
 /** The angles the stack turns within, in degrees. */
 export const STACK_YAW = { min: -80, max: 80 };
 export const STACK_PITCH = { min: -30, max: 30 };
@@ -321,8 +329,8 @@ class VideoDisplayState {
 	displayMode = new SettingState<DisplayMode>('displayMode', 'grid', {
 		validate: oneOf(displayModes)
 	});
-	stackYaw = new SettingState('stackYaw', 55);
-	stackPitch = new SettingState('stackPitch', 12);
+	stackYaw = new SettingState('stackYaw', 55, { local: true });
+	stackPitch = new SettingState('stackPitch', 12, { local: true });
 	stackSpacing = new SettingState('stackSpacing', 0.1);
 	stackFade = new SettingState('stackFade', 0);
 
@@ -331,15 +339,20 @@ class VideoDisplayState {
 	);
 
 	// Each layout has its own
-	#concurrentFrames: Record<DisplayMode, number> = $state({ grid: 1, stack: 1 });
+	#concurrentFrames = new SettingState<Record<DisplayMode, number>>(
+		'concurrentFrames',
+		{ grid: 1, stack: 1 },
+		{ local: true, validate: validateConcurrentFrames }
+	);
 
 	/** Number of consecutive frames displayed at once. */
 	get concurrentFrames(): number {
-		const count = this.#concurrentFrames[this.displayMode.current];
+		const count = this.#concurrentFrames.current[this.displayMode.current];
 		return Math.min(count, this.maxConcurrentFrames);
 	}
 	set concurrentFrames(value: number) {
-		this.#concurrentFrames[this.displayMode.current] = value;
+		const counts = this.#concurrentFrames.current;
+		this.#concurrentFrames.current = { ...counts, [this.displayMode.current]: value };
 	}
 
 	/** The last frame the shown window can start at. */
@@ -377,9 +390,8 @@ class VideoDisplayState {
 		this.#turn = null;
 	}
 
-	/** Back to one frame shown, without a project's looks. */
+	/** Without a project's looks. */
 	reset() {
-		this.#concurrentFrames = { grid: 1, stack: 1 };
 		this.#display = null;
 	}
 }
