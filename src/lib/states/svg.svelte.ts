@@ -1,5 +1,4 @@
 import type { TrackType } from '$lib/types/annotation.type';
-import { AVAILABLE_COLORMAPS, type ColorMapType } from '$lib/utils/imaging';
 import { firstLinkedCells } from '$lib/utils/tracks';
 import { annotationState } from './AnnotationState.svelte';
 import { projectState } from './ProjectState.svelte';
@@ -86,12 +85,6 @@ class SvgState {
 		height: projectState.videoMetadata?.height || 512
 	});
 
-	normalizeSwitch = new SettingState('normalizeSwitch', true);
-	colormapSwitch = new SettingState('colormapSwitch', true);
-
-	videoColormap = new SettingState<ColorMapType>('videoColormap', 'viridis', {
-		validate: oneOf(AVAILABLE_COLORMAPS)
-	});
 	videoColormapShades = new SettingState('videoColormapShades', 64, { local: true });
 
 	cellLabel(cell: TrackType): string | null {

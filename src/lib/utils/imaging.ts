@@ -1,4 +1,4 @@
-import type { VideoComponentMetadata, VideoMetadata } from '$lib/types/api.type';
+import type { VideoChannelMetadata, VideoComponentMetadata } from '$lib/types/api.type';
 import createColormap from 'colormap';
 import { clamp } from './math';
 
@@ -67,16 +67,50 @@ function getLinearLUT(componentMetadata: VideoComponentMetadata): LinearLUT {
 	return { type: 'linear', slope: 255 / (max - min), intercept: -min / (max - min) };
 }
 
-export function getNormalizeFunctions(
-	videoMetadata: VideoMetadata,
-	channelIndex: number
-): RGBFunctions {
-	const channelMetadata = videoMetadata.channels[channelIndex];
-	return {
-		r: getLinearLUT(channelMetadata.r),
-		g: getLinearLUT(channelMetadata.g),
-		b: getLinearLUT(channelMetadata.b)
-	};
+export function getNormalizeFunctions(range: VideoChannelMetadata): RGBFunctions {
+	return { r: getLinearLUT(range.r), g: getLinearLUT(range.g), b: getLinearLUT(range.b) };
+}
+
+// Larger frames are subsampled for counting
+const MAX_COUNTED_SIDE = 1024;
+
+/** Adds the image's pixels to the counts of each value of red, green and blue. */
+export function countPixels(counts: Uint32Array[], image: ImageBitmap) {
+	const scale = Math.min(1, MAX_COUNTED_SIDE / Math.max(image.width, image.height));
+	const w = Math.max(1, Math.round(image.width * scale));
+	const h = Math.max(1, Math.round(image.height * scale));
+	const context = new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true });
+	if (!context) return;
+	// Picked pixels, not averages, which would hide the extremes
+	context.imageSmoothingEnabled = false;
+	context.drawImage(image, 0, 0, w, h);
+
+	const data = context.getImageData(0, 0, w, h).data;
+	const [r, g, b] = counts;
+	for (let i = 0; i < data.length; i += 4) {
+		r[data[i]]++;
+		g[data[i + 1]]++;
+		b[data[i + 2]]++;
+	}
+}
+
+/**
+ * The range of values that leaves `saturated` percent of the counted pixels
+ * outside, half at each end, as ImageJ's contrast enhancement does.
+ */
+export function percentileRange(
+	counts: Uint32Array,
+	saturated: number
+): VideoComponentMetadata | null {
+	let total = 0;
+	for (const count of counts) total += count;
+	const limit = (total * saturated) / 200;
+
+	let low = 0;
+	for (let below = 0; low < 255 && below + counts[low] <= limit; low++) below += counts[low];
+	let high = 255;
+	for (let above = 0; high > low && above + counts[high] <= limit; high--) above += counts[high];
+	return total > 0 && high > low ? { min_value: low, max_value: high } : null;
 }
 
 /**

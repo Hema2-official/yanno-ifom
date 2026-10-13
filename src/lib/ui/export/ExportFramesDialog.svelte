@@ -89,8 +89,8 @@
 		if (!open) return;
 		showAll();
 		video = videoDisplayState.channels.some((channel) => channel.visible);
-		normalized = svgState.normalizeSwitch.current;
-		colormapped = svgState.colormapSwitch.current;
+		normalized = true;
+		colormapped = true;
 
 		const look = shownAnnotationLook();
 		annotation = svgState.isAnnotationShown;

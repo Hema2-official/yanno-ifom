@@ -96,21 +96,8 @@
 		{optionsState.sidebarRight.current ? 'order-3 border-l' : 'order-1 border-r'}"
 >
 	<ScrollArea class="h-full min-h-0 px-6 pt-4">
-		<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Graphics</h2>
+		<h2 class="mt-1.5 mb-3.5 text-center text-2xl font-semibold">Annotation</h2>
 		<div class="flex flex-col gap-4 pb-6">
-			<Label for="normalize-switch" class="cursor-pointer">
-				<Switch id="normalize-switch" bind:checked={svgState.normalizeSwitch.current} /> Normalize
-			</Label>
-
-			<Label for="colormap-switch" class="cursor-pointer">
-				<Switch id="colormap-switch" bind:checked={svgState.colormapSwitch.current} /> Colormap
-			</Label>
-
-			<div class="flex items-center gap-2">
-				<Label>Color map:</Label>
-				<ColorMapSelect bind:value={svgState.videoColormap.current} />
-			</div>
-
 			<Label for="annotation-switch" class="cursor-pointer">
 				<Switch id="annotation-switch" bind:checked={svgState.isAnnotationShown} /> Show annotation
 			</Label>
@@ -149,12 +136,12 @@
 							Channel {channelIndex}
 							{#if channelIndex === primaryChannelIndex}(primary){/if}
 						</Label>
-						{#if channel.isAdjusted}
+						{#if channel.isChanged}
 							<IconButton
 								variant="ghost"
 								size="icon-xs"
-								label="Reset brightness, contrast and gamma"
-								onclick={() => channel.resetAdjustments()}
+								label="Reset the channel's filters"
+								onclick={() => channel.resetFilters()}
 							>
 								<RotateCcwIcon />
 							</IconButton>
@@ -174,6 +161,39 @@
 								/>
 							</div>
 						{/each}
+						<Label for="channel-{channelIndex}-normalize" class="cursor-pointer">
+							<Switch
+								id="channel-{channelIndex}-normalize"
+								bind:checked={channel.normalized}
+							/>
+							Normalize
+						</Label>
+						{#if channel.normalized}
+							<div class="grid grid-cols-[6.5rem_1fr] items-center gap-2">
+								<span class="text-muted-foreground text-sm tabular-nums">
+									Saturated: {channel.saturated.toFixed(2)}%
+								</span>
+								<Slider
+									type="single"
+									bind:value={channel.saturated}
+									min={0}
+									max={5}
+									step={0.05}
+								/>
+							</div>
+						{/if}
+						<div class="flex items-center gap-2">
+							<Switch
+								id="channel-{channelIndex}-colormap"
+								bind:checked={channel.colormapped}
+							/>
+							<Label for="channel-{channelIndex}-colormap">Colormap:</Label>
+							<ColorMapSelect
+								bind:value={channel.colormap}
+								class="flex-1"
+								disabled={!channel.colormapped}
+							/>
+						</div>
 					{/if}
 				</div>
 			{/each}

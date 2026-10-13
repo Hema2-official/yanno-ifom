@@ -141,9 +141,9 @@ class ProjectState {
 
 		this.cloudProject = project;
 		this.cloudVersion = version;
-		frameCache.open(`cloud:${projectId}`, (imageIndex) =>
-			downloadWebFrame(projectId, imageIndex)
-		);
+		const key = `cloud:${projectId}`;
+		frameCache.open(key, (imageIndex) => downloadWebFrame(projectId, imageIndex));
+		videoDisplayState.open(key, { local: false });
 
 		// Check if it is ready
 		if (!version.ready) throw new Error('Version is not ready');
@@ -166,9 +166,9 @@ class ProjectState {
 		signal?.throwIfAborted();
 		if (!project) throw new Error("Couldn't find project");
 		this.localProject = project;
-		frameCache.open(`local:${localProjectId}`, (imageIndex) =>
-			readLocalFrame(localProjectId, imageIndex)
-		);
+		const key = `local:${localProjectId}`;
+		frameCache.open(key, (imageIndex) => readLocalFrame(localProjectId, imageIndex));
+		videoDisplayState.open(key, { local: true });
 
 		const annotation = await decompressJson<VersionManaged<TrackType[]>>(project.annotation);
 		signal?.throwIfAborted();

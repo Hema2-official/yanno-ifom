@@ -17,7 +17,8 @@
 	import { watch } from 'runed';
 	import { StarIcon } from '@lucide/svelte';
 
-	let { value = $bindable() }: { value: string } = $props();
+	type Props = { value: ColorMapType; class?: string; disabled?: boolean };
+	let { value = $bindable(), class: className = 'w-48', disabled = false }: Props = $props();
 
 	let open = $state(false);
 	let triggerRef = $state<HTMLButtonElement | null>(null);
@@ -51,7 +52,8 @@
 				{...props}
 				variant="outline"
 				size="sm"
-				class="w-48 justify-between text-left text-sm font-normal"
+				class="justify-between text-left text-sm font-normal {className}"
+				{disabled}
 				role="combobox"
 				aria-expanded={open}
 			>
