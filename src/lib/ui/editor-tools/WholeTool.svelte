@@ -1,4 +1,13 @@
+<script module lang="ts">
+	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
+
+	// One gesture edits the whole selection, across the frames, from whichever tile it started in
+	let working: WorkingCell[] | null = $state.raw(null);
+	let gesture: 'move' | 'rotate' | 'resize' | null = $state(null);
+</script>
+
 <script lang="ts">
+	import { editorState } from '$lib/states/EditorState.svelte';
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
@@ -6,29 +15,30 @@
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { getPolygonsBounds, type Bounds } from '$lib/utils/geometry';
 	import { watch } from 'runed';
+	import { onDestroy } from 'svelte';
 	import { startDrag } from '$lib/utils/drag';
-	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
 	import type { EditorToolProps } from './types';
 
-	let { cells }: EditorToolProps = $props();
+	let { frameIndex }: EditorToolProps = $props();
 
 	let root: SVGGElement | undefined = $state();
+	let dragging = false;
 
-	// Private copies of the selected outlines, only during a gesture
-	let working: WorkingCell[] | null = $state.raw(null);
-	let gesture: 'move' | 'rotate' | 'resize' | null = $state(null);
-
-	const shown = $derived(working ?? outlinesOf(cells));
-	const bodies = $derived(shown.flatMap((entry) => entry.bodies));
-	const bounds = $derived(getPolygonsBounds(bodies));
+	// The box holds the selection of every frame; this tile draws its own frame's part
+	const shown = $derived(working ?? outlinesOf(editorState.selectedCells));
+	const bounds = $derived(getPolygonsBounds(shown.flatMap((entry) => entry.bodies)));
+	const bodies = $derived(
+		shown.filter(({ cell }) => cell.Frame === frameIndex).flatMap((entry) => entry.bodies)
+	);
 	const boxWidth = $derived(bounds.maxX - bounds.minX);
 	const boxHeight = $derived(bounds.maxY - bounds.minY);
 
-	// Frozen at the start of a gesture
+	// Frozen at the start of a gesture, by the tile it started in
 	let dragOrigin: Point = { x: 0, y: 0 };
 	let startBounds: Bounds | null = null;
-	let startPositions: Point[][] = [];
-	let polar: { dist: number; angle: number }[][] = [];
+	// Per working cell, body and point
+	let startPositions: Point[][][] = [];
+	let centers: Point[] = [];
 	const resizeDirection: Point = { x: 0, y: 0 };
 	let lastPointerEvent: PointerEvent | null = null;
 
@@ -74,27 +84,42 @@
 		e.stopPropagation();
 		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
 
+		dragging = true;
 		dragOrigin = getPointerViewBoxCoords(e, root.ownerSVGElement);
-		working = cells.map((cell) => new WorkingCell(cell));
+		const edited = editorState.selectedCells.map((cell) => new WorkingCell(cell));
 		startBounds = bounds;
-		startPositions = bodies.map((body) => body.map(({ x, y }) => ({ x, y })));
+		startPositions = edited.map((entry) =>
+			entry.bodies.map((body) => body.map(({ x, y }) => ({ x, y })))
+		);
+		centers = edited.map((entry) => {
+			const { midX, midY } = getPolygonsBounds(entry.bodies);
+			return { x: midX, y: midY };
+		});
 		lastPointerEvent = null;
+		working = edited;
 
-		if (handle === 'move') {
-			gesture = 'move';
-		} else if (handle === 'rotate') {
-			const { midX, midY } = bounds;
-			polar = bodies.map((body) =>
-				body.map(({ x, y }) => ({
-					dist: Math.hypot(x - midX, y - midY),
-					angle: Math.atan2(y - midY, x - midX)
-				}))
-			);
-			gesture = 'rotate';
+		if (handle === 'move' || handle === 'rotate') {
+			gesture = handle;
 		} else {
 			[resizeDirection.x, resizeDirection.y] = handle.split(':').map(Number);
 			gesture = 'resize';
 		}
+	}
+
+	/** Moves every working point to where `to` takes its start position. */
+	function place(to: (start: Point, cellIndex: number) => Point) {
+		working?.forEach((entry, cellIndex) =>
+			entry.bodies.forEach((body, bodyIndex) =>
+				body.forEach((point, pointIndex) => {
+					const { x, y } = to(
+						startPositions[cellIndex][bodyIndex][pointIndex],
+						cellIndex
+					);
+					point.x = x;
+					point.y = y;
+				})
+			)
+		);
 	}
 
 	function handleDragMove(e: PointerEvent) {
@@ -105,13 +130,7 @@
 		const deltaY = pointer.y - dragOrigin.y;
 
 		if (gesture === 'move') {
-			bodies.forEach((body, bodyIndex) =>
-				body.forEach((point, pointIndex) => {
-					const start = startPositions[bodyIndex][pointIndex];
-					point.x = start.x + deltaX;
-					point.y = start.y + deltaY;
-				})
-			);
+			place(({ x, y }) => ({ x: x + deltaX, y: y + deltaY }));
 			return;
 		}
 
@@ -120,17 +139,15 @@
 			const angle =
 				Math.atan2(pointer.y - midY, pointer.x - midX) -
 				Math.atan2(dragOrigin.y - midY, dragOrigin.x - midX);
-			bodies.forEach((body, bodyIndex) =>
-				body.forEach((point, pointIndex) => {
-					const { dist, angle: start } = polar[bodyIndex][pointIndex];
-					point.x = midX + Math.cos(start + angle) * dist;
-					point.y = midY + Math.sin(start + angle) * dist;
-				})
-			);
+			const [cos, sin] = [Math.cos(angle), Math.sin(angle)];
+			place(({ x, y }) => ({
+				x: midX + (x - midX) * cos - (y - midY) * sin,
+				y: midY + (x - midX) * sin + (y - midY) * cos
+			}));
 			return;
 		}
 
-		// Resize: scaling around the center moves both sides
+		// Resize: scaling around the centers moves both sides
 		const { x: dirX, y: dirY } = resizeDirection;
 		const factor = scaleFromCenter ? 2 : 1;
 		const width = Math.max(startBounds.maxX - startBounds.minX, 1e-5);
@@ -142,20 +159,22 @@
 			else if (dirX !== 0) scaleY = scaleX;
 			else scaleX = scaleY;
 		}
-		const pivotX =
-			scaleFromCenter || dirX === 0 ? midX : dirX < 0 ? startBounds.maxX : startBounds.minX;
-		const pivotY =
-			scaleFromCenter || dirY === 0 ? midY : dirY < 0 ? startBounds.maxY : startBounds.minY;
-		bodies.forEach((body, bodyIndex) =>
-			body.forEach((point, pointIndex) => {
-				const start = startPositions[bodyIndex][pointIndex];
-				point.x = pivotX + (start.x - pivotX) * scaleX;
-				point.y = pivotY + (start.y - pivotY) * scaleY;
-			})
-		);
+		// The opposite sides stay put, or each cell's center
+		const opposite = {
+			x: dirX < 0 ? startBounds.maxX : startBounds.minX,
+			y: dirY < 0 ? startBounds.maxY : startBounds.minY
+		};
+		place((start, cellIndex) => {
+			const pivot = scaleFromCenter ? centers[cellIndex] : opposite;
+			return {
+				x: pivot.x + (start.x - pivot.x) * scaleX,
+				y: pivot.y + (start.y - pivot.y) * scaleY
+			};
+		});
 	}
 
 	function handleDragEnd() {
+		dragging = false;
 		if (!working) return;
 		const edited = working;
 		working = null;
@@ -166,6 +185,13 @@
 	// Modifier changes re-apply the last resize with the new rules
 	watch([() => scaleFromCenter, () => keepAspect], () => {
 		if (lastPointerEvent) handleDragMove(lastPointerEvent);
+	});
+
+	// A tool switch mid-gesture removes this tile's element, whose drag then never ends
+	onDestroy(() => {
+		if (!dragging) return;
+		working = null;
+		gesture = null;
 	});
 </script>
 
