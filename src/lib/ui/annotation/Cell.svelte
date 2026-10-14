@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { svgState } from '$lib/states/svg.svelte';
-	import { cellBodyToPathCached } from '$lib/utils/display';
-	import { getCenterOfPolygonsCached } from '$lib/utils/geometry';
+	import { cellBodyToPath, cellBodyToPathCached } from '$lib/utils/display';
+	import { getCenterOfPolygons, getCenterOfPolygonsCached } from '$lib/utils/geometry';
 	import type { Polygon } from '$lib/types/geometry.type';
 
 	type Props = {
@@ -10,11 +10,16 @@
 		cellId: string;
 		label: string | null;
 		selected?: boolean;
+		/** The polygons are a gesture's working copy, which changes in place past the caches. */
+		live?: boolean;
 	};
 
-	let { cellPolygons, cellId, label, selected = false }: Props = $props();
+	let { cellPolygons, cellId, label, selected = false, live = false }: Props = $props();
 
-	const center = $derived(getCenterOfPolygonsCached(cellPolygons));
+	const center = $derived(
+		live ? getCenterOfPolygons(cellPolygons) : getCenterOfPolygonsCached(cellPolygons)
+	);
+	const toPath = $derived(live ? cellBodyToPath : cellBodyToPathCached);
 </script>
 
 <!-- `drawOutlines` draws the same on a canvas -->
@@ -22,7 +27,7 @@
 	{#each cellPolygons as body, index (index)}
 		<!-- Transparent rather than none, so the whole cell takes clicks -->
 		<path
-			d={cellBodyToPathCached(body)}
+			d={toPath(body)}
 			fill={svgState.cellLook.fill ?? 'transparent'}
 			stroke={selected ? 'var(--accent-color)' : (svgState.cellLook.stroke ?? 'none')}
 			stroke-width={svgState.cellLook.width + (selected ? 1 : 0)}

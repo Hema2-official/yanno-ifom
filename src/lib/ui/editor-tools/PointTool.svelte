@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { zoomState } from '$lib/states/zoom.svelte';
-	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
+	import { getPointerViewBoxCoords } from '$lib/utils/display';
 	import { startDrag } from '$lib/utils/drag';
-	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
+	import { WorkingCell, commitWorking, dropWorking, outlinesOf } from './working.svelte';
 	import type { EditorToolProps } from './types';
+	import { onDestroy } from 'svelte';
 
 	let { cells }: EditorToolProps = $props();
 
@@ -44,16 +45,12 @@
 		working = null;
 		commitWorking([edited]);
 	}
-</script>
 
-<!-- The working outline on top of the base cell, which stays as a ghost -->
-{#if working}
-	<g pointer-events="none">
-		{#each working.bodies as body, i (i)}
-			<path d={cellBodyToPath(body)} fill="none" stroke="black" stroke-width="2px" />
-		{/each}
-	</g>
-{/if}
+	// A tool switch mid-gesture removes this tile's element, whose drag then never ends
+	onDestroy(() => {
+		if (working) dropWorking([working]);
+	});
+</script>
 
 <!-- A handle per vertex of every selected cell -->
 <g role="presentation" onpointerdown={handlePointerDown} bind:this={root}>

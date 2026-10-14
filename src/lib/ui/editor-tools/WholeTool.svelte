@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { WorkingCell, commitWorking, outlinesOf } from './working.svelte';
+	import { WorkingCell, commitWorking, dropWorking, outlinesOf } from './working.svelte';
 
 	// One gesture edits the whole selection, across the frames, from whichever tile it started in
 	let working: WorkingCell[] | null = $state.raw(null);
@@ -9,7 +9,6 @@
 <script lang="ts">
 	import { editorState } from '$lib/states/EditorState.svelte';
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
-	import { svgState } from '$lib/states/svg.svelte';
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { Point } from '$lib/types/geometry.type';
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
@@ -189,27 +188,14 @@
 
 	// A tool switch mid-gesture removes this tile's element, whose drag then never ends
 	onDestroy(() => {
-		if (!dragging) return;
+		if (!dragging || !working) return;
+		dropWorking(working);
 		working = null;
 		gesture = null;
 	});
 </script>
 
 {#if bodies.length > 0}
-	{#if working}
-		<!-- Working outlines while dragging; the base cells stay as ghosts -->
-		<g pointer-events="none">
-			{#each bodies as body, i (i)}
-				<path
-					d={cellBodyToPath(body)}
-					stroke={svgState.svgStroke.current}
-					stroke-dasharray="3, 2"
-					class="fill-none stroke-1 opacity-80"
-				/>
-			{/each}
-		</g>
-	{/if}
-
 	<!-- Handle visuals -->
 	<g pointer-events="none">
 		{#if gesture !== 'rotate'}

@@ -92,6 +92,11 @@ export function getPolygonsBoundsCached(polygons: Polygon[]): Bounds {
 	return bounds;
 }
 
+export function getCenterOfPolygons(polygons: Polygon[]): Point {
+	const { midX, midY } = getPolygonsBounds(polygons);
+	return { x: midX, y: midY };
+}
+
 export function getCenterOfPolygonsCached(polygons: Polygon[]): Point {
 	const { midX, midY } = getPolygonsBoundsCached(polygons);
 	return { x: midX, y: midY };

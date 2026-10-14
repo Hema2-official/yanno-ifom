@@ -8,9 +8,16 @@
 	import { getPolygonsBoundsCached } from '$lib/utils/geometry';
 	import { clamp } from '$lib/utils/math';
 	import { startDrag } from '$lib/utils/drag';
-	import { WorkingCell, commitWorking, outlinesOf, type OutlineEntry } from './working.svelte';
+	import {
+		WorkingCell,
+		commitWorking,
+		dropWorking,
+		outlinesOf,
+		type OutlineEntry
+	} from './working.svelte';
 	import type { EditorToolProps } from './types';
 	import { PersistedState } from 'runed';
+	import { onDestroy } from 'svelte';
 
 	let { frameIndex, cells }: EditorToolProps = $props();
 
@@ -116,6 +123,11 @@
 		commitWorking(edited);
 	}
 
+	// A tool switch mid-gesture removes this tile's element, whose drag then never ends
+	onDestroy(() => {
+		if (working) dropWorking(working);
+	});
+
 	function handleWheel(e: WheelEvent) {
 		if (e.ctrlKey) return; // Ctrl+wheel is the display's zoom
 
@@ -179,21 +191,6 @@
 		{/each}
 	</g>
 </g>
-
-<!-- The working outlines on top of the base cells, which stay as ghosts -->
-{#if working}
-	<g pointer-events="none">
-		{#each working as entry (entry.cell.ObjectID)}
-			{#each entry.bodies as body, bodyIndex (bodyIndex)}
-				<path
-					d={cellBodyToPath(body)}
-					stroke={svgState.svgStroke.current}
-					class="fill-none stroke-1 opacity-80"
-				/>
-			{/each}
-		{/each}
-	</g>
-{/if}
 
 <!-- The brush ring and the vertices under it -->
 {#if pointerHere || working}

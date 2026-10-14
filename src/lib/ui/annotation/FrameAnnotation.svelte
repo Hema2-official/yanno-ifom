@@ -8,6 +8,7 @@
 	import { arrowPath } from '$lib/utils/display';
 	import { rleToPolygons } from '$lib/utils/rle';
 	import { ancestryArrows } from '$lib/utils/tracks';
+	import { liveOutlines } from '$lib/ui/editor-tools/working.svelte';
 	import Cell from './Cell.svelte';
 
 	type Props = {
@@ -23,8 +24,11 @@
 
 <g role="region">
 	{#each cells as cell (cell.ObjectID)}
+		<!-- A cell being edited follows the gesture -->
+		{@const live = liveOutlines.get(cell.ObjectID)}
 		<Cell
-			cellPolygons={rleToPolygons(cell.SegmentationRLE)}
+			cellPolygons={live ?? rleToPolygons(cell.SegmentationRLE)}
+			live={live !== undefined}
 			cellId={cell.ObjectID}
 			label={svgState.cellLabel(cell)}
 			selected={editorState.isSelected(cell)}
