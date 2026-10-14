@@ -12,7 +12,7 @@ import {
 	withMask,
 	withOutline
 } from '$lib/utils/tracks';
-import { gapsBetween, interpolatedCell } from '$lib/utils/interpolate';
+import { gapsBetween, interpolatedCell, type Gap } from '$lib/utils/interpolate';
 import { mergeMasks } from '$lib/utils/masks';
 import { toastError } from '$lib/api/errors';
 import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
@@ -327,13 +327,20 @@ class AnnotationState {
 	 * If the renaming was exhaustive, the descendants follow it with their ancestor ID.
 	 */
 	setTrackId(cells: TrackType[], trackId: number): boolean {
+		const next = this.#withTrackId(cells, trackId);
+		if (next) this.commitData(next, `Set track ${trackId} on ${cellsLabel(cells)}`);
+		return next !== null;
+	}
+
+	/** The data with `setTrackId`'s change, or null (with a toast) where the track would break. */
+	#withTrackId(cells: TrackType[], trackId: number): TrackType[] | null {
 		const data = this.data;
-		if (!data || cells.length === 0) return false;
+		if (!data || cells.length === 0) return null;
 
 		const crowded = sharedFrames(cells).concat(occupiedFrames(data.current, cells, trackId));
 		if (crowded.length > 0) {
 			toastError(`Track ${trackId} would have two cells in ${framesLabel(crowded)}`);
-			return false;
+			return null;
 		}
 
 		const ids = new Set(cells.map((cell) => cell.ObjectID));
@@ -367,10 +374,9 @@ class AnnotationState {
 		);
 		if (ownAncestors.includes(trackId) || ancestorsOf(next, trackId).includes(trackId)) {
 			toastError(`Track ${trackId} would be its own ancestor`);
-			return false;
+			return null;
 		}
-		this.commitData(next, `Set track ${trackId} on ${cellsLabel(cells)}`);
-		return true;
+		return next;
 	}
 
 	/** Sets the ancestor of the cells' whole tracks, and of the untracked cells themselves (null clears). */
@@ -407,7 +413,8 @@ class AnnotationState {
 
 	/**
 	 * Fills each frame between the cells with a cell blended from the nearest
-	 * ones before and after, and returns the new cells.
+	 * ones before and after, and returns the new cells. When the cells hold a
+	 * single track ID, the new cells and the untracked ones join that track.
 	 */
 	interpolateCells(cells: TrackType[]): TrackType[] | null {
 		if (!this.data) return null;
@@ -424,10 +431,14 @@ class AnnotationState {
 			toastError('There are no frames between the selected cells to fill');
 			return null;
 		}
-		const crowded = gaps.filter(({ frame, before, after }) => {
-			const trackId = before.TrackID;
-			if (trackId === null || after.TrackID !== trackId) return false;
-			return (this.getFrame(frame) ?? []).some((cell) => cell.TrackID === trackId);
+
+		const trackIds = new Set(cells.flatMap((cell) => cell.TrackID ?? []));
+		const only = trackIds.size === 1 ? [...trackIds][0] : null;
+		const trackOf = ({ before, after }: Gap) => only ?? before.TrackID ?? after.TrackID;
+		const crowded = gaps.filter((gap) => {
+			const trackId = trackOf(gap);
+			if (trackId === null) return false;
+			return (this.getFrame(gap.frame) ?? []).some((cell) => cell.TrackID === trackId);
 		});
 		if (crowded.length > 0) {
 			const frames = crowded.map((gap) => gap.frame);
@@ -435,24 +446,27 @@ class AnnotationState {
 			return null;
 		}
 
-		const label = (added: TrackType[]) =>
-			`${cellsLabel(added)} in ${framesLabel(added.map((cell) => cell.Frame))}`;
-		const added = this.addCells(
-			(tracks) => {
-				const next = tracks.slice();
-				return gaps.map((gap) => {
-					const cell = interpolatedCell(gap, next);
-					next.push(cell);
-					return cell;
-				});
-			},
-			(added) => `Interpolate ${label(added)}`
-		);
-		if (added) {
-			toast(`Interpolated ${label(added)}`, {
-				action: { label: 'Undo', onClick: () => this.undo() }
+		const joining = only === null ? [] : cells.filter((cell) => cell.TrackID === null);
+		const base =
+			only !== null && joining.length > 0
+				? this.#withTrackId(joining, only)
+				: this.data.current;
+		if (!base) return null;
+		const added = this.#tryBuild(() => {
+			const next = base.slice();
+			return gaps.map((gap) => {
+				const cell = interpolatedCell(gap, next, trackOf(gap));
+				next.push(cell);
+				return cell;
 			});
-		}
+		});
+		if (!added) return null;
+
+		const label =
+			`${cellsLabel(added)} in ${framesLabel(added.map((cell) => cell.Frame))}` +
+			(joining.length > 0 ? ` and set track ${only} on ${cellsLabel(joining)}` : '');
+		this.commitData(base.concat(added), `Interpolate ${label}`);
+		toast(`Interpolated ${label}`, { action: { label: 'Undo', onClick: () => this.undo() } });
 		return added;
 	}
 

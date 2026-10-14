@@ -26,35 +26,33 @@ export function gapsBetween(cells: TrackType[]): Gap[] {
 }
 
 /**
- * Generate an interpolated cell to fill a gap between two existing cells.
+ * Generate an interpolated cell of the track to fill a gap between two existing cells.
  * @throws If either cell does not have a valid outline to interpolate from.
  */
-export function interpolatedCell({ frame, before, after, t }: Gap, tracks: TrackType[]): TrackType {
-	const a = radialShape(before);
-	const b = radialShape(after);
+export function interpolatedCell(gap: Gap, tracks: TrackType[], trackId: number | null): TrackType {
+	const a = radialShape(gap.before);
+	const b = radialShape(gap.after);
 	if (!a || !b) throw new Error('A cell has no outline to interpolate from');
 
-	// Get a track ID from before or after
-	const trackId = before.TrackID ?? after.TrackID ?? null;
 	const pad = (n: number) => String(n).padStart(4, '0');
 	// Standard backend naming for interpolated cells: "{frame 1-based}{trackId}ITP"
-	const conventional = trackId === null ? null : `${pad(frame + 1)}${pad(trackId)}ITP`;
+	const conventional = trackId === null ? null : `${pad(gap.frame + 1)}${pad(trackId)}ITP`;
 	const objectId =
 		conventional !== null && !tracks.some((cell) => cell.ObjectID === conventional)
 			? conventional
-			: newObjectId(frame, tracks);
+			: newObjectId(gap.frame, tracks);
 
-	const [height, width] = before.SegmentationRLE.size;
+	const [height, width] = gap.before.SegmentationRLE.size;
 	const cell: TrackType = {
-		Frame: frame,
+		Frame: gap.frame,
 		ObjectID: objectId,
 		SegmentationRLE: { size: [height, width], counts: '' },
 		TrackID: trackId,
 		Interpolated: true,
-		Class: before.Class === after.Class ? (before.Class ?? null) : null,
+		Class: gap.before.Class === gap.after.Class ? (gap.before.Class ?? null) : null,
 		AncestorID: trackId === null ? null : trackAncestor(tracks, trackId)
 	};
-	return withOutline(cell, [blendShapes(a, b, t)]);
+	return withOutline(cell, [blendShapes(a, b, gap.t)]);
 }
 
 /** Get a cell's largest outline as a radial shape. */
