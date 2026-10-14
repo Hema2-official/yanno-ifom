@@ -5,6 +5,7 @@ import {
 	cellsLabel,
 	framesLabel,
 	newCell,
+	newObjectId,
 	occupiedFrames,
 	sharedFrames,
 	tracksLabel,
@@ -213,6 +214,51 @@ class AnnotationState {
 		const cells = this.#tryBuild(() => build(data.current));
 		if (cells) this.commitData(data.current.concat(cells), message(cells));
 		return cells;
+	}
+
+	/** Copies the cells `offset` frames away, into their tracks, and returns the copies. */
+	copyCells(cells: TrackType[], offset: number): TrackType[] | null {
+		const beyond = cells.find(({ Frame }) => {
+			const frame = Frame + offset;
+			return frame < 0 || frame >= projectState.frameCount;
+		});
+		if (beyond) {
+			toastError(`There is no frame ${beyond.Frame + offset} to copy to`);
+			return null;
+		}
+		const taken = cells.find(
+			({ Frame, TrackID }) =>
+				TrackID !== null &&
+				(this.getFrame(Frame + offset) ?? []).some((cell) => cell.TrackID === TrackID)
+		);
+		if (taken) {
+			toastError(
+				`Track ${taken.TrackID} already has a cell in frame ${taken.Frame + offset}`
+			);
+			return null;
+		}
+
+		return this.addCells(
+			(tracks) => {
+				const next = tracks.slice();
+				return cells.map((cell) => {
+					const frame = cell.Frame + offset;
+					const copy: TrackType = {
+						Frame: frame,
+						ObjectID: newObjectId(frame, next),
+						SegmentationRLE: cell.SegmentationRLE,
+						TrackID: cell.TrackID,
+						Interpolated: false,
+						Class: cell.Class ?? null,
+						AncestorID: cell.AncestorID ?? null
+					};
+					next.push(copy);
+					return copy;
+				});
+			},
+			(copies) =>
+				`Copy ${cellsLabel(copies)} to ${framesLabel(copies.map((copy) => copy.Frame))}`
+		);
 	}
 
 	/** Removes the cells and offers an undo. */

@@ -84,6 +84,12 @@ class EditorState {
 		}
 	}
 
+	/** Copies the selected cells `offset` frames away and selects the copies there. */
+	copySelectionBy(offset: number) {
+		const copies = annotationState.copyCells(this.selectedCells, offset);
+		if (copies) this.reveal(copies);
+	}
+
 	/** Merges the selected cells into `into`, by default the last one clicked into the selection. */
 	mergeSelection(into?: TrackType) {
 		const target = into ?? (this.#anchor ? annotationState.getCell(this.#anchor) : undefined);

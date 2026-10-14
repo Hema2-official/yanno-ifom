@@ -59,7 +59,7 @@
 {/snippet}
 
 <ContextMenu.Root open={menu !== null} onOpenChange={(open) => !open && onClose()}>
-	<ContextMenu.Content class="w-52" customAnchor={menu?.anchor ?? null} preventScroll={false}>
+	<ContextMenu.Content class="w-60" customAnchor={menu?.anchor ?? null} preventScroll={false}>
 		{#if target?.kind === 'cell'}
 			{@const cell = target.cell}
 			<!-- A right-clicked cell is always selected, so the items act on the whole selection -->
@@ -87,6 +87,8 @@
 			<ContextMenu.Separator />
 			{@render actionItem('cut', 'Cut')}
 			{@render actionItem('copy', 'Copy')}
+			{@render actionItem('selection.copyToNext', 'Copy to next frame')}
+			{@render actionItem('selection.copyToPrevious', 'Copy to previous frame')}
 			{@render actionItem('selection.delete', 'Delete')}
 		{:else if target?.kind === 'background'}
 			{@const frameIndex = target.frameIndex}

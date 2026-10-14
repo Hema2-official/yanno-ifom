@@ -164,6 +164,24 @@ const table = {
 		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 1,
 		run: () => editorState.interpolateSelection()
 	},
+	'selection.copyToNext': {
+		label: 'Copy the selected cells to the next frame',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Mod+ArrowRight'],
+		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		run: () => editorState.copySelectionBy(1)
+	},
+	'selection.copyToPrevious': {
+		label: 'Copy the selected cells to the previous frame',
+		group: 'Editing',
+		scope: 'editor',
+		kind: 'press',
+		defaults: ['Mod+ArrowLeft'],
+		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		run: () => editorState.copySelectionBy(-1)
+	},
 	'selection.merge': {
 		label: 'Merge the selected cells',
 		description: 'Of one frame, into the last one clicked',

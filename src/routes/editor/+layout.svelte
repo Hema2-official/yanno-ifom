@@ -233,6 +233,8 @@
 						>
 							Paste... <Menubar.Shortcut>{comboLabel('Mod+v')}</Menubar.Shortcut>
 						</Menubar.Item>
+						{@render actionItem('selection.copyToNext', 'Copy to Next Frame')}
+						{@render actionItem('selection.copyToPrevious', 'Copy to Previous Frame')}
 						<Menubar.Separator />
 						{@render actionItem('selection.track', 'Select Whole Tracks')}
 						{@render actionItem('selection.trackForward', 'Select Tracks Forward')}
