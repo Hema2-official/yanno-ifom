@@ -10,7 +10,7 @@
 	import { resampleCellBody } from '$lib/utils/geometry';
 	import { polygonsToRle } from '$lib/utils/rle';
 	import { newCell } from '$lib/utils/tracks';
-	import { startDrag } from '$lib/utils/drag';
+	import { startGesture } from '$lib/ui/annotation/gestures';
 	import type { EditorToolProps } from './types';
 
 	let { frameIndex }: EditorToolProps = $props();
@@ -29,13 +29,16 @@
 	const MIN_VERTEX_DISTANCE = 0.5;
 
 	function handlePointerDown(e: PointerEvent) {
-		if (e.button !== 0 || !root?.ownerSVGElement) return;
+		if (e.button !== 0 || !root) return;
 
 		e.preventDefault();
 		e.stopPropagation();
-		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
+		startGesture(root, e, { onStart: begin, onMove: handleDragMove, onEnd: handleDragEnd });
+	}
 
-		stroke = [getPointerViewBoxCoords(e, root.ownerSVGElement)];
+	function begin(press: PointerEvent) {
+		if (!root?.ownerSVGElement) return;
+		stroke = [getPointerViewBoxCoords(press, root.ownerSVGElement)];
 	}
 
 	function handleDragMove(e: PointerEvent) {
@@ -52,7 +55,7 @@
 		stroke = [];
 
 		const metadata = projectState.videoMetadata;
-		// Anything shorter is an accidental click
+		// Anything shorter is a slip
 		if (drawn.length < 3 || !metadata) return;
 
 		const outline = optionsState.autoResample.current

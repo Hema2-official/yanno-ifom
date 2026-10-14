@@ -15,7 +15,7 @@
 	import { getPolygonsBounds, type Bounds } from '$lib/utils/geometry';
 	import { watch } from 'runed';
 	import { onDestroy } from 'svelte';
-	import { startDrag } from '$lib/utils/drag';
+	import { selectionClick, startGesture } from '$lib/ui/annotation/gestures';
 	import type { EditorToolProps } from './types';
 
 	let { frameIndex }: EditorToolProps = $props();
@@ -75,16 +75,25 @@
 	const showResizeHandles = $derived(gesture !== 'move' && gesture !== 'rotate');
 
 	function handlePointerDown(e: PointerEvent) {
-		if (e.button !== 0 || !root?.ownerSVGElement) return;
+		if (e.button !== 0 || !root) return;
 		const handle = (e.target as SVGElement).dataset.handle;
 		if (handle === undefined) return;
 
 		e.preventDefault();
 		e.stopPropagation();
-		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
+		// A click on a cell selects it; one on a handle does nothing
+		startGesture(root, e, {
+			onStart: (press) => begin(press, handle),
+			onMove: handleDragMove,
+			onEnd: handleDragEnd,
+			onClick: handle === 'move' ? selectionClick : null
+		});
+	}
 
+	function begin(press: PointerEvent, handle: string) {
+		if (!root?.ownerSVGElement) return;
 		dragging = true;
-		dragOrigin = getPointerViewBoxCoords(e, root.ownerSVGElement);
+		dragOrigin = getPointerViewBoxCoords(press, root.ownerSVGElement);
 		const edited = editorState.selectedCells.map((cell) => new WorkingCell(cell));
 		startBounds = bounds;
 		startPositions = edited.map((entry) =>

@@ -7,7 +7,7 @@
 	import { cellBodyToPath, getPointerViewBoxCoords } from '$lib/utils/display';
 	import { getPolygonsBoundsCached } from '$lib/utils/geometry';
 	import { clamp } from '$lib/utils/math';
-	import { startDrag } from '$lib/utils/drag';
+	import { startGesture } from '$lib/ui/annotation/gestures';
 	import {
 		WorkingCell,
 		commitWorking,
@@ -85,16 +85,23 @@
 
 		e.preventDefault();
 		e.stopPropagation();
-		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
+		startGesture(root, e, {
+			onStart: () => begin(origin, affected),
+			onMove: handleDragMove,
+			onEnd: handleDragEnd
+		});
+	}
 
+	function begin(origin: Point, affected: OutlineEntry[]) {
 		dragOrigin = origin;
-		working = affected.map(({ cell }) => new WorkingCell(cell));
-		coeffs = working.map((entry) =>
+		const edited = affected.map(({ cell }) => new WorkingCell(cell));
+		coeffs = edited.map((entry) =>
 			entry.bodies.map((body) => body.map((point) => influence(point, origin)))
 		);
-		startPositions = working.map((entry) =>
+		startPositions = edited.map((entry) =>
 			entry.bodies.map((body) => body.map(({ x, y }) => ({ x, y })))
 		);
+		working = edited;
 	}
 
 	function handleDragMove(e: PointerEvent) {

@@ -7,6 +7,7 @@
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { RLEType, TrackType } from '$lib/types/annotation.type';
 	import type { Point } from '$lib/types/geometry.type';
+	import { startGesture } from '$lib/ui/annotation/gestures';
 	import { getPointerViewBoxCoords, polylineToPath } from '$lib/utils/display';
 	import { startDrag } from '$lib/utils/drag';
 	import { getPolygonsBoundsCached } from '$lib/utils/geometry';
@@ -42,14 +43,20 @@
 	const MIN_STEP = 0.5;
 
 	function handlePointerDown(e: PointerEvent) {
-		if ((e.button !== 0 && e.button !== 2) || !root?.ownerSVGElement) return;
+		if ((e.button !== 0 && e.button !== 2) || !root) return;
 
 		e.preventDefault();
 		e.stopPropagation();
-		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
+		const handlers = { onMove: handleDragMove, onEnd: handleDragEnd };
+		// A left click selects the cell to paint into; a right click erases a dot
+		if (e.button === 0) startGesture(root, e, { onStart: begin, ...handlers });
+		else if (startDrag(root, e, handlers)) begin(e);
+	}
 
-		erasing = e.button === 2;
-		stroke = [getPointerViewBoxCoords(e, root.ownerSVGElement)];
+	function begin(press: PointerEvent) {
+		if (!root?.ownerSVGElement) return;
+		erasing = press.button === 2;
+		stroke = [getPointerViewBoxCoords(press, root.ownerSVGElement)];
 	}
 
 	function handleDragMove(e: PointerEvent) {

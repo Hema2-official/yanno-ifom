@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import { getPointerViewBoxCoords } from '$lib/utils/display';
-	import { startDrag } from '$lib/utils/drag';
+	import { startGesture } from '$lib/ui/annotation/gestures';
 	import { WorkingCell, commitWorking, dropWorking, outlinesOf } from './working.svelte';
 	import type { EditorToolProps } from './types';
 	import { onDestroy } from 'svelte';
@@ -25,10 +25,16 @@
 
 		e.preventDefault();
 		e.stopPropagation();
-		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
-
-		handle = { body: Number(body), point: Number(point) };
-		working = new WorkingCell(cell, { resample: false });
+		// A click on a vertex does nothing
+		startGesture(root, e, {
+			onStart: () => {
+				handle = { body: Number(body), point: Number(point) };
+				working = new WorkingCell(cell, { resample: false });
+			},
+			onMove: handleDragMove,
+			onEnd: handleDragEnd,
+			onClick: null
+		});
 	}
 
 	function handleDragMove(e: PointerEvent) {

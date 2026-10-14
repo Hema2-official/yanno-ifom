@@ -6,7 +6,7 @@
 	import { zoomState } from '$lib/states/zoom.svelte';
 	import type { Point } from '$lib/types/geometry.type';
 	import { getPointerViewBoxCoords, polylineToPath } from '$lib/utils/display';
-	import { startDrag } from '$lib/utils/drag';
+	import { startGesture } from '$lib/ui/annotation/gestures';
 	import { getPolygonsBounds, getPolygonsBoundsCached } from '$lib/utils/geometry';
 	import { cutMask } from '$lib/utils/masks';
 	import { rleToPolygons } from '$lib/utils/rle';
@@ -28,13 +28,16 @@
 	const MIN_POINT_DISTANCE = 0.5;
 
 	function handlePointerDown(e: PointerEvent) {
-		if (e.button !== 0 || !root?.ownerSVGElement) return;
+		if (e.button !== 0 || !root) return;
 
 		e.preventDefault();
 		e.stopPropagation();
-		if (!startDrag(root, e, { onMove: handleDragMove, onEnd: handleDragEnd })) return;
+		startGesture(root, e, { onStart: begin, onMove: handleDragMove, onEnd: handleDragEnd });
+	}
 
-		line = [getPointerViewBoxCoords(e, root.ownerSVGElement)];
+	function begin(press: PointerEvent) {
+		if (!root?.ownerSVGElement) return;
+		line = [getPointerViewBoxCoords(press, root.ownerSVGElement)];
 	}
 
 	function handleDragMove(e: PointerEvent) {

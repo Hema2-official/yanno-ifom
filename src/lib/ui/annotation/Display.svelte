@@ -29,7 +29,7 @@
 	import FrameTile from './FrameTile.svelte';
 	import HoverHighlight from './HoverHighlight.svelte';
 	import StandInCanvas from './StandInCanvas.svelte';
-	import { startPan, startTurn } from './gestures';
+	import { cellsAt, selectionClick, startPan, startTurn } from './gestures';
 
 	// The current tool is mounted in every frame tile, when editing is on
 	const Tool = $derived(projectState.readOnly ? null : toolRegistry[editorState.tool].component);
@@ -202,19 +202,6 @@
 		return { cell, matrix: placement.matrices[offset] };
 	});
 
-	/** What a click there does to the selection, if anything. */
-	const clickAt = (e: PointerEvent): (() => void) | null => {
-		const target = targetAt(e);
-		const range = keybindings.isActive('selection.range', e);
-		const additive = range || keybindings.isActive('selection.add', e);
-		if (target?.kind !== 'cell') return additive ? null : () => editorState.clearSelection();
-
-		const { cell } = target;
-		if (range) return () => editorState.selectRange(cell);
-		if (additive) return () => editorState.toggle(cell);
-		return () => editorState.select(cell);
-	};
-
 	// This decides whether to turn or click
 	const turnFrom = (press: PointerEvent) => {
 		rightDown = startTurn(viewportElement, press, {
@@ -242,7 +229,6 @@
 
 	// Decide between messing with the selection and panning the viewport
 	const panFrom = (press: PointerEvent) => {
-		const click = press.button === 0 ? clickAt(press) : null;
 		isPanning = startPan(viewportElement, press, {
 			locked: optionsState.pointerLockEnabled.current && press.button === 0,
 			onPan: (deltaX, deltaY) => {
@@ -251,7 +237,7 @@
 			},
 			onEnd: (wasClick) => {
 				isPanning = false;
-				if (wasClick) click?.();
+				if (wasClick && press.button === 0) selectionClick(press);
 			}
 		});
 	};
@@ -270,11 +256,8 @@
 
 	/** The cell or the frame tile under a client position, looking through the tools' own elements. */
 	const targetAt = (point: ClientPoint): DisplayTarget | null => {
-		for (const element of document.elementsFromPoint(point.clientX, point.clientY)) {
-			const id = element.closest('[data-cell-id]')?.getAttribute('data-cell-id');
-			const cell = id ? annotationState.getCell(id) : undefined;
-			if (cell) return { kind: 'cell', cell };
-		}
+		const hit = cellsAt(point)[0];
+		if (hit) return { kind: 'cell', cell: hit.cell };
 
 		const tile = frameTileAt(stageElement, point);
 		return tile ? { kind: 'background', frameIndex: tile.frameIndex } : null;
