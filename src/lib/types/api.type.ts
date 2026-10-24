@@ -121,6 +121,7 @@ export type APIError = {
 
 export type CredentialsError = {
 	detail: {
+		name_field_message?: string;
 		email_field_message?: string;
 		password_field_message?: string;
 	};

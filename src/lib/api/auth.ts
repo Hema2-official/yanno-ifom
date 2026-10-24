@@ -22,11 +22,11 @@ export async function logout(options?: Options) {
 	}
 }
 
-export async function register(email: string, password: string, options?: Options) {
+export async function register(email: string, password: string, name?: string, options?: Options) {
 	try {
 		return await http.post<AuthResponse>(`api/v0/auth/register`, {
 			...options,
-			json: { email, password }
+			json: { email, password, name }
 		});
 	} catch (error) {
 		throw await handleCredentialsError(error);
