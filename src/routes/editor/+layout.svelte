@@ -35,8 +35,11 @@
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/types/api.type';
 	import type { PathnameWithSearchOrHash } from '$app/types';
+	import { IsMobile } from '$lib/hooks/is-mobile.svelte';
 
 	let { children }: { children: Snippet } = $props();
+
+	const isMobile = new IsMobile();
 
 	beforeNavigate((navigation) => {
 		// Commits save lazily and undos are local: flush them before leaving
@@ -57,7 +60,7 @@
 	);
 
 	const handlePaste = (e: ClipboardEvent) => {
-		if (projectState.readOnly || !annotationState.data) return;
+		if (projectState.readOnly || !annotationState.data || isMobile.current) return;
 		if (isTypingTarget(e) || isDialogOpen()) return;
 		const text = e.clipboardData?.getData('text/plain') ?? '';
 		const frameIndex = inputState.pointer?.frameIndex ?? annotationState.currentFrameIndex;
@@ -89,7 +92,9 @@
 		`/editor?project=${project.id}&version=${versionId}`;
 </script>
 
-<KeybindingScope scope="editor" />
+{#if !isMobile.current}
+	<KeybindingScope scope="editor" />
+{/if}
 <svelte:window onpaste={handlePaste} />
 
 {#snippet actionItem(id: ActionId, title: string)}
@@ -275,3 +280,17 @@
 <ExportFramesDialog bind:open={exportFramesOpen} name={exportName} />
 <ExportViewportDialog bind:open={exportViewportOpen} name={exportName} />
 <ReportsDialog name={exportName} />
+
+{#if isMobile.current}
+	<div
+		class="bg-background fixed inset-0 z-50 flex flex-col items-center justify-center gap-2 p-6 text-center"
+	>
+		<h1 class="text-lg font-semibold">Narrow displays aren't supported</h1>
+		<p class="text-muted-foreground text-sm">
+			The content needs a wider window to show properly.
+		</p>
+		<a href={resolve('/projects')} class="text-sm underline underline-offset-4">
+			Back to the projects
+		</a>
+	</div>
+{/if}
