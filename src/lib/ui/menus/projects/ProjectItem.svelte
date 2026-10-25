@@ -46,12 +46,12 @@
 		<Button
 			variant="ghost"
 			{...props}
-			class={cn(String(props.class), 'h-auto hover:bg-transparent!')}
+			class={cn(String(props.class), 'h-auto flex-nowrap! hover:bg-transparent!')}
 			{href}
 		>
 			<Item.Media variant="icon"><Icon /></Item.Media>
 
-			<Item.Content>
+			<Item.Content class="min-w-0 whitespace-normal">
 				<Item.Title class="line-clamp-1">{project.name}</Item.Title>
 				<Item.Description>
 					{videoSummary(project.video_config, project.video_metadata)}
