@@ -312,6 +312,13 @@ export function lineage(tracks: TrackSummary[]): Ancestry[] {
 export function median(values: number[]): number | null {
 	if (values.length === 0) return null;
 	const sorted = values.toSorted((a, b) => a - b);
-	const middle = Math.floor(sorted.length / 2);
-	return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+	return quantile(sorted, 0.5);
+}
+
+/** The `p` quantile of sorted values, interpolated as R's default (type 7). */
+export function quantile(sorted: number[], p: number): number {
+	const position = (sorted.length - 1) * p;
+	const below = Math.floor(position);
+	const next = sorted[Math.min(below + 1, sorted.length - 1)];
+	return sorted[below] + (position - below) * (next - sorted[below]);
 }

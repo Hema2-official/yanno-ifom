@@ -468,6 +468,22 @@ export function rleMeasure(rle: RLEType): RleMeasure {
 	return measure;
 }
 
+/** The mask's pixels as indexes into a row-major image of its size, read off the runs. */
+export function rlePixels(rle: RLEType): Uint32Array {
+	const counts = stringToCounts(rle.counts);
+	const [rows, cols] = rle.size;
+	const pixels = new Uint32Array(cellArea(counts));
+	let [n, pos] = [0, 0];
+	for (let i = 0; i < counts.length; i++) {
+		for (let p = pos, end = i % 2 === 1 ? pos + counts[i] : pos; p < end; p++) {
+			const col = Math.floor(p / rows);
+			pixels[n++] = (p - col * rows) * cols + col;
+		}
+		pos += counts[i];
+	}
+	return pixels;
+}
+
 /** How much two masks overlap, as intersection over union. */
 export function rleIoU(a: RLEType, b: RLEType): number {
 	// Return 0 when the masks have different sizes

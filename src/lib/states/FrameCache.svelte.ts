@@ -4,7 +4,7 @@ import { projectState } from './ProjectState.svelte';
 import { SettingState } from './SettingState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 
-type ImageReader = (imageIndex: number) => Promise<Blob>;
+type ImageReader = (imageIndex: number, signal?: AbortSignal) => Promise<Blob>;
 
 const MAX_PARALLEL_READS = 4;
 
@@ -60,11 +60,11 @@ class FrameCache {
 	}
 
 	/** Like `load`, but keeps nothing new, so exports leave the display's images cached. */
-	readUncached(imageIndex: number): Promise<Blob> {
+	readUncached(imageIndex: number, signal?: AbortSignal): Promise<Blob> {
 		const cached = this.#blobs.get(imageIndex) ?? this.#inflight.get(imageIndex);
 		if (cached) return Promise.resolve(cached);
 		if (!this.#source) return Promise.reject(new Error('No project is open'));
-		return this.#source.read(imageIndex);
+		return this.#source.read(imageIndex, signal);
 	}
 
 	/** Replaces the prefetch queue based on the current needs */

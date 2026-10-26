@@ -135,6 +135,7 @@
 							/>
 							Channel {channelIndex}
 							{#if channelIndex === primaryChannelIndex}(primary){/if}
+							<!-- TODO: show channel.label (?) -->
 						</Label>
 						{#if channel.isChanged}
 							<IconButton

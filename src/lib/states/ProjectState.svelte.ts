@@ -60,6 +60,14 @@ class ProjectState {
 		this.cloudProject?.video_metadata ?? this.localProject?.video_metadata
 	);
 	frameCount = $derived(getFrameCount(this.videoConfig, this.videoMetadata));
+	/** The loaded project, as the loaders key it for `frameCache` and `videoDisplayState`; null between projects. */
+	key: string | null = $derived(
+		this.cloudProject
+			? `cloud:${this.cloudProject.id}`
+			: this.localProject
+				? `local:${this.localProject.id}`
+				: null
+	);
 	// Viewers never edit, editors only while their session holds the version's lock
 	readOnly = $derived(!!this.cloudProject && !editSession.canEdit);
 
@@ -142,7 +150,9 @@ class ProjectState {
 		this.cloudProject = project;
 		this.cloudVersion = version;
 		const key = `cloud:${projectId}`;
-		frameCache.open(key, (imageIndex) => downloadWebFrame(projectId, imageIndex));
+		frameCache.open(key, (imageIndex, signal) =>
+			downloadWebFrame(projectId, imageIndex, { signal })
+		);
 		videoDisplayState.open(key, { local: false });
 
 		// Check if it is ready

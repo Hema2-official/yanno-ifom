@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ChartFigure from './ChartFigure.svelte';
+
 	type Props = {
 		title: string;
 		values: number[];
@@ -45,87 +47,75 @@
 	// The bar under the pointer
 	let active: number | null = $state(null);
 
-	/** Keeps the tooltip inside the chart: centered on the bar, or flush with an edge. */
-	function tooltipShift(i: number) {
-		const x = centerOf(i);
-		if (x < width * 0.15) return '-10%';
-		if (x > width * 0.85) return '-90%';
-		return '-50%';
-	}
-
 	function handlePointerMove(e: PointerEvent) {
 		const x = e.clientX - (e.currentTarget as SVGElement).getBoundingClientRect().left;
 		const i = Math.floor((x - PAD.left) / slot);
 		active = i >= 0 && i < values.length ? i : null;
 	}
+
+	const tooltip = $derived(
+		active === null
+			? null
+			: {
+					x: centerOf(active),
+					y: yOf(values[active]) - 6,
+					value: values[active].toLocaleString(),
+					detail: labelOf(active)
+				}
+	);
 </script>
 
-<figure class="flex flex-col gap-1">
-	<figcaption class="text-sm font-medium">{title}</figcaption>
-	<div class="relative" bind:clientWidth={containerWidth}>
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
-		<svg
-			{width}
-			height={HEIGHT}
-			role="img"
-			aria-label={title}
-			class={['block', onPick && 'cursor-pointer']}
-			onclick={() => active !== null && onPick?.(active)}
-			onpointermove={handlePointerMove}
-			onpointerleave={() => (active = null)}
-		>
-			{#each ticks as tick (tick)}
-				<line
-					x1={PAD.left}
-					y1={yOf(tick)}
-					x2={width - PAD.right}
-					y2={yOf(tick)}
-					class="stroke-border"
-					shape-rendering="crispEdges"
-				/>
+<ChartFigure {title} bind:width={containerWidth} {tooltip}>
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
+	<svg
+		{width}
+		height={HEIGHT}
+		role="img"
+		aria-label={title}
+		class={['block', onPick && 'cursor-pointer']}
+		onclick={() => active !== null && onPick?.(active)}
+		onpointermove={handlePointerMove}
+		onpointerleave={() => (active = null)}
+	>
+		{#each ticks as tick (tick)}
+			<line
+				x1={PAD.left}
+				y1={yOf(tick)}
+				x2={width - PAD.right}
+				y2={yOf(tick)}
+				class="stroke-border"
+				shape-rendering="crispEdges"
+			/>
+			<text
+				x={PAD.left - 6}
+				y={yOf(tick)}
+				text-anchor="end"
+				dominant-baseline="middle"
+				class="fill-muted-foreground text-[10px] tabular-nums"
+			>
+				{tick.toLocaleString()}
+			</text>
+		{/each}
+
+		{#each values as value, i (i)}
+			<rect
+				x={centerOf(i) - barWidth / 2}
+				y={yOf(value)}
+				width={barWidth}
+				height={baseline - yOf(value)}
+				class="fill-chart-1 transition-opacity"
+				opacity={active === null || active === i ? 1 : 0.55}
+			/>
+			{#if i % labelEvery === 0}
 				<text
-					x={PAD.left - 6}
-					y={yOf(tick)}
-					text-anchor="end"
-					dominant-baseline="middle"
+					x={centerOf(i)}
+					y={HEIGHT - 6}
+					text-anchor="middle"
 					class="fill-muted-foreground text-[10px] tabular-nums"
 				>
-					{tick.toLocaleString()}
+					{labelOf(i)}
 				</text>
-			{/each}
-
-			{#each values as value, i (i)}
-				<rect
-					x={centerOf(i) - barWidth / 2}
-					y={yOf(value)}
-					width={barWidth}
-					height={baseline - yOf(value)}
-					class="fill-chart-1 transition-opacity"
-					opacity={active === null || active === i ? 1 : 0.55}
-				/>
-				{#if i % labelEvery === 0}
-					<text
-						x={centerOf(i)}
-						y={HEIGHT - 6}
-						text-anchor="middle"
-						class="fill-muted-foreground text-[10px] tabular-nums"
-					>
-						{labelOf(i)}
-					</text>
-				{/if}
-			{/each}
-		</svg>
-
-		{#if active !== null}
-			<div
-				class="bg-popover text-popover-foreground ring-foreground/10 pointer-events-none absolute z-10 rounded-md px-2 py-1 text-xs whitespace-nowrap shadow-md ring-1"
-				style:left="{centerOf(active)}px"
-				style:top="{yOf(values[active]) - 6}px"
-				style:transform="translate({tooltipShift(active)}, -100%)"
-			>
-				<span class="font-semibold tabular-nums">{values[active].toLocaleString()}</span>
-				<span class="text-muted-foreground">· {labelOf(active)}</span>
-			</div>
-		{/if}
-	</div>
-</figure>
+			{/if}
+		{/each}
+	</svg>
+</ChartFigure>

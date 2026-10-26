@@ -1,24 +1,25 @@
 <script lang="ts">
-	import { ArrowDownIcon, ArrowUpIcon } from '@lucide/svelte';
 	import * as Table from '$lib/components/ui/table';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Input } from '$lib/components/ui/input';
 	import { ancestorOf, type TrackSummary } from '$lib/utils/reports';
 	import CsvButton from './CsvButton.svelte';
+	import SortHeader, { sortedColumn } from './SortHeader.svelte';
 	import type { ReportProps } from './types';
 
 	let { tracks, frameCount, name, show }: ReportProps = $props();
 
-	const columns: { label: string; value: (track: TrackSummary) => number | null }[] = [
-		{ label: 'Track', value: (track) => track.trackId },
-		{ label: 'First frame', value: (track) => track.first },
-		{ label: 'Last frame', value: (track) => track.last },
-		{ label: 'Cells', value: (track) => track.cells.length },
-		{ label: 'Missing frames', value: (track) => track.gaps.length },
-		{ label: 'Ancestor', value: ancestorOf },
-		{ label: 'Descendants', value: (track) => track.descendants.length },
-		{ label: 'Mean area (px)', value: (track) => Math.round(track.meanArea) }
-	];
+	const columns: { id: string; label: string; value: (track: TrackSummary) => number | null }[] =
+		[
+			{ id: 'track', label: 'Track', value: (track) => track.trackId },
+			{ id: 'first', label: 'First frame', value: (track) => track.first },
+			{ id: 'last', label: 'Last frame', value: (track) => track.last },
+			{ id: 'cells', label: 'Cells', value: (track) => track.cells.length },
+			{ id: 'gaps', label: 'Missing frames', value: (track) => track.gaps.length },
+			{ id: 'ancestor', label: 'Ancestor', value: ancestorOf },
+			{ id: 'descendants', label: 'Descendants', value: (track) => track.descendants.length },
+			{ id: 'area', label: 'Mean area (px)', value: (track) => Math.round(track.meanArea) }
+		];
 
 	const filters: Record<string, { label: string; keeps: (track: TrackSummary) => boolean }> = {
 		endsEarly: { label: 'Ends early', keeps: (track) => track.last < frameCount - 1 },
@@ -32,13 +33,10 @@
 	let query = $state('');
 	const wanted = $derived(new Set((query.match(/\d+/g) ?? []).map(Number)));
 
-	let sort = $state({ column: 0, descending: false });
-	const sortBy = (column: number) => {
-		sort = { column, descending: sort.column === column && !sort.descending };
-	};
+	let sort = $state({ id: 'track', descending: false });
 
 	const rows = $derived.by(() => {
-		const { value } = columns[sort.column];
+		const { value } = sortedColumn(columns, sort);
 		const sign = sort.descending ? -1 : 1;
 		return tracks
 			.filter((track) => wanted.size === 0 || wanted.has(track.trackId))
@@ -64,32 +62,11 @@
 </div>
 
 <Table.Root>
-	<Table.Header>
-		<Table.Row>
-			{#each columns as column, i (column.label)}
-				<Table.Head class="text-right">
-					<button
-						class="inline-flex items-center gap-1"
-						aria-label="Sort by {column.label}"
-						onclick={() => sortBy(i)}
-					>
-						{column.label}
-						{#if sort.column === i}
-							{#if sort.descending}
-								<ArrowDownIcon class="size-3" />
-							{:else}
-								<ArrowUpIcon class="size-3" />
-							{/if}
-						{/if}
-					</button>
-				</Table.Head>
-			{/each}
-		</Table.Row>
-	</Table.Header>
+	<SortHeader {columns} bind:sort />
 	<Table.Body>
 		{#each rows as track (track.trackId)}
 			<Table.Row class="cursor-pointer" onclick={() => show(track.cells)}>
-				{#each columns as column (column.label)}
+				{#each columns as column (column.id)}
 					<Table.Cell class="text-right tabular-nums">
 						{column.value(track)?.toLocaleString() ?? '—'}
 					</Table.Cell>

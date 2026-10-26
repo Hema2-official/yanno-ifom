@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { ChartColumnIcon, GitForkIcon, ListChecksIcon, RouteIcon } from '@lucide/svelte';
+	import {
+		ChartColumnIcon,
+		GitForkIcon,
+		ListChecksIcon,
+		MicroscopeIcon,
+		RouteIcon
+	} from '@lucide/svelte';
 	import type { Component } from 'svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -12,6 +18,7 @@
 	import type { TrackType } from '$lib/types/annotation.type';
 	import { checkLevelOrder, runChecks, summarizeTracks } from '$lib/utils/reports';
 	import ChecksPage from './ChecksPage.svelte';
+	import FluorescencePage from './FluorescencePage.svelte';
 	import { levelIcons } from './levels';
 	import LineagePage from './LineagePage.svelte';
 	import OverviewPage from './OverviewPage.svelte';
@@ -26,7 +33,13 @@
 		{ id: 'overview', label: 'Overview', icon: ChartColumnIcon, Component: OverviewPage },
 		{ id: 'checks', label: 'Checks', icon: ListChecksIcon, Component: ChecksPage },
 		{ id: 'tracks', label: 'Tracks', icon: RouteIcon, Component: TracksPage },
-		{ id: 'lineage', label: 'Lineage', icon: GitForkIcon, Component: LineagePage }
+		{ id: 'lineage', label: 'Lineage', icon: GitForkIcon, Component: LineagePage },
+		{
+			id: 'fluorescence',
+			label: 'Fluorescence',
+			icon: MicroscopeIcon,
+			Component: FluorescencePage
+		}
 	];
 	// Kept while the reports are closed, so a finding's next one is a key away
 	let selected = $state.raw(pages[0]);
@@ -67,7 +80,7 @@
 	<Dialog.Content class="overflow-hidden p-0 sm:max-w-4xl">
 		<Dialog.Title class="sr-only">Reports</Dialog.Title>
 		<Dialog.Description class="sr-only">
-			Statistics, checks, tracks and lineage of the annotation.
+			Statistics, checks, tracks, lineage and fluorescence of the annotation.
 		</Dialog.Description>
 		<Sidebar.Provider
 			class="h-152 max-h-[calc(100vh-2rem)] min-h-0"

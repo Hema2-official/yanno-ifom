@@ -26,6 +26,7 @@ const layoutLookSchema = z.object({ visible: z.boolean(), opacity: z.number() })
 
 /** A channel's look, which the project remembers. */
 const channelSettingsSchema = z.object({
+	label: z.string(),
 	grid: layoutLookSchema,
 	stack: layoutLookSchema,
 	brightness: z.number(),
@@ -38,13 +39,27 @@ const channelSettingsSchema = z.object({
 });
 export type ChannelSettings = z.infer<typeof channelSettingsSchema>;
 
-/** What the project's preferences key holds: of each channel, the fields that differ from the defaults. */
-const projectDisplaySchema = z.object({ channels: z.array(channelSettingsSchema.partial()) });
+export const timeUnits = ['s', 'min', 'h'] as const;
+
+/** When the frames were taken: the first at `start`, then one every `interval`. */
+const frameTimeSchema = z.object({
+	start: z.number(),
+	interval: z.number().positive(),
+	unit: z.enum(timeUnits)
+});
+export type FrameTime = z.infer<typeof frameTimeSchema>;
+
+/** What the project's preferences key holds: of each channel, the fields that differ from the defaults, and the frames' time once set. */
+const projectDisplaySchema = z.object({
+	channels: z.array(channelSettingsSchema.partial()),
+	time: frameTimeSchema.optional()
+});
 type ProjectDisplay = z.infer<typeof projectDisplaySchema>;
 
 const NO_CHANGES: ProjectDisplay = { channels: [] };
 
 const defaultSettings = (visible: boolean): ChannelSettings => ({
+	label: '',
 	grid: { visible, opacity: 1 },
 	stack: { visible, opacity: 1 },
 	brightness: 0,
@@ -65,6 +80,9 @@ const stableJson = (value: unknown) =>
 	);
 
 export class ChannelDisplaySettings {
+	/** Usually the protein it shows; empty for none. */
+	label = $state('');
+
 	// Each layout has its own
 	#shown: Record<DisplayMode, { visible: boolean; opacity: number }>;
 
@@ -113,6 +131,7 @@ export class ChannelDisplaySettings {
 	get settings(): ChannelSettings {
 		const { grid, stack } = $state.snapshot(this.#shown);
 		return {
+			label: this.label,
 			grid,
 			stack,
 			brightness: this.brightness,
@@ -135,14 +154,15 @@ export class ChannelDisplaySettings {
 		);
 	}
 
-	/** Whether the filters differ from the defaults; the layouts' visibility and opacity don't count. */
+	/** Whether the filters differ from the defaults; the label and the layouts' visibility and opacity don't count. */
 	isChanged = $derived(
-		Object.keys(this.changes).some((key) => key !== 'grid' && key !== 'stack')
+		Object.keys(this.changes).some((key) => !['label', 'grid', 'stack'].includes(key))
 	);
 
 	/** Takes a stored look over the defaults. */
 	load(stored: Partial<ChannelSettings> = {}) {
 		const settings = { ...this.#defaults, ...stored };
+		this.label = settings.label;
 		this.#shown.grid = { ...settings.grid };
 		this.#shown.stack = { ...settings.stack };
 		this.brightness = settings.brightness;
@@ -155,14 +175,15 @@ export class ChannelDisplaySettings {
 	}
 
 	resetFilters() {
-		const { grid, stack } = this.settings;
-		this.load({ grid, stack });
+		const { label, grid, stack } = this.settings;
+		this.load({ label, grid, stack });
 	}
 }
 
-/** The looks as the project stores them, `NO_CHANGES` itself while every channel has the defaults. */
-function toStored(channels: ChannelDisplaySettings[]): ProjectDisplay {
+/** The looks as the project stores them, `NO_CHANGES` itself while every channel has the defaults and no time is set. */
+function toStored(channels: ChannelDisplaySettings[], time: FrameTime | null): ProjectDisplay {
 	const changes = channels.map((channel) => channel.changes);
+	if (time) return { channels: changes, time };
 	return changes.some((change) => Object.keys(change).length > 0)
 		? { channels: changes }
 		: NO_CHANGES;
@@ -217,13 +238,18 @@ class VideoDisplayState {
 		);
 	});
 
+	/** When the project's frames were taken, null until it's set. */
+	frameTime: FrameTime | null = $state(null);
+
 	/** Keeps the project's looks under its key; a local project's stay on the device. */
 	open(key: string, { local }: { local: boolean }) {
-		this.#display = new SettingState<ProjectDisplay>(`display.${key}`, NO_CHANGES, {
+		const display = new SettingState<ProjectDisplay>(`display.${key}`, NO_CHANGES, {
 			local,
 			validate: (value): value is ProjectDisplay =>
 				projectDisplaySchema.safeParse(value).success
 		});
+		this.#display = display;
+		this.frameTime = display.current.time ?? null;
 	}
 
 	/** A sample of each channel's frames, as counts of each value of red, green and blue. */
@@ -259,17 +285,22 @@ class VideoDisplayState {
 			});
 
 			// A change here goes to the project's key, which an untouched project leaves unset
-			watch([() => this.#display, () => toStored(this.channels)], ([display, ours]) => {
-				if (!display || stableJson(ours) === stableJson(display.current)) return;
-				if (ours === NO_CHANGES) display.reset();
-				else display.current = ours;
-			});
+			watch(
+				[() => this.#display, () => toStored(this.channels, this.frameTime)],
+				([display, ours]) => {
+					if (!display || stableJson(ours) === stableJson(display.current)) return;
+					if (ours === NO_CHANGES) display.reset();
+					else display.current = ours;
+				}
+			);
 
 			// The key's value from another tab, or from the account once it's known
 			watch([() => this.#display?.current], ([stored]) => {
 				const display = this.#display;
-				if (!display || stableJson(stored) === stableJson(toStored(this.channels))) return;
+				const ours = toStored(this.channels, this.frameTime);
+				if (!display || stableJson(stored) === stableJson(ours)) return;
 				this.channels.forEach((channel, i) => channel.load(stored?.channels[i]));
+				this.frameTime = stored?.time ?? null;
 			});
 		});
 	}
@@ -393,6 +424,7 @@ class VideoDisplayState {
 	/** Without a project's looks. */
 	reset() {
 		this.#display = null;
+		this.frameTime = null;
 	}
 }
 

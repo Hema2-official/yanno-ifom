@@ -1,6 +1,6 @@
 import type { RLEType } from '$lib/types/annotation.type';
 import type { Point } from '$lib/types/geometry.type';
-import { maskToRle, rleToMask } from './rle';
+import { maskToRle, rleToMask, rlePixels } from './rle';
 
 /** The widest gap between cells, in pixels, that a merge bridges. */
 const MAX_BRIDGE = 8;
@@ -8,13 +8,20 @@ const MAX_BRIDGE = 8;
 /** Merge nearby cell masks into one continuous mask by filling in the small spaces between them. */
 export function mergeMasks(rles: RLEType[]): RLEType {
 	const [height, width] = rles[0].size;
-	const full = rles.map(rleToMask);
+	const result = new Uint8Array(width * height);
+	for (const pixel of mergedPixels(rles.map(rlePixels), rles[0].size)) result[pixel] = 1;
+	return maskToRle(result, rles[0].size);
+}
 
+/** `mergeMasks` on the masks' pixels (`rlePixels`), as indexes into a row-major image of `size`. */
+export function mergedPixels(
+	pixelsOf: Uint32Array[],
+	[height, width]: RLEType['size']
+): Uint32Array {
 	// A window around the cells, with room for the closing
 	let [minX, minY, maxX, maxY] = [width, height, -1, -1];
-	for (const mask of full) {
-		for (let i = 0; i < mask.length; i++) {
-			if (!mask[i]) continue;
+	for (const pixels of pixelsOf) {
+		for (const i of pixels) {
 			const x = i % width;
 			const y = (i - x) / width;
 			[minX, minY] = [Math.min(minX, x), Math.min(minY, y)];
@@ -25,11 +32,11 @@ export function mergeMasks(rles: RLEType[]): RLEType {
 	const top = Math.max(0, minY - MAX_BRIDGE - 1);
 	const w = Math.min(width, maxX + MAX_BRIDGE + 2) - left;
 	const h = Math.min(height, maxY + MAX_BRIDGE + 2) - top;
-	const masks = full.map((mask) => {
+	const masks = pixelsOf.map((pixels) => {
 		const crop = new Uint8Array(w * h);
-		for (let y = 0; y < h; y++) {
-			const start = (y + top) * width + left;
-			crop.set(mask.subarray(start, start + w), y * w);
+		for (const i of pixels) {
+			const x = i % width;
+			crop[((i - x) / width - top) * w + x - left] = 1;
 		}
 		return crop;
 	});
@@ -55,11 +62,14 @@ export function mergeMasks(rles: RLEType[]): RLEType {
 		if (pieces(merged, w, h).length === 1) break;
 	}
 
-	const result = new Uint8Array(width * height);
-	for (let y = 0; y < h; y++) {
-		result.set(merged.subarray(y * w, (y + 1) * w), (y + top) * width + left);
+	const result = new Uint32Array(merged.reduce((count, value) => count + value, 0));
+	let n = 0;
+	for (let i = 0; i < merged.length; i++) {
+		if (!merged[i]) continue;
+		const x = i % w;
+		result[n++] = ((i - x) / w + top) * width + x + left;
 	}
-	return maskToRle(result, rles[0].size);
+	return result;
 }
 
 /** Spreads the pixels of `value` to their 8 neighbours: a dilation for 1, an erosion for 0. */
