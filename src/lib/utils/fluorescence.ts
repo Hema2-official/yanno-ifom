@@ -68,39 +68,20 @@ export type Measurement = {
 	background: (PixelStats | null)[];
 };
 
-type Pixels = { data: Uint8ClampedArray; width: number; height: number };
-
-/** Reads images' pixels as stored, without color management, through one canvas. */
-export function pixelReader(): (blob: Blob) => Promise<Pixels> {
-	const canvas = new OffscreenCanvas(1, 1);
-	const context = canvas.getContext('2d', { willReadFrequently: true });
-	if (!context) throw new Error("Couldn't read the frames' pixels");
-	return async (blob) => {
-		const image = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
-		const { width, height } = image;
-		if (canvas.width !== width || canvas.height !== height) {
-			canvas.width = width;
-			canvas.height = height;
-		}
-		context.drawImage(image, 0, 0);
-		image.close();
-		return context.getImageData(0, 0, width, height);
-	};
-}
+/** One color of a frame, a value per pixel, row by row. */
+export type Pixels = { data: ArrayLike<number>; width: number; height: number };
 
 const READ_AHEAD = 4;
 
 /**
- * Sums each frame's values at `offset` in its RGBA pixels (0 for red, 1 for
- * green, 2 for blue) under every cell and couple and outside the cells. `read`
- * gives null for a frame without that channel's image.
+ * Sums each frame's values under every cell and couple and outside the cells.
+ * `read` gives null for a frame without that channel's image.
  */
 export async function measureFluorescence(
 	cells: TrackType[],
 	coupled: CoupleFrame[],
 	frameCount: number,
 	read: (frame: number) => Promise<Pixels | null>,
-	offset: number,
 	{ signal, onFrame }: { signal: AbortSignal; onFrame: (done: number) => void }
 ): Promise<Measurement> {
 	const byFrame = Map.groupBy(cells, (cell) => cell.Frame);
@@ -136,7 +117,6 @@ export async function measureFluorescence(
 				byFrame.get(frame) ?? [],
 				couplesByFrame.get(frame) ?? [],
 				pixels,
-				offset,
 				covered
 			);
 		} else {
@@ -153,7 +133,6 @@ function measureFrame(
 	cells: TrackType[],
 	couples: CoupleFrame[],
 	{ data, width, height }: Pixels,
-	offset: number,
 	covered: Uint8Array
 ): PixelStats | null {
 	const pixelsOf = new Map<string, Uint32Array>();
@@ -166,7 +145,7 @@ function measureFrame(
 		}
 		const pixels = rlePixels(cell.SegmentationRLE);
 		pixelsOf.set(cell.ObjectID, pixels);
-		measurement.byCell.set(cell.ObjectID, statsOf(pixels, data, offset));
+		measurement.byCell.set(cell.ObjectID, statsOf(pixels, data));
 		for (const pixel of pixels) covered[pixel] = 1;
 	}
 
@@ -176,13 +155,13 @@ function measureFrame(
 			members.map((cell) => pixelsOf.get(cell.ObjectID)!),
 			[height, width]
 		);
-		measurement.byCouple.set(key, statsOf(joined, data, offset));
+		measurement.byCouple.set(key, statsOf(joined, data));
 	}
 
 	let [count, sum, squares] = [0, 0, 0];
 	for (let pixel = 0; pixel < covered.length; pixel++) {
 		if (covered[pixel]) continue;
-		const value = data[pixel * 4 + offset];
+		const value = data[pixel];
 		count++;
 		sum += value;
 		squares += value * value;
@@ -199,10 +178,10 @@ function coupleCells(cells: TrackType[], { mother, daughter }: Couple): TrackTyp
 	return both ? members : null;
 }
 
-function statsOf(pixels: Uint32Array, data: Uint8ClampedArray, offset: number): PixelStats {
+function statsOf(pixels: Uint32Array, data: ArrayLike<number>): PixelStats {
 	let [sum, squares] = [0, 0];
 	for (const pixel of pixels) {
-		const value = data[pixel * 4 + offset];
+		const value = data[pixel];
 		sum += value;
 		squares += value * value;
 	}

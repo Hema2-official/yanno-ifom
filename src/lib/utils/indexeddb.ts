@@ -7,6 +7,8 @@ export type DBProject = {
 	video_config: VideoConfig;
 	video_metadata?: VideoMetadata;
 	annotation: Blob; // gzip compressed json
+	/** The original video, which the fluorescence report measures. */
+	video: Blob;
 };
 
 export type DBFrame = {

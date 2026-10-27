@@ -1,4 +1,4 @@
-import { http } from './kyConfig';
+import { BASE_URL, http } from './kyConfig';
 import type { Options } from 'ky';
 import type {
 	CopyProjectVersionBody,
@@ -100,6 +100,9 @@ export async function downloadVideo(project_id: string, options?: Options) {
 		throw await handleError(error);
 	}
 }
+
+/** Where the original video is, for reading it in ranges. */
+export const videoUrl = (projectId: string) => `${BASE_URL}api/v0/projects/${projectId}/video`;
 
 export async function downloadWebFrame(projectId: string, imageIndex: number, options?: Options) {
 	try {

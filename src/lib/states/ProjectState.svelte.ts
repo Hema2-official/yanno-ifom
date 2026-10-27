@@ -4,7 +4,8 @@ import {
 	downloadWebFrame,
 	getProject,
 	getVersionData,
-	updateVersionData
+	updateVersionData,
+	videoUrl
 } from '$lib/api/projects';
 import {
 	annotationDataSchema,
@@ -26,7 +27,7 @@ import {
 	readLocalFrame,
 	type DBProject
 } from '$lib/utils/indexeddb';
-import { WebPConverter } from '$lib/utils/webp';
+import { channelRanges, WebPConverter } from '$lib/utils/webp';
 import { annotationState, stateBefore } from './AnnotationState.svelte';
 import { editorState } from './EditorState.svelte';
 import { editSession } from './EditSessionState.svelte';
@@ -77,6 +78,31 @@ class ProjectState {
 		const imageIndex = getImageIndex(this.videoConfig, frameIndex, channelIndex);
 		const imageCount = this.videoMetadata?.frame_count;
 		return imageCount !== undefined && imageIndex >= imageCount ? null : imageIndex;
+	}
+
+	#video: { key: string; tiff: Promise<geotiff.GeoTIFF> } | null = null;
+
+	/** The original video at its own depth, read from the server in ranges or from the stored file. */
+	openVideo(): Promise<geotiff.GeoTIFF> {
+		const { key, cloudProject, localProject } = this;
+		if (key === null) return Promise.reject(new Error('No project is open'));
+		if (this.#video?.key !== key) {
+			// In blocks, so the pages' headers come in a request or two rather than one each;
+			// the typings leave out both options
+			const options: geotiff.RemoteSourceOptions & {
+				credentials: RequestCredentials;
+				blockSize: number;
+			} = { credentials: 'include', blockSize: 65536 };
+			const tiff = cloudProject
+				? geotiff.fromUrl(videoUrl(cloudProject.id), options)
+				: geotiff.fromBlob(localProject!.video);
+			// A failed opening is tried again next time
+			tiff.catch(() => {
+				if (this.#video?.tiff === tiff) this.#video = null;
+			});
+			this.#video = { key, tiff };
+		}
+		return this.#video.tiff;
 	}
 
 	saveData(data: VersionManaged<TrackType[]>): Promise<void> {
@@ -130,6 +156,7 @@ class ProjectState {
 		this.cloudProject = null;
 		this.cloudVersion = null;
 		this.localProject = null;
+		this.#video = null;
 		this.saveError = null;
 		annotationState.load(null);
 		annotationState.currentFrameIndex = 0;
@@ -229,7 +256,12 @@ class ProjectState {
 		);
 
 		// Save project to indexeddb and get auto-incremented ID
-		const projectId = await localProjectsDb.projects.add({ name, video_config, annotation });
+		const projectId = await localProjectsDb.projects.add({
+			name,
+			video_config,
+			annotation,
+			video: videoFile
+		});
 
 		try {
 			await this.#storeLocalFrames(projectId, video_config, videoFile, onProgress);
@@ -250,6 +282,12 @@ class ProjectState {
 		// Open TIFF and get image count
 		const tiff = await geotiff.fromBlob(videoFile);
 		const count = await tiff.getImageCount();
+
+		// Deeper videos are stretched from each channel's own range, as the server does
+		onProgress?.('Reading video...', 0);
+		const ranges = await channelRanges(tiff, video_config.channel_period, (done) =>
+			onProgress?.(`Reading video... (${done}/${count})`, done / count)
+		);
 
 		// Report 0 progress
 		onProgress?.('Converting video...', 0);
@@ -285,7 +323,8 @@ class ProjectState {
 
 			// Convert to WebP blob
 			const webpImageBlob = await webpConverter.tiffImageToWebP(image, {
-				statisticsCallback: (stats) => processStats(i % video_config.channel_period, stats)
+				statisticsCallback: (stats) => processStats(i % video_config.channel_period, stats),
+				range: ranges?.[i % video_config.channel_period]
 			});
 
 			// Store frame blob in IndexedDB

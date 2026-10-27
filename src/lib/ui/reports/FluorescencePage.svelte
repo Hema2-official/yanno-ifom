@@ -40,7 +40,6 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Table from '$lib/components/ui/table';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
-	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import { videoDisplayState } from '$lib/states/VideoDisplayState.svelte';
 	import { VideoColor } from '$lib/types/api.type';
 	import LineChart, { type ChartLine } from '$lib/ui/common/LineChart.svelte';
@@ -54,7 +53,6 @@
 		fluorescenceRows,
 		measureFluorescence,
 		medianCsv,
-		pixelReader,
 		quartilesByFrame,
 		timeAt,
 		type FluorescenceObject
@@ -119,18 +117,22 @@
 		const abort = new AbortController();
 		progress = { done: 0, abort };
 		try {
-			const readPixels = pixelReader();
+			const video = await projectState.openVideo();
 			const result = await measureFluorescence(
 				data.current,
 				coupled,
 				frameCount,
 				async (frame) => {
 					const imageIndex = projectState.imageIndex(frame, channel);
-					return imageIndex === null
-						? null
-						: readPixels(await frameCache.readUncached(imageIndex, abort.signal));
+					if (imageIndex === null) return null;
+					const image = await video.getImage(imageIndex);
+					// The picked color alone, at the video's own depth
+					const [values] = await image.readRasters({
+						samples: [offset],
+						signal: abort.signal
+					});
+					return { data: values, width: image.getWidth(), height: image.getHeight() };
 				},
-				offset,
 				{
 					signal: abort.signal,
 					onFrame: (done) => {
@@ -268,10 +270,11 @@
 </script>
 
 <p class="text-muted-foreground text-sm">
-	A channel's values under the cells, frame by frame, as the editor has the frames: 8-bit, from 0
-	to 255. Total is the sum under a cell. Remove background subtracts each frame's mean outside the
-	cells, from every pixel. Mother and daughter together measures a daughter with her mother,
-	joined across the neck, from the daughter's first frame until either ends or buds again.
+	A channel's values under the cells, frame by frame, as the microscope recorded them in the
+	video: from 0 to 65535 for a 16-bit one. Total is the sum under a cell. Remove background
+	subtracts each frame's mean outside the cells, from every pixel. Mother and daughter together
+	measures a daughter with her mother, joined across the neck, from the daughter's first frame
+	until either ends or buds again.
 </p>
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2">

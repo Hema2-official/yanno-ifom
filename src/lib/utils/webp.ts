@@ -1,11 +1,57 @@
 import type { VideoChannelMetadata } from '$lib/types/api.type';
-import type { GeoTIFFImage } from 'geotiff';
+import type { GeoTIFF, GeoTIFFImage } from 'geotiff';
+
+/** The values a stretch maps to 0 and 255. */
+export type ValueRange = [low: number, high: number];
 
 type WebpConversionOptions = {
 	statisticsCallback?: (stats: VideoChannelMetadata) => void;
 	histogramCallback?: (histogram: Uint32Array) => void;
 	normalizeRgb?: boolean;
+	/** Stretched from this range, instead of geotiff's 8-bit reading, which keeps only a 16-bit image's top byte. */
+	range?: ValueRange;
 };
+
+/**
+ * Each channel's lowest and highest value over its pages, to stretch a deeper
+ * video's frames from; null for an 8-bit video, which is stored as it is.
+ */
+export async function channelRanges(
+	tiff: GeoTIFF,
+	channelPeriod: number,
+	onPage?: (done: number) => void
+): Promise<ValueRange[] | null> {
+	if ((await tiff.getImage(0)).getBitsPerSample() <= 8) return null;
+	const ranges = Array.from({ length: channelPeriod }, (): ValueRange => [Infinity, -Infinity]);
+	const count = await tiff.getImageCount();
+	for (let i = 0; i < count; i++) {
+		const values = await (await tiff.getImage(i)).readRasters({ interleave: true });
+		const range = ranges[i % channelPeriod];
+		for (let j = 0; j < values.length; j++) {
+			if (values[j] < range[0]) range[0] = values[j];
+			if (values[j] > range[1]) range[1] = values[j];
+		}
+		onPage?.(i + 1);
+	}
+	return ranges;
+}
+
+/** The image's values from `low` to `high`, stretched linearly to 0..255, as RGBA. */
+async function stretchedRgba(image: GeoTIFFImage, [low, high]: ValueRange) {
+	const values = await image.readRasters({ interleave: true });
+	const samples = image.getSamplesPerPixel();
+	const scale = high > low ? 255 / (high - low) : 0;
+	const [green, blue] = samples >= 3 ? [1, 2] : [0, 0];
+	// A clamped array rounds and clamps what it's given
+	const rgba = new Uint8ClampedArray(image.getWidth() * image.getHeight() * 4);
+	for (let i = 0, j = 0; i < rgba.length; i += 4, j += samples) {
+		rgba[i] = (values[j] - low) * scale;
+		rgba[i + 1] = (values[j + green] - low) * scale;
+		rgba[i + 2] = (values[j + blue] - low) * scale;
+		rgba[i + 3] = 255;
+	}
+	return rgba;
+}
 
 export class WebPConverter {
 	readonly #canvas: OffscreenCanvas;
@@ -28,27 +74,31 @@ export class WebPConverter {
 			this.#canvas.height = height;
 		}
 
-		// Read pre-processed RGB pixel-interleaved 8-bit array
-		const rgbData = await tiffImage.readRGB({ interleave: true });
-
-		// Ensure standard 4-channel RGBA for canvas ImageData
 		let rgbaData: Uint8ClampedArray<ArrayBuffer>;
-		if (rgbData.length === width * height * 4) {
-			rgbaData = new Uint8ClampedArray(
-				rgbData.buffer as ArrayBuffer,
-				rgbData.byteOffset,
-				rgbData.length
-			);
+		if (options?.range) {
+			rgbaData = await stretchedRgba(tiffImage, options.range);
 		} else {
-			rgbaData = new Uint8ClampedArray(width * height * 4);
-			const rgba32 = new Uint32Array(rgbaData.buffer);
-			for (let j = 0; j < width * height; j++) {
-				const srcIdx = j * 3;
-				const r = rgbData[srcIdx];
-				const g = rgbData[srcIdx + 1];
-				const b = rgbData[srcIdx + 2];
-				// Write R, G, B, and A (255) in a single 32-bit store operation
-				rgba32[j] = 0xff000000 | (b << 16) | (g << 8) | r;
+			// Read pre-processed RGB pixel-interleaved 8-bit array
+			const rgbData = await tiffImage.readRGB({ interleave: true });
+
+			// Ensure standard 4-channel RGBA for canvas ImageData
+			if (rgbData.length === width * height * 4) {
+				rgbaData = new Uint8ClampedArray(
+					rgbData.buffer as ArrayBuffer,
+					rgbData.byteOffset,
+					rgbData.length
+				);
+			} else {
+				rgbaData = new Uint8ClampedArray(width * height * 4);
+				const rgba32 = new Uint32Array(rgbaData.buffer);
+				for (let j = 0; j < width * height; j++) {
+					const srcIdx = j * 3;
+					const r = rgbData[srcIdx];
+					const g = rgbData[srcIdx + 1];
+					const b = rgbData[srcIdx + 2];
+					// Write R, G, B, and A (255) in a single 32-bit store operation
+					rgba32[j] = 0xff000000 | (b << 16) | (g << 8) | r;
+				}
 			}
 		}
 
