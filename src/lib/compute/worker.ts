@@ -1,0 +1,256 @@
+/**
+ * Runs one step of symmetry-tracker-web on a local project's video and cells, and answers with
+ * the step's cells and the change that records it, as the backend's runners did. One worker per
+ * run: terminating it is the cancel, and frees the GPU.
+ */
+import * as ort from 'onnxruntime-web/webgpu';
+import ortWasm from 'onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url';
+import ortGlue from 'onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url';
+import { inheritRecords } from '$lib/tracker/inherit/euclidean';
+import { ChannelFrames, scanChannel, selectChannel } from '$lib/tracker/io/frames';
+import { TiffVideo } from '$lib/tracker/io/video';
+import type { TrackType as TrackerRecord } from '$lib/tracker/output/records';
+import { BackendOrder } from '$lib/tracker/output/sinks';
+import type { MultiRle } from '$lib/tracker/rle/rle';
+import { Segmenter } from '$lib/tracker/segment/segmenter';
+import { TrackingKernel } from '$lib/tracker/track/kernel';
+import { trackRecordsAsync, type TrackingStepParams } from '$lib/tracker/track/pipeline';
+import type { InheritanceParams, SegmentationParams, TrackingParams } from '$lib/types/api.type';
+import type { TrackType } from '$lib/types/annotation.type';
+import { makeBulkChange } from '$lib/utils/delta';
+import { CpuSegmenter, CpuTrackingKernel } from './cpu';
+import { loadManifest, loadModel, type ModelManifest } from './models';
+import type { ComputeRequest, ComputeResult } from './run';
+
+export type WorkerRequest = ComputeRequest & {
+	/** The URL of the networks' folder. */
+	models: string;
+};
+
+export type WorkerMessage =
+	| { type: 'progress'; message: string; fraction?: number }
+	| { type: 'done'; result: ComputeResult }
+	| { type: 'error'; message: string };
+
+type Progress = (message: string, fraction?: number) => void;
+
+/** As the backend's segmentation drops them */
+const MIN_OBJECT_SIZE = 20;
+
+/** The local tracks' kernel of either device. */
+interface LocalTrackKernel {
+	readonly timeKernelSize: number;
+	uploadFrame(index: number, frame: Uint8Array): void;
+	localTracks(g: number, centroids: readonly (readonly [number, number])[]): Promise<MultiRle[]>;
+	release(): Promise<void>;
+}
+
+const post = (message: WorkerMessage) => postMessage(message);
+
+/** The cells as the tracker reads them: the seven fields in the backend's order, with explicit nulls. */
+const asRecord = (cell: TrackType): TrackerRecord => ({
+	Frame: cell.Frame,
+	ObjectID: cell.ObjectID,
+	SegmentationRLE: cell.SegmentationRLE,
+	TrackID: cell.TrackID,
+	Interpolated: cell.Interpolated,
+	Class: (cell.Class as string | null | undefined) ?? null,
+	AncestorID: cell.AncestorID ?? null
+});
+
+async function openFrames({ video, videoConfig }: WorkerRequest, progress: Progress) {
+	progress('Reading the video...');
+	const tiff = await TiffVideo.open(video);
+	const pages = selectChannel(
+		tiff.pageCount,
+		videoConfig.channel_period,
+		videoConfig.start_period
+	);
+	return new ChannelFrames(tiff, await scanChannel(tiff, pages));
+}
+
+/** The networks, downloaded on the first run. */
+async function loadModels(
+	request: WorkerRequest,
+	manifest: ModelManifest,
+	names: string[],
+	progress: Progress
+): Promise<Uint8Array[]> {
+	const total = names.reduce((sum, name) => sum + (manifest.models[name]?.bytes ?? 0), 0);
+	const models: Uint8Array[] = [];
+	let done = 0;
+	for (const name of names) {
+		models.push(
+			await loadModel(request.models, manifest, name, (loaded) =>
+				progress('Downloading the networks...', (done + loaded) / total)
+			)
+		);
+		done += models.at(-1)!.length;
+	}
+	progress('Loading the networks...');
+	return models;
+}
+
+async function segmentation(request: WorkerRequest, progress: Progress): Promise<TrackerRecord[]> {
+	const parameters = request.parameters as SegmentationParams;
+	const frames = await openFrames(request, progress);
+	const manifest = await loadManifest(request.models);
+	const [dense, box, mask] = await loadModels(
+		request,
+		manifest,
+		['seg_dense.onnx', 'seg_box.onnx', 'seg_mask.onnx'],
+		progress
+	);
+	const params = { scoreThreshold: parameters.score_threshold, minObjectSize: MIN_OBJECT_SIZE };
+	const { height, width } = frames;
+	const segmenter =
+		request.device === 'gpu'
+			? await Segmenter.create({ dense, box, mask }, height, width, params)
+			: await CpuSegmenter.create({ dense, box, mask }, height, width, params);
+	const records: TrackerRecord[] = [];
+	const frame = new Uint8Array(height * width);
+	for (let k = 0; k < frames.count; k++) {
+		progress(`Segmentation: ${k + 1}/${frames.count}`, k / frames.count);
+		records.push(...(await segmenter.segment(await frames.frame(k, frame), k)));
+	}
+	await segmenter.release();
+	return records;
+}
+
+async function tracking(request: WorkerRequest, progress: Progress): Promise<TrackerRecord[]> {
+	const parameters = request.parameters as TrackingParams;
+	// The tracker reads frames in order, and keeps the cells of a frame in theirs
+	const records = request.current.map(asRecord).sort((a, b) => a.Frame - b.Frame);
+	if (records.length === 0) throw new Error('The project has no cells: run segmentation first');
+	const frames = await openFrames(request, progress);
+	const { count, height, width } = frames;
+	const misfit = records.find(
+		({ SegmentationRLE: { size } }) => size[0] !== height || size[1] !== width
+	);
+	if (misfit) {
+		const [h, w] = misfit.SegmentationRLE.size;
+		throw new Error(
+			`Cell ${misfit.ObjectID} is ${w}×${h} pixels, the video ${width}×${height}`
+		);
+	}
+	const manifest = await loadManifest(request.models);
+	// The model's time kernel size is in its name, as "_FBtr7_"
+	const timeKernelSize = Number(/_FBtr(\d+)_/.exec(manifest.source.tracker)?.[1]);
+	if (!timeKernelSize) throw new Error(`No time kernel size in ${manifest.source.tracker}`);
+	const [model] = await loadModels(request, manifest, ['track.onnx'], progress);
+	const confidence = parameters.segmentation_confidence;
+	const kernel: LocalTrackKernel =
+		request.device === 'gpu'
+			? await TrackingKernel.create(model, count, height, width, timeKernelSize, confidence)
+			: await CpuTrackingKernel.create(
+					model,
+					count,
+					height,
+					width,
+					timeKernelSize,
+					confidence
+				);
+
+	let tracked = 0;
+	const report = (frame: number) =>
+		progress(`Tracking: ${frame + 1}/${count}`, tracked / Math.max(records.length, 1));
+	let current = 0;
+	if (kernel instanceof CpuTrackingKernel) {
+		kernel.onObject = () => {
+			tracked++;
+			report(current);
+		};
+	}
+
+	const params: TrackingStepParams = {
+		faultyObjectRemoval: parameters.remove_faulty_objects,
+		minObjectPixelNumber: parameters.min_object_pixel_number,
+		maxOverlapRatio: parameters.max_overlap_ratio,
+		timeKernelSize,
+		maxTimeKernelShift: parameters.max_time_kernel_shift ?? null,
+		minRequiredSimilarity: parameters.min_required_similarity
+	};
+	const output = new BackendOrder();
+	const frame = new Uint8Array(height * width);
+	let next = 0;
+	// As the tracker's trackVideo: the frames reach the kernel as its window moves, each once
+	await trackRecordsAsync(
+		records,
+		count,
+		height,
+		width,
+		params,
+		async (g, objects) => {
+			current = g;
+			report(g);
+			for (
+				next = Math.max(next, g - timeKernelSize);
+				next <= Math.min(g + timeKernelSize, count - 1);
+				next++
+			) {
+				kernel.uploadFrame(next, await frames.frame(next, frame));
+			}
+			const tracks = await kernel.localTracks(
+				g,
+				objects.map((o) => {
+					if (!o.centroid) throw new Error(`${o.objectId} has no centroid to mark`);
+					return o.centroid;
+				})
+			);
+			if (!(kernel instanceof CpuTrackingKernel)) tracked += objects.length;
+			return tracks;
+		},
+		output.add
+	);
+	await kernel.release();
+	return output.records();
+}
+
+function inheritance(request: WorkerRequest, progress: Progress): TrackerRecord[] {
+	const parameters = request.parameters as InheritanceParams;
+	progress('Detecting inheritance...');
+	const records = request.current.map(asRecord);
+	// Untracked cells neither have nor are mothers
+	const tracked = records.filter((r) => r.TrackID !== null);
+	if (tracked.length === 0) throw new Error('No cell has a track ID: run tracking first');
+	const mothers = new Map(
+		inheritRecords(tracked, parameters.max_centroid_distance).map((r) => [
+			r.TrackID,
+			r.AncestorID
+		])
+	);
+	return records.map((r) => ({
+		...r,
+		AncestorID: r.TrackID === null ? null : (mothers.get(r.TrackID) ?? null)
+	}));
+}
+
+const steps = { segmentation, tracking, inheritance };
+
+const messages = {
+	segmentation: 'Perform segmentation',
+	tracking: 'Perform tracking',
+	inheritance: 'Perform inheritance'
+};
+
+async function run(request: WorkerRequest): Promise<ComputeResult> {
+	const progress: Progress = (message, fraction) => post({ type: 'progress', message, fraction });
+	if (request.device === 'gpu' && !(await navigator.gpu?.requestAdapter())) {
+		throw new Error('This browser has no WebGPU: run the step on the CPU');
+	}
+	const current = (await steps[request.step](request, progress)) as TrackType[];
+	progress('Recording the change...');
+	return { current, change: makeBulkChange(current, request.current, messages[request.step]) };
+}
+
+ort.env.logLevel = 'warning';
+// From its own files: bundled into this worker, ONNX Runtime would start its threads from this script
+ort.env.wasm.wasmPaths = { wasm: ortWasm, mjs: ortGlue };
+
+onmessage = ({ data }: MessageEvent<WorkerRequest>) => {
+	run(data).then(
+		(result) => post({ type: 'done', result }),
+		(error: unknown) =>
+			post({ type: 'error', message: error instanceof Error ? error.message : String(error) })
+	);
+};

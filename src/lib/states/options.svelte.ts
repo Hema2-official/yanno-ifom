@@ -1,5 +1,6 @@
+import type { ComputeDevice } from '$lib/compute/run';
 import type { ToolId } from '$lib/ui/editor-tools/registry';
-import { SettingState } from './SettingState.svelte';
+import { oneOf, SettingState } from './SettingState.svelte';
 
 // TODO: organize states
 class OptionsState {
@@ -15,6 +16,11 @@ class OptionsState {
 	// Limits for reports
 	reportJump = new SettingState('reportJump', 30);
 	reportAreaFactor = new SettingState('reportAreaFactor', 2);
+
+	/** What runs the steps, where the browser has WebGPU. */
+	computeDevice = new SettingState<ComputeDevice>('computeDevice', 'gpu', {
+		validate: oneOf(['gpu', 'cpu'])
+	});
 }
 
 export const optionsState = new OptionsState();

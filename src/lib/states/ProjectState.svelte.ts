@@ -3,7 +3,14 @@ import {
 	type TrackType,
 	type VersionManaged
 } from '$lib/types/annotation.type';
-import type { VideoChannelMetadata, VideoConfig, VideoMetadata } from '$lib/types/api.type';
+import { runInBrowser, type ComputeDevice } from '$lib/compute/run';
+import type {
+	AnyStepParams,
+	VersionStep,
+	VideoChannelMetadata,
+	VideoConfig,
+	VideoMetadata
+} from '$lib/types/api.type';
 import {
 	compressJson,
 	decompressJson,
@@ -18,6 +25,7 @@ import { frameCache } from './FrameCache.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { zoomState } from './zoom.svelte';
 import { getFrameCount, getImageIndex } from '$lib/utils/frames';
+import { download } from '$lib/utils/export';
 import { extractError } from '$lib/api/errors';
 import * as geotiff from 'geotiff';
 
@@ -224,6 +232,44 @@ class ProjectState {
 
 	async deleteLocalProject(localProjectId: number) {
 		await localProjectsDb.deleteProject(localProjectId);
+	}
+
+	/** Runs a step in this browser, and stores its result in the local project. */
+	async runLocalTask(
+		localProjectId: number,
+		step: VersionStep,
+		parameters: AnyStepParams,
+		device: ComputeDevice,
+		signal: AbortSignal,
+		onProgress?: ProgressCallback
+	) {
+		// The editor's last edits may still be on their way
+		await this.idle();
+		const project = await localProjectsDb.projects.get(localProjectId);
+		if (!project) throw new Error("Couldn't find project");
+		const data = await decompressJson<VersionManaged<TrackType[]>>(project.annotation);
+
+		const request = {
+			step,
+			parameters,
+			video: project.video,
+			videoConfig: project.video_config,
+			current: data.current,
+			device
+		};
+		const { current, change } = await runInBrowser(request, signal, onProgress);
+		const result = change ? { current, changes: [...data.changes, change] } : data;
+		const annotation = await compressJson(result);
+
+		// Edits made meanwhile, in another tab, would be lost: every edit adds a change
+		const now = await localProjectsDb.projects.get(localProjectId);
+		const stored = now && (await decompressJson<VersionManaged<TrackType[]>>(now.annotation));
+		signal.throwIfAborted();
+		if (stored?.changes.length !== data.changes.length) {
+			download(JSON.stringify(result), `${project.name}_${step}.json`, 'application/json');
+			throw new Error('The project changed while the task ran, so its result was downloaded');
+		}
+		await localProjectsDb.projects.update(localProjectId, { annotation, step });
 	}
 }
 

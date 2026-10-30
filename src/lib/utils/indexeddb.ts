@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { VideoConfig, VideoMetadata } from '$lib/types/api.type';
+import type { VersionStep, VideoConfig, VideoMetadata } from '$lib/types/api.type';
 
 export type DBProject = {
 	id?: number;
@@ -9,6 +9,8 @@ export type DBProject = {
 	annotation: Blob; // gzip compressed json
 	/** The original video, which the fluorescence report measures. */
 	video: Blob;
+	/** The last step run on it. */
+	step?: VersionStep;
 };
 
 export type DBFrame = {

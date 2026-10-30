@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { PencilIcon, TrashIcon, type LucideIcon } from '@lucide/svelte';
+	import { PencilIcon, PlayIcon, TrashIcon, type LucideIcon } from '@lucide/svelte';
 	import * as Item from '$lib/components/ui/item';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmDialog from '$lib/ui/common/ConfirmDialog.svelte';
@@ -16,6 +16,7 @@
 		icon: LucideIcon;
 		project: DBProject;
 		children?: Snippet;
+		onRun?: () => void;
 		onRename?: (name: string) => Promise<unknown>;
 		deleteDescription?: string;
 		onDelete?: () => Promise<unknown>;
@@ -26,6 +27,7 @@
 		icon: Icon,
 		project,
 		children,
+		onRun,
 		onRename,
 		deleteDescription,
 		onDelete
@@ -60,8 +62,13 @@
 				{/if}
 			</Item.Content>
 
-			{#if onRename || onDelete}
+			{#if onRun || onRename || onDelete}
 				<Item.Actions onclick={(e) => e.preventDefault()}>
+					{#if onRun}
+						<IconButton variant="ghost" label="Run a task" onclick={onRun}>
+							<PlayIcon />
+						</IconButton>
+					{/if}
 					{#if onRename}
 						<IconButton
 							variant="ghost"

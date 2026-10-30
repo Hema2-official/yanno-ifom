@@ -46,13 +46,12 @@ export enum InheritanceMethod {
 	EUCLIDEAN = 'EUCLIDEAN'
 }
 
+// The networks are the ones served with the app, so the parameters name no model
 export type SegmentationParams = {
-	model_name: string;
 	score_threshold: number;
 };
 
 export type TrackingParams = {
-	model_name: string;
 	remove_faulty_objects: boolean;
 	min_object_pixel_number: number;
 	max_overlap_ratio: number;
@@ -69,12 +68,10 @@ export type InheritanceParams = {
 export type AnyStepParams = SegmentationParams | TrackingParams | InheritanceParams;
 
 export const defaultSegmentationParams: SegmentationParams = {
-	model_name: 'model_larger_set_aug1.pth',
 	score_threshold: 0.4
 };
 
 export const defaultTrackingParams: TrackingParams = {
-	model_name: 'IFOMYeast_KernelTracker_[DLV3p,RN50]_FBtr7_LargeDatsetAugm_Adv2.pth',
 	remove_faulty_objects: true,
 	min_object_pixel_number: 100,
 	max_overlap_ratio: 0.5,
