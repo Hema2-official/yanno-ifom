@@ -5,7 +5,6 @@
 	import { cn } from '$lib/utils/shadcn';
 	import { DotIcon, FlagIcon, PencilIcon, PlusIcon, TrashIcon, Undo2Icon } from '@lucide/svelte';
 	import { ElementSize, useEventListener, watch } from 'runed';
-	import { date as formatDate, time as formatTime } from 'svelte-i18n';
 
 	let { class: className }: { class?: string } = $props();
 
@@ -20,6 +19,10 @@
 		minute: '2-digit',
 		hourCycle: 'h23'
 	};
+	const timeFormat = new Intl.DateTimeFormat('en', TIME_OF_DAY);
+	const fullTimeFormat = new Intl.DateTimeFormat('en', { ...TIME_OF_DAY, second: '2-digit' });
+	const shortDateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'short' });
+	const mediumDateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium' });
 
 	// Keyed by the first word of the messages annotationState writes
 	const verbIcons = new Map([
@@ -97,15 +100,16 @@
 	// The time of day for today's changes, the date for older ones
 	function shortTime(when: Date) {
 		return when.toDateString() === new Date().toDateString()
-			? $formatTime(when, TIME_OF_DAY)
-			: $formatDate(when, { format: 'short' });
+			? timeFormat.format(when)
+			: shortDateFormat.format(when);
 	}
 
 	function tooltipOf(entry: Entry, isUndone: boolean) {
 		const lines = [entry.label];
 		if (entry.when) {
-			const date = $formatDate(entry.when, { format: 'medium' });
-			lines.push(`${date} ${$formatTime(entry.when, { ...TIME_OF_DAY, second: '2-digit' })}`);
+			lines.push(
+				`${mediumDateFormat.format(entry.when)} ${fullTimeFormat.format(entry.when)}`
+			);
 		}
 		if (isUndone) lines.push('Undone, click to redo');
 		return lines.join('\n');

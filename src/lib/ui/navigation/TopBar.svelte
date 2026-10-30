@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { _ } from 'svelte-i18n';
 	import * as Menubar from '$lib/components/ui/menubar';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import { SettingsIcon } from '@lucide/svelte';
@@ -109,7 +108,7 @@
 						href={resolve('/projects')}
 						class="text-foreground font-semibold"
 					>
-						{$_('app_title')}
+						Yanno
 					</Breadcrumb.Link>
 				</Breadcrumb.Item>
 				{@render extraCrumbs?.()}

@@ -7,8 +7,6 @@ import SmoothTool from './SmoothTool.svelte';
 import SplitTool from './SplitTool.svelte';
 import WholeTool from './WholeTool.svelte';
 import type { EditorToolProps } from './types';
-import { _ } from 'svelte-i18n';
-import { get } from 'svelte/store';
 
 export type ToolId =
 	| 'cursor'
@@ -22,8 +20,8 @@ export type ToolId =
 
 // The tools' shortcuts are the `tool.<id>` actions in `keybindings/actions.ts`
 export type ToolDefinition = {
-	/** Translation key of the tooltip. */
-	label: string;
+	name: string;
+	description: string;
 	/** Mounted in every frame tile while the tool is active; the cursor tool has none. */
 	component: Component<EditorToolProps> | null;
 	/** Takes the right button, so the display neither turns nor opens its menu. */
@@ -31,18 +29,48 @@ export type ToolDefinition = {
 };
 
 export const toolRegistry: Record<ToolId, ToolDefinition> = {
-	cursor: { label: 'cursor_tool', component: null },
-	point: { label: 'point_tool', component: PointTool },
-	whole: { label: 'whole_tool', component: WholeTool },
-	smooth: { label: 'smooth_tool', component: SmoothTool },
-	brush: { label: 'brush_tool', component: BrushTool, rightButton: true },
-	split: { label: 'split_tool', component: SplitTool },
-	draw: { label: 'draw_tool', component: DrawTool },
-	ancestry: { label: 'ancestry_tool', component: AncestryTool }
+	cursor: {
+		name: 'Cursor tool',
+		description: 'Pan the view and select cells.',
+		component: null
+	},
+	point: {
+		name: 'Point tool',
+		description: 'Enables editing the cell accurately by dragging each point.',
+		component: PointTool
+	},
+	whole: {
+		name: 'Whole tool',
+		description: 'Enables editing the entire cell by moving, resizing and rotating it.',
+		component: WholeTool
+	},
+	smooth: {
+		name: 'Smooth tool',
+		description: "Enables the quick editing of the cell's border by dragging a portion of it.",
+		component: SmoothTool
+	},
+	brush: {
+		name: 'Brush tool',
+		description:
+			"Paints the selected cell's mask, or a new cell's while none is selected. The right button erases.",
+		component: BrushTool,
+		rightButton: true
+	},
+	split: {
+		name: 'Split tool',
+		description: 'Cuts cells in two along a line dragged across them.',
+		component: SplitTool
+	},
+	draw: {
+		name: 'Draw tool',
+		description: 'Draws a new cell by tracing its outline.',
+		component: DrawTool
+	},
+	ancestry: {
+		name: 'Ancestry tool',
+		description: 'Drag an arrow from a tracked ancestor onto its descendant.',
+		component: AncestryTool
+	}
 };
 
 export const toolRegistryEntries = Object.entries(toolRegistry) as [ToolId, ToolDefinition][];
-
-export function getToolLabels(toolId: ToolId): [string, string] {
-	return get(_)(toolRegistry[toolId].label).split('\n', 2) as [string, string];
-}

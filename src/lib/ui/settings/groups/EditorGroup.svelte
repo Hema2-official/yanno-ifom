@@ -36,7 +36,7 @@
 	import SettingsRow from '../SettingsRow.svelte';
 	import SettingsSection from '../SettingsSection.svelte';
 	import SliderRow from '../SliderRow.svelte';
-	import { getToolLabels, toolRegistryEntries } from '$lib/ui/editor-tools/registry';
+	import { toolRegistry, toolRegistryEntries } from '$lib/ui/editor-tools/registry';
 
 	let { query }: GroupProps = $props();
 
@@ -112,12 +112,12 @@
 					<Select.Trigger id="{uid}-theme" class="w-32 capitalize" size="sm">
 						{optionsState.toolAfterPaste.current === 'none'
 							? "Don't switch"
-							: getToolLabels(optionsState.toolAfterPaste.current)[0]}
+							: toolRegistry[optionsState.toolAfterPaste.current].name}
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="none" label="Don't switch" />
-						{#each toolRegistryEntries as [key] (key)}
-							<Select.Item value={key} label={getToolLabels(key)[0]} />
+						{#each toolRegistryEntries as [key, tool] (key)}
+							<Select.Item value={key} label={tool.name} />
 						{/each}
 					</Select.Content>
 				</Select.Root>

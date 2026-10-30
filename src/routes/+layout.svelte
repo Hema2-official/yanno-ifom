@@ -6,21 +6,9 @@
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
 	import { ModeWatcher } from 'mode-watcher';
 
-	import { addMessages, init } from 'svelte-i18n';
-	import en from '$lib/lang/en.json';
-	// import hu from "$lib/lang/hu.json";
-
 	import '../app.css';
 
 	let { children }: { children: Snippet } = $props();
-
-	addMessages('en', en);
-	// addMessages("hu", hu);
-
-	init({
-		fallbackLocale: 'en',
-		initialLocale: 'en'
-	});
 </script>
 
 <ModeWatcher lightClassNames={['light']} />
