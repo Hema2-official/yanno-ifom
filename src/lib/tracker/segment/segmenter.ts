@@ -69,6 +69,8 @@ export interface SegmenterOptions {
 	readonly bufferCache?: 'disabled' | 'lazyRelease' | 'simple' | 'bucket';
 	/** whether the networks' free dimensions are fixed to the frame and chunk sizes (default true) */
 	readonly fixedShapes?: boolean;
+	/** 1 for gray frames (the default), 3 for RGB ones */
+	readonly colors?: 1 | 3;
 }
 
 /** A frame's intermediate results, for tests and diagnostics; the arrays are reused by the next frame. */
@@ -179,9 +181,10 @@ export class Segmenter {
 		readonly width: number,
 		readonly params: SegmentationParams,
 		readonly boxChunk: number,
-		readonly maskChunk: number
+		readonly maskChunk: number,
+		colors: 1 | 3
 	) {
-		this.input = new ImageInput(device, height, width);
+		this.input = new ImageInput(device, height, width, colors);
 		const { paddedHeight, paddedWidth } = this.input;
 		this.levelSizes = LEVELS.map((_, l) => [paddedHeight >> (l + 2), paddedWidth >> (l + 2)]);
 		const cells = this.levelSizes.map(([h, w]) => h * w);
@@ -254,10 +257,21 @@ export class Segmenter {
 		const box = await create(models.box, { n: boxChunk });
 		const mask = await create(models.mask, { m: maskChunk });
 		const device = await ort.env.webgpu.device;
-		return new Segmenter(device, dense, box, mask, height, width, params, boxChunk, maskChunk);
+		return new Segmenter(
+			device,
+			dense,
+			box,
+			mask,
+			height,
+			width,
+			params,
+			boxChunk,
+			maskChunk,
+			options.colors ?? 1
+		);
 	}
 
-	/** The records of frame `index` (height * width uint8, row-major); `observe` receives the intermediate results. */
+	/** The records of frame `index` (height * width uint8 per color, row-major); `observe` receives the intermediate results. */
 	async segment(
 		frame: Uint8Array,
 		index: number,

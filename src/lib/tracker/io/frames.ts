@@ -2,11 +2,12 @@
  * The frames of one channel of a video as cell-tracking-backend prepares them for the models
  * (src/tracking_runner/frames.py write_model_frames): every channelPeriod-th page from startPeriod on,
  * the lowest value of those pages subtracted, each frame stretched over its own range to 8 bits
- * (cv2.normalize, NORM_MINMAX). The lowest value needs every page first, so the video is read twice:
+ * (cv2.normalize, NORM_MINMAX); an RGB frame's three colors share the lowest value and the range, as
+ * OpenCV takes them over all of a color image's values. The lowest value needs every page first, so the video is read twice:
  * pass 1 (scanChannel) keeps each page's range, pass 2 (ChannelFrames) makes a frame when it is needed.
  */
 import { normalizationTable } from './normalize';
-import type { TiffVideo } from './video';
+import type { TiffVideo, VideoPage } from './video';
 
 /** The pages of one channel, by their index in the file: every channelPeriod-th page from startPeriod on (pages[startPeriod::channelPeriod]). */
 export function selectChannel(
@@ -27,6 +28,8 @@ export interface ChannelScan {
 	readonly pages: readonly number[];
 	readonly width: number;
 	readonly height: number;
+	/** 1 for gray, 3 for RGB, whose frames interleave the colors */
+	readonly samplesPerPixel: 1 | 3;
 	readonly minimum: Uint16Array;
 	readonly maximum: Uint16Array;
 	/** the lowest value of the channel, which the backend subtracts from every frame */
@@ -57,11 +60,13 @@ export async function scanChannel(
 		if (
 			p.width !== first.width ||
 			p.height !== first.height ||
-			p.bitsPerSample !== first.bitsPerSample
+			p.bitsPerSample !== first.bitsPerSample ||
+			p.samplesPerPixel !== first.samplesPerPixel
 		) {
+			const kind = (page: VideoPage) =>
+				`${page.width}x${page.height}, ${page.samplesPerPixel === 3 ? 'RGB' : 'gray'}, ${page.bitsPerSample} bits`;
 			throw new Error(
-				`TIFF page ${index} is ${p.width}x${p.height}, ${p.bitsPerSample} bits; page ${first.index} is ` +
-					`${first.width}x${first.height}, ${first.bitsPerSample} bits`
+				`TIFF page ${index} is ${kind(p)}; page ${first.index} is ${kind(first)}`
 			);
 		}
 	}
@@ -75,13 +80,21 @@ export async function scanChannel(
 	}
 	let low = 65535;
 	for (let k = 0; k < pages.length; k++) if (minimum[k] < low) low = minimum[k];
-	return { pages, width: first.width, height: first.height, minimum, maximum, low };
+	return {
+		pages,
+		width: first.width,
+		height: first.height,
+		samplesPerPixel: first.samplesPerPixel,
+		minimum,
+		maximum,
+		low
+	};
 }
 
 /**
  * Frame `index` from its page's samples: (frame - low) normalized over its own range, through one lookup
- * table (`table`, at least 65536 entries) and one pass over the pixels. Written into `out` (height * width,
- * row-major), which is returned.
+ * table (`table`, at least 65536 entries) and one pass over the pixels. Written into `out` (as many bytes
+ * as samples, row-major), which is returned.
  */
 export function prepareFrame(
 	samples: Uint8Array | Uint16Array,
@@ -116,14 +129,18 @@ export class ChannelFrames {
 		return this.scan.height;
 	}
 
+	get samplesPerPixel(): 1 | 3 {
+		return this.scan.samplesPerPixel;
+	}
+
 	get count(): number {
 		return this.scan.pages.length;
 	}
 
-	/** Frame `index`, written into `out` (height * width bytes, row-major), which is returned. */
+	/** Frame `index`, written into `out` (height * width * samplesPerPixel bytes, row-major), which is returned. */
 	async frame(
 		index: number,
-		out: Uint8Array = new Uint8Array(this.width * this.height)
+		out: Uint8Array = new Uint8Array(this.width * this.height * this.samplesPerPixel)
 	): Promise<Uint8Array> {
 		const pages = this.scan.pages;
 		const samples =

@@ -2,7 +2,7 @@
  * Multi-page TIFF videos, read through geotiff.js from a Blob (a File in the browser) page by page, never
  * as a whole. geotiff reads classic and BigTIFF files in both byte orders, with strips or tiles,
  * uncompressed or compressed (LZW, Deflate, PackBits, JPEG, Zstd, WebP, LERC); the frame preparation
- * takes 8- and 16-bit unsigned single-channel pages.
+ * takes 8- and 16-bit unsigned pages, gray or RGB.
  *
  * Two of geotiff's readings are wrong for big-endian files and are done differently here:
  * - tag arrays outside the first kilobyte of their directory are loaded lazily, as little-endian values,
@@ -19,6 +19,8 @@ export interface VideoPage {
 	readonly width: number;
 	readonly height: number;
 	readonly bitsPerSample: 8 | 16;
+	/** 1 for gray, 3 for RGB */
+	readonly samplesPerPixel: 1 | 3;
 }
 
 interface Slice {
@@ -114,9 +116,10 @@ function checkedPage(index: number, image: GeoTIFFImage): VideoPage {
 	const samples = image.getSamplesPerPixel(),
 		bits = image.getBitsPerSample(),
 		format = image.getSampleFormat();
-	if (samples !== 1)
+	const rgb = samples === 3 && image.fileDirectory.getValue('PhotometricInterpretation') === 2;
+	if (samples !== 1 && !rgb)
 		throw new Error(
-			`TIFF page ${index}: only single-channel pages are supported (${samples} samples per pixel)`
+			`TIFF page ${index}: only gray and RGB pages are supported (${samples} samples per pixel)`
 		);
 	if (bits !== 8 && bits !== 16)
 		throw new Error(
@@ -126,7 +129,13 @@ function checkedPage(index: number, image: GeoTIFFImage): VideoPage {
 		throw new Error(
 			`TIFF page ${index}: only unsigned integer samples are supported (sample format ${format})`
 		);
-	return { index, width: image.getWidth(), height: image.getHeight(), bitsPerSample: bits };
+	return {
+		index,
+		width: image.getWidth(),
+		height: image.getHeight(),
+		bitsPerSample: bits,
+		samplesPerPixel: rgb ? 3 : 1
+	};
 }
 
 /** A TIFF video: its number of pages, and each page's size and samples. geotiff keeps the parsed directories. */
@@ -157,13 +166,13 @@ export class TiffVideo {
 		return checkedPage(index, await this.tiff.getImage(index));
 	}
 
-	/** Page `index`'s samples, rows top to bottom. */
+	/** Page `index`'s samples, rows top to bottom, an RGB pixel's three together. */
 	async samples(index: number): Promise<Uint8Array | Uint16Array> {
 		const image = await this.tiff.getImage(index);
 		checkedPage(index, image);
 		try {
 			const pool = this.tiff.littleEndian ? null : bigEndianDecoders;
-			return (await image.readRasters({ samples: [0], interleave: true, pool })) as
+			return (await image.readRasters({ interleave: true, pool })) as
 				| Uint8Array
 				| Uint16Array;
 		} catch (error) {

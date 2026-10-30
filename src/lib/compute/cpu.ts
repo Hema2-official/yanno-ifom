@@ -36,7 +36,7 @@ const MAX_DETECTIONS = 1000;
 const BOX_CHUNK = 1000;
 const MASK_CHUNK = 64;
 
-// detectron2's BGR means, each subtracted from the gray value
+// detectron2's BGR means, each subtracted from the gray value, or from red, green and blue in turn as the tracker's `ImageInput` does
 const PIXEL_MEAN = [103.53, 116.28, 123.675].map(f);
 
 const sessionOptions: ort.InferenceSession.SessionOptions = {
@@ -196,7 +196,8 @@ export class CpuSegmenter {
 		private readonly mask: ort.InferenceSession,
 		readonly height: number,
 		readonly width: number,
-		readonly params: SegmentationParams
+		readonly params: SegmentationParams,
+		readonly colors: 1 | 3
 	) {
 		this.paddedHeight = Math.ceil(height / SIZE_DIVISIBILITY) * SIZE_DIVISIBILITY;
 		this.paddedWidth = Math.ceil(width / SIZE_DIVISIBILITY) * SIZE_DIVISIBILITY;
@@ -216,7 +217,8 @@ export class CpuSegmenter {
 		models: SegmentationModels,
 		height: number,
 		width: number,
-		params: SegmentationParams
+		params: SegmentationParams,
+		colors: 1 | 3 = 1
 	): Promise<CpuSegmenter> {
 		const padded = (n: number) => Math.ceil(n / SIZE_DIVISIBILITY) * SIZE_DIVISIBILITY;
 		const dense = await ort.InferenceSession.create(models.dense, {
@@ -226,19 +228,21 @@ export class CpuSegmenter {
 		// The heads take each chunk's own number of rows, so no padded rows are computed
 		const box = await ort.InferenceSession.create(models.box, sessionOptions);
 		const mask = await ort.InferenceSession.create(models.mask, sessionOptions);
-		return new CpuSegmenter(dense, box, mask, height, width, params);
+		return new CpuSegmenter(dense, box, mask, height, width, params, colors);
 	}
 
-	/** The records of frame `index` (height * width uint8, row-major). */
+	/** The records of frame `index` (height * width uint8 per color, row-major). */
 	async segment(frame: Uint8Array, index: number): Promise<TrackType[]> {
-		const { height, width, paddedHeight, paddedWidth } = this;
+		const { height, width, paddedHeight, paddedWidth, colors } = this;
 		const image = this.image.data as Float32Array;
 		const plane = paddedHeight * paddedWidth;
 		for (let c = 0; c < 3; c++) {
 			const mean = PIXEL_MEAN[c];
+			const at = colors === 3 ? c : 0;
 			for (let y = 0; y < height; y++) {
 				for (let x = 0; x < width; x++) {
-					image[c * plane + y * paddedWidth + x] = frame[y * width + x] - mean;
+					image[c * plane + y * paddedWidth + x] =
+						frame[(y * width + x) * colors + at] - mean;
 				}
 			}
 		}
