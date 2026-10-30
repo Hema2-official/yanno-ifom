@@ -23,8 +23,7 @@ export type ActionDefinition = {
 
 const selectTool = (tool: ToolId) => ({
 	kind: 'press' as const,
-	run: () => (editorState.tool = tool),
-	enabled: () => !projectState.readOnly
+	run: () => (editorState.tool = tool)
 });
 
 const selectTracks = (direction: -1 | 0 | 1) => ({
@@ -84,7 +83,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: ['Delete', 'Backspace'],
-		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		enabled: () => editorState.selectedCells.length > 0,
 		run: () => annotationState.deleteCells(editorState.selectedCells)
 	},
 	copy: {
@@ -103,7 +102,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: ['Mod+x'],
-		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		enabled: () => editorState.selectedCells.length > 0,
 		run: () => void editorState.cutSelection()
 	},
 	'selection.add': {
@@ -151,7 +150,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: ['t'],
-		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		enabled: () => editorState.selectedCells.length > 0,
 		run: () => (editorState.trackIdDialogOpen = true)
 	},
 	'selection.interpolate': {
@@ -161,7 +160,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: ['i'],
-		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 1,
+		enabled: () => editorState.selectedCells.length > 1,
 		run: () => editorState.interpolateSelection()
 	},
 	'selection.copyToNext': {
@@ -170,7 +169,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: ['Mod+ArrowRight'],
-		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		enabled: () => editorState.selectedCells.length > 0,
 		run: () => editorState.copySelectionBy(1)
 	},
 	'selection.copyToPrevious': {
@@ -179,7 +178,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: ['Mod+ArrowLeft'],
-		enabled: () => !projectState.readOnly && editorState.selectedCells.length > 0,
+		enabled: () => editorState.selectedCells.length > 0,
 		run: () => editorState.copySelectionBy(-1)
 	},
 	'selection.merge': {
@@ -190,9 +189,7 @@ const table = {
 		kind: 'press',
 		defaults: ['m'],
 		enabled: () =>
-			!projectState.readOnly &&
-			editorState.selectedCells.length > 1 &&
-			editorState.selectedByFrame.size === 1,
+			editorState.selectedCells.length > 1 && editorState.selectedByFrame.size === 1,
 		run: () => editorState.mergeSelection()
 	},
 	'selection.clearAncestor': {
@@ -202,9 +199,7 @@ const table = {
 		scope: 'editor',
 		kind: 'press',
 		defaults: [],
-		enabled: () =>
-			!projectState.readOnly &&
-			editorState.selectedCells.some((cell) => cell.AncestorID != null),
+		enabled: () => editorState.selectedCells.some((cell) => cell.AncestorID != null),
 		run: () => annotationState.setAncestor(editorState.selectedCells, null)
 	},
 	'tool.cursor': {

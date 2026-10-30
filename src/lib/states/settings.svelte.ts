@@ -1,5 +1,5 @@
 class SettingsState {
-	/** The settings dialog, opened from the account menu or its shortcut. */
+	/** The settings dialog, opened from the top bar or its shortcut. */
 	open = $state(false);
 }
 

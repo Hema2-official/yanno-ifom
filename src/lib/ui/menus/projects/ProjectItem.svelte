@@ -9,13 +9,12 @@
 	import { cn } from '$lib/utils/shadcn';
 	import { videoSummary } from '$lib/utils/frames';
 	import { toastError } from '$lib/api/errors';
-	import type { Project } from '$lib/types/api.type';
 	import type { DBProject } from '$lib/utils/indexeddb';
 
 	type Props = {
 		href: string;
 		icon: LucideIcon;
-		project: Project | DBProject;
+		project: DBProject;
 		children?: Snippet;
 		onRename?: (name: string) => Promise<unknown>;
 		deleteDescription?: string;

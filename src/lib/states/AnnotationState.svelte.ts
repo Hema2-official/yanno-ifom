@@ -74,7 +74,7 @@ export function framesOfChanges(data: VersionManaged<TrackType[]>): number[][] {
 }
 
 class AnnotationState {
-	/** The data as saved on the server (or in the local database). */
+	/** The data as saved in the local database. */
 	saved: VersionManaged<TrackType[]> | null = $state.raw(null);
 
 	// Kept beyond the last place the window fits, so a narrower one brings it back
@@ -110,10 +110,7 @@ class AnnotationState {
 	canRedo = $derived(this.undoneCount > 0);
 
 	/** True while the visible data isn't persisted yet (pending save or local undo). */
-	// A viewer's undos only browse the history, since viewers never save
-	isDirty = $derived(
-		this.#saveTimer !== null || (this.undoneCount > 0 && !projectState.readOnly)
-	);
+	isDirty = $derived(this.#saveTimer !== null || this.undoneCount > 0);
 
 	#tracksByFrame: Map<number, TrackType[]> = $derived.by(() =>
 		Map.groupBy(this.data?.current ?? [], (track) => track.Frame)

@@ -61,9 +61,7 @@
 		)
 	);
 
-	const subtitle = $derived(
-		[projectState.name, projectState.versionName].filter(Boolean).join(' · ')
-	);
+	const subtitle = $derived(projectState.name ?? '');
 
 	function show(cells: TrackType[]) {
 		editorState.reportsOpen = false;

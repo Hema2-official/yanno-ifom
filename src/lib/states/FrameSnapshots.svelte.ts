@@ -66,7 +66,7 @@ const whenIdle = (callback: () => void) =>
 
 /** Frame images baked with their filters into canvases */
 class FrameSnapshots {
-	maxBytes = new SettingState('snapshotMaxBytes', 512 * 1024 * 1024, { local: true });
+	maxBytes = new SettingState('snapshotMaxBytes', 512 * 1024 * 1024);
 	totalBytes = $state(0);
 
 	#entries = new SvelteMap<number, { key: string; canvas: HTMLCanvasElement }>();

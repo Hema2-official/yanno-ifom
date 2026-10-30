@@ -7,34 +7,24 @@
 	import { projectState } from '$lib/states/ProjectState.svelte';
 
 	const paramsSchema = createSearchParamsSchema({
-		project: { type: 'string' },
-		version: { type: 'string', default: '' }
+		project: { type: 'string' }
 	});
 
 	const params = useSearchParams(paramsSchema);
 
-	async function loadProject(project: string | undefined, version: string, signal: AbortSignal) {
-		// Local projects have no versions
-		if (project?.startsWith('local_') && !version) {
-			const id = Number.parseInt(project.replace('local_', ''));
-			await projectState.loadLocalProject(id, signal);
-		} else if (project && !project.startsWith('local_') && version) {
-			await projectState.loadCloudProject(project, version, signal);
-		} else {
+	async function loadProject(project: string | undefined, signal: AbortSignal) {
+		if (!project?.startsWith('local_'))
 			throw new Error("Can't load: invalid project reference.");
-		}
+		await projectState.loadLocalProject(Number.parseInt(project.replace('local_', '')), signal);
 	}
 
 	// Pending until the effect below starts the first load
 	let loading: Promise<void> = $state.raw(new Promise(() => {}));
 
-	// A string representation, so the load below runs once per target
-	const target = $derived([params.project ?? '', params.version].join('\n'));
-
 	$effect(() => {
-		const [project, version] = target.split('\n');
+		const project = params.project;
 		const signal = getAbortSignal();
-		loading = untrack(() => loadProject(project || undefined, version, signal));
+		loading = untrack(() => loadProject(project, signal));
 	});
 </script>
 

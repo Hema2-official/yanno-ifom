@@ -15,10 +15,10 @@ const MAX_PARALLEL_READS = 4;
  */
 class FrameCache {
 	/** Maximum memory the cached frames may occupy, in bytes. */
-	maxBytes = new SettingState('maxBytes', 256 * 1024 * 1024, { local: true });
+	maxBytes = new SettingState('maxBytes', 256 * 1024 * 1024);
 
 	/** How many frames around the displayed window get prefetched. */
-	prefetchRadius = new SettingState('prefetchRadius', 20, { local: true });
+	prefetchRadius = new SettingState('prefetchRadius', 20);
 
 	/** Current memory usage of the cache, in bytes. */
 	totalBytes = $state(0);

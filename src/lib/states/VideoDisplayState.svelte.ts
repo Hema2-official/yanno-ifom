@@ -241,10 +241,9 @@ class VideoDisplayState {
 	/** When the project's frames were taken, null until it's set. */
 	frameTime: FrameTime | null = $state(null);
 
-	/** Keeps the project's looks under its key; a local project's stay on the device. */
-	open(key: string, { local }: { local: boolean }) {
+	/** Keeps the project's looks under its key. */
+	open(key: string) {
 		const display = new SettingState<ProjectDisplay>(`display.${key}`, NO_CHANGES, {
-			local,
 			validate: (value): value is ProjectDisplay =>
 				projectDisplaySchema.safeParse(value).success
 		});
@@ -294,7 +293,7 @@ class VideoDisplayState {
 				}
 			);
 
-			// The key's value from another tab, or from the account once it's known
+			// The key's value from another tab
 			watch([() => this.#display?.current], ([stored]) => {
 				const display = this.#display;
 				const ours = toStored(this.channels, this.frameTime);
@@ -360,8 +359,8 @@ class VideoDisplayState {
 	displayMode = new SettingState<DisplayMode>('displayMode', 'grid', {
 		validate: oneOf(displayModes)
 	});
-	stackYaw = new SettingState('stackYaw', 55, { local: true });
-	stackPitch = new SettingState('stackPitch', 12, { local: true });
+	stackYaw = new SettingState('stackYaw', 55);
+	stackPitch = new SettingState('stackPitch', 12);
 	stackSpacing = new SettingState('stackSpacing', 0.1);
 	stackFade = new SettingState('stackFade', 0);
 
@@ -373,7 +372,7 @@ class VideoDisplayState {
 	#concurrentFrames = new SettingState<Record<DisplayMode, number>>(
 		'concurrentFrames',
 		{ grid: 1, stack: 1 },
-		{ local: true, validate: validateConcurrentFrames }
+		{ validate: validateConcurrentFrames }
 	);
 
 	/** Number of consecutive frames displayed at once. */

@@ -1,35 +1,3 @@
-import type { TrackType, VersionManaged } from './annotation.type';
-
-export type AuthResponse = {
-	account_id: number;
-};
-
-export type MeResponse = {
-	id: number;
-	email: string;
-	name: string;
-	created_at: string;
-	updated_at: string;
-	preferences: Record<string, unknown>;
-};
-
-/** Another user, as the API lists them. */
-export type UserSummary = {
-	id: number;
-	email: string;
-	name: string;
-};
-
-export type ProjectRole = 'viewer' | 'editor' | 'owner';
-/** Projects are shared with viewers and editors; the owner is never a member. */
-export type MemberRole = Exclude<ProjectRole, 'owner'>;
-
-export type ProjectMember = {
-	account: UserSummary;
-	role: MemberRole;
-	created_at: Date;
-};
-
 export const versionStepOrder = ['segmentation', 'tracking', 'inheritance'] as const;
 export type VersionStep = (typeof versionStepOrder)[number];
 
@@ -38,27 +6,6 @@ export function getNextStep(step?: VersionStep | null): VersionStep | null {
 	const currentIndex = versionStepOrder.indexOf(step);
 	return currentIndex < versionStepOrder.length - 1 ? versionStepOrder[currentIndex + 1] : null;
 }
-
-export function getAutoName(step: VersionStep, source_name: string | undefined) {
-	switch (step) {
-		case 'segmentation':
-			return 'Segmentation';
-		case 'tracking':
-			return `${source_name} (tracked)`;
-		case 'inheritance':
-			return `${source_name} (inheritance predicted)`;
-	}
-}
-
-export type ProjectVersion = {
-	id: string; // UUID
-	project_id: string; // UUID
-	name: string;
-	step: VersionStep | null;
-	ready: boolean;
-	created_at: Date;
-	updated_at: Date;
-};
 
 export enum VideoColor {
 	GRAYSCALE = 'GRAYSCALE',
@@ -93,38 +40,6 @@ export type VideoMetadata = {
 	width: number;
 	height: number;
 	channels: VideoChannelMetadata[];
-};
-
-export type Project = {
-	id: string; // UUID
-	name: string;
-	owner: UserSummary;
-	/** The current user's role in the project. */
-	role: ProjectRole;
-	video_config: VideoConfig;
-	video_metadata: VideoMetadata;
-	versions: ProjectVersion[];
-	created_at: Date;
-	updated_at: Date;
-};
-
-export type CreateProjectVersionBody = {
-	name: string;
-	data?: VersionManaged<TrackType[]>; // Optional import
-};
-
-export type CopyProjectVersionBody = Pick<CreateProjectVersionBody, 'name'>;
-
-export type APIError = {
-	detail: string;
-};
-
-export type CredentialsError = {
-	detail: {
-		name_field_message?: string;
-		email_field_message?: string;
-		password_field_message?: string;
-	};
 };
 
 export enum InheritanceMethod {
@@ -184,26 +99,4 @@ export const defaultStepParams: StepParams = {
 	segmentation: defaultSegmentationParams,
 	tracking: defaultTrackingParams,
 	inheritance: defaultInheritanceParams
-};
-
-export type ServerTask = {
-	uuid: string; // UUID
-	step: VersionStep;
-	parameters: SegmentationParams | TrackingParams | InheritanceParams;
-	created_at: string; // datetime
-	status_message: string;
-	finished: boolean;
-	cancelled: boolean;
-	error?: string;
-};
-
-export type EnqueueTaskBody = {
-	step: VersionStep;
-	parameters: SegmentationParams | TrackingParams | InheritanceParams;
-};
-
-export type EditLock = {
-	editing: boolean;
-	holder: { name: string; you: boolean; since: number; last_save: number | null } | null;
-	steal: { name: string; deadline: number; mine: boolean } | null;
 };

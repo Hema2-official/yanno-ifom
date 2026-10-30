@@ -85,7 +85,7 @@ class SvgState {
 		height: projectState.videoMetadata?.height || 512
 	});
 
-	videoColormapShades = new SettingState('videoColormapShades', 64, { local: true });
+	videoColormapShades = new SettingState('videoColormapShades', 64);
 
 	cellLabel(cell: TrackType): string | null {
 		if (!this.labelSwitch.current) return null;

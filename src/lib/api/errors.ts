@@ -1,5 +1,3 @@
-import type { APIError, CredentialsError } from '$lib/types/api.type';
-import { HTTPError } from 'ky';
 import { toast } from 'svelte-sonner';
 
 export function extractError(error: unknown): string {
@@ -16,39 +14,4 @@ export function toastError(message: string, error?: unknown) {
 		console.error(message, error);
 		toast.error(message, { description: extractError(error) });
 	}
-}
-
-export async function handleError(error: unknown): Promise<string | DOMException> {
-	// Aborts stay as they are, so runed's `resource` can ignore them
-	if (error instanceof DOMException && error.name === 'AbortError') return error;
-	if (error instanceof HTTPError) {
-		const data: APIError | undefined =
-			error.data ??
-			(error.response.bodyUsed
-				? undefined
-				: await error.response.json().catch(() => undefined));
-		if (
-			data &&
-			typeof data === 'object' &&
-			'detail' in data &&
-			typeof data.detail === 'string'
-		) {
-			return data.detail;
-		}
-	}
-	return extractError(error);
-}
-
-export async function handleCredentialsError(error: unknown): Promise<APIError | CredentialsError> {
-	if (error instanceof HTTPError) {
-		const data =
-			error.data ??
-			(error.response.bodyUsed
-				? undefined
-				: await error.response.json().catch(() => undefined));
-		if (data && typeof data === 'object') {
-			return data as APIError | CredentialsError;
-		}
-	}
-	return { detail: extractError(error) };
 }

@@ -8,7 +8,6 @@
 	import { inputState } from '$lib/states/InputState.svelte';
 	import { keybindings } from '$lib/states/KeybindingState.svelte';
 	import { optionsState } from '$lib/states/options.svelte';
-	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { videoDisplayState, type StackAngles } from '$lib/states/VideoDisplayState.svelte';
 	import { frameCache } from '$lib/states/FrameCache.svelte';
 	import { frameSnapshots } from '$lib/states/FrameSnapshots.svelte';
@@ -31,8 +30,8 @@
 	import StandInCanvas from './StandInCanvas.svelte';
 	import { cellsAt, selectionClick, startPan, startTurn } from './gestures';
 
-	// The current tool is mounted in every frame tile, when editing is on
-	const Tool = $derived(projectState.readOnly ? null : toolRegistry[editorState.tool].component);
+	// The current tool is mounted in every frame tile
+	const Tool = $derived(toolRegistry[editorState.tool].component);
 
 	let contextMenu = $state.raw<DisplayMenu | null>(null);
 
@@ -421,10 +420,7 @@
 		{/if}
 	</div>
 
-	<!-- The editing controls: viewers only look -->
-	{#if !projectState.readOnly}
-		<DisplayContextMenu menu={contextMenu} onClose={() => (contextMenu = null)} />
+	<DisplayContextMenu menu={contextMenu} onClose={() => (contextMenu = null)} />
 
-		<EditorToolbar />
-	{/if}
+	<EditorToolbar />
 </div>

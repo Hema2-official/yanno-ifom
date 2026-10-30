@@ -12,19 +12,11 @@
 		title: string;
 		listProjects: (signal: AbortSignal) => Promise<T[]>;
 		item: Snippet<[project: T, refetch: () => void]>;
-		local?: boolean;
 		hideWhenEmpty?: boolean;
 		allowCreate?: boolean;
 	};
 
-	let {
-		title,
-		listProjects,
-		item,
-		local = false,
-		hideWhenEmpty = false,
-		allowCreate = true
-	}: Props = $props();
+	let { title, listProjects, item, hideWhenEmpty = false, allowCreate = true }: Props = $props();
 
 	const projects = resource([], (_, __, { signal }) => listProjects(signal), {
 		initialValue: []
@@ -69,4 +61,4 @@
 	</div>
 {/if}
 
-<CreateProjectDialog bind:open={showCreate} {local} onCreated={refetch} />
+<CreateProjectDialog bind:open={showCreate} onCreated={refetch} />

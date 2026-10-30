@@ -17,11 +17,10 @@
 
 	type Props = {
 		open: boolean;
-		local?: boolean;
-		onCreated?: (id: string | number) => void;
+		onCreated?: (id: number) => void;
 	};
 
-	let { open = $bindable(false), local = false, onCreated }: Props = $props();
+	let { open = $bindable(false), onCreated }: Props = $props();
 
 	const uid = $props.id();
 
@@ -56,7 +55,7 @@
 		progress = 'Preparing...';
 		progressValue = null;
 		try {
-			const id = await projectState[local ? 'createLocalProject' : 'createCloudProject'](
+			const id = await projectState.createLocalProject(
 				name.trim(),
 				$state.snapshot(videoConfig),
 				videoFile,
@@ -88,13 +87,11 @@
 	>
 		<form class="grid gap-4" {onsubmit}>
 			<Dialog.Header>
-				<Dialog.Title>{local ? 'New local project' : 'New project'}</Dialog.Title>
-				{#if local}
-					<Dialog.Description>
-						The video and annotation are stored locally.<br />
-						Anyone with access to this browser will be able to view them.
-					</Dialog.Description>
-				{/if}
+				<Dialog.Title>New local project</Dialog.Title>
+				<Dialog.Description>
+					The video and annotation are stored locally.<br />
+					Anyone with access to this browser will be able to view them.
+				</Dialog.Description>
 			</Dialog.Header>
 
 			<div class="grid gap-4">

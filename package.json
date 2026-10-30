@@ -47,8 +47,6 @@
 		"fast-png": "^6.4.0",
 		"geotiff": "^3.0.5",
 		"jsondiffpatch": "^0.6.2",
-		"ky": "^2.0.2",
-		"parse-sse": "^0.1.0",
 		"runed": "^0.37.1",
 		"svelte-i18n": "^4.0.1",
 		"tailwind-merge": "^3.7.0",
