@@ -6,12 +6,33 @@ export type ModelManifest = {
 
 const CACHE_NAME = 'models';
 
+const openCache = async () =>
+	typeof caches === 'undefined' ? null : await caches.open(CACHE_NAME).catch(() => null);
+
+/** The networks' manifest, or the last one read while the server is down. */
 export async function loadManifest(base: string): Promise<ModelManifest> {
-	const missing = `The networks are missing from ${base}: copy symmetry-tracker-web's models there`;
-	const response = await fetch(new URL('manifest.json', base), { cache: 'no-cache' });
-	if (!response.ok) throw new Error(missing);
+	const url = new URL('manifest.json', base);
+	const cache = await openCache();
+	const response = await fetch(url, { cache: 'no-cache' }).catch(() => null);
 	// A host that answers every path with the app's page sends no JSON
-	return (await response.json().catch(() => Promise.reject(new Error(missing)))) as ModelManifest;
+	const manifest = response?.ok
+		? ((await response
+				.clone()
+				.json()
+				.catch(() => null)) as ModelManifest | null)
+		: null;
+	if (manifest) {
+		await cache?.put(url, response!).catch(() => {});
+		return manifest;
+	}
+
+	const kept = await cache?.match(url).catch(() => undefined);
+	if (kept) return (await kept.json()) as ModelManifest;
+	throw new Error(
+		response
+			? `The networks are missing from ${base}: copy symmetry-tracker-web's models there`
+			: "The server can't be reached, and this browser hasn't kept the networks yet"
+	);
 }
 
 /**
@@ -28,14 +49,14 @@ export async function loadModel(
 	if (!entry) throw new Error(`The networks' manifest lists no ${name}`);
 	const url = new URL(name, base);
 	const key = `${url.href}?sha256=${entry.sha256}`;
-	// Only secure pages have the cache, and private windows may refuse it
-	const cache =
-		typeof caches === 'undefined' ? null : await caches.open(CACHE_NAME).catch(() => null);
+	const cache = await openCache();
 	const cached = await cache?.match(key).catch(() => undefined);
 	if (cached) return new Uint8Array(await cached.arrayBuffer());
 
 	// Past the HTTP cache: it could hold an earlier export of the same name, and a second copy
-	const response = await fetch(url, { cache: 'no-store' });
+	const response = await fetch(url, { cache: 'no-store' }).catch(() => {
+		throw new Error(`Couldn't download ${name}: the server can't be reached`);
+	});
 	if (!response.ok || !response.body)
 		throw new Error(`Couldn't download ${name}: HTTP ${response.status}`);
 	const bytes = new Uint8Array(entry.bytes);

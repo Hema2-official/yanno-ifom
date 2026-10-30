@@ -1,4 +1,4 @@
-import { base } from '$app/paths';
+import { resolve as appPath } from '$app/paths';
 import type { ChangeType, TrackType } from '$lib/types/annotation.type';
 import type { AnyStepParams, VersionStep, VideoConfig } from '$lib/types/api.type';
 import type { WorkerMessage, WorkerRequest } from './worker';
@@ -64,7 +64,7 @@ export function runInBrowser(
 		};
 		const message: WorkerRequest = {
 			...request,
-			models: new URL(`${base}/models/`, location.href).href
+			models: new URL(`${appPath('/')}models/`, location.href).href
 		};
 		worker.postMessage(message);
 	}).finally(() => {

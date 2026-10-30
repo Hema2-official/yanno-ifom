@@ -31,6 +31,12 @@ import * as geotiff from 'geotiff';
 
 export type ProgressCallback = (message: string, fraction?: number) => void;
 
+/**
+ * The browser holds the only copy, which it would otherwise clear when short of space. It may
+ * refuse a site it hardly knows, so the request is repeated as the site gets used.
+ */
+const askToKeepData = () => void navigator.storage?.persist();
+
 class ProjectState {
 	localProject: DBProject | null = $state(null);
 
@@ -115,6 +121,7 @@ class ProjectState {
 		signal?.throwIfAborted();
 		if (!project) throw new Error("Couldn't find project");
 		this.localProject = project;
+		askToKeepData();
 		const key = `local:${localProjectId}`;
 		frameCache.open(key, (imageIndex) => readLocalFrame(localProjectId, imageIndex));
 		videoDisplayState.open(key);
@@ -151,8 +158,7 @@ class ProjectState {
 			await localProjectsDb.deleteProject(projectId);
 			throw error;
 		}
-		// The browser holds the only copy, which it would otherwise clear when short of space
-		void navigator.storage?.persist();
+		askToKeepData();
 		return projectId;
 	}
 
