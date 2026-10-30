@@ -24,6 +24,10 @@ dist-ssr
 *.sln
 *.sw?
 /.svelte-kit
+/build
 
 # Environment variables
 **/.env
+
+# The networks, copied in from symmetry-tracker-web (README)
+/static/models
