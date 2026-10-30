@@ -1,5 +1,5 @@
 {
-	"app_title": "IFOM annotáció",
+	"app_title": "Yanno",
 	"unexpected_file_format": "Váratlan fájlformátum, a betöltés megszakítva.\n\nVárt oszlopcímkék:\n",
 	"nonexistent_frame": "A változtatáselőzmények egy nem létező képkocka változásait tartalmazzák.\nHa ez nem szándékos, lépjen kapcsolatba a fejlesztővel, vagy jelentse a hibát.",
 	"cursor_tool": "Kurzor eszköz\nA nézet mozgatása és sejtek kijelölése.",

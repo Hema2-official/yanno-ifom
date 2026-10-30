@@ -1,6 +1,6 @@
-# IFOM annotation frontend
+# Yanno
 
-This project aims to provide an easy-to-use frontend for annotating tracking and segmentating algorithms.
+This project aims to provide an easy-to-use frontend for annotating tracking and segmentating algorithms. Its name comes from **y**east **anno**tation, the work it began with at IFOM.
 
 ## Prerequisites
 

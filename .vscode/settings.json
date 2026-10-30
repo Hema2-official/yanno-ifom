@@ -1,6 +1,6 @@
 {
 	"editor.rulers": [100],
-	// "window.title": "Cell tracking frontend", // TODO yet to find out
+	"window.title": "Yanno",
 	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"

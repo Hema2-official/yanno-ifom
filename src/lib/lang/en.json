@@ -1,5 +1,5 @@
 {
-	"app_title": "IFOM annotation",
+	"app_title": "Yanno",
 	"unexpected_file_format": "Unexpected file format, loading aborted.\n\nExpected column labels:\n",
 	"nonexistent_frame": "Change history contains changes of nonexistent frames.\nIf this is not intentional, contact developer or report a bug.",
 	"cursor_tool": "Cursor tool\nPan the view and select cells.",
