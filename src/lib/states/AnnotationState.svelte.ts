@@ -1,4 +1,4 @@
-import type { ChangeType, RLEType, TrackType, VersionManaged } from '$lib/types/annotation.type';
+import type { RLEType, TrackType, VersionManaged } from '$lib/types/annotation.type';
 import type { Polygon } from '$lib/types/geometry.type';
 import {
 	ancestorsOf,
@@ -15,33 +15,13 @@ import {
 import { gapsBetween, interpolatedCell, type Gap } from '$lib/utils/interpolate';
 import { mergeMasks } from '$lib/utils/masks';
 import { toastError } from '$lib/api/errors';
-import * as jsondiffpatch from 'jsondiffpatch/with-text-diffs';
+import { jsondiffer, makeBulkChange, makeChange } from '$lib/utils/delta';
 import { projectState } from './ProjectState.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { toast } from 'svelte-sonner';
 
 /** How long a commit waits for further commits before it is persisted. */
 const SAVE_DELAY_MS = 1000;
-
-// The delta format is a cross-repo contract: the backend re-applies these
-// deltas with its own differ, so its configuration must match this one
-const jsondiffer = jsondiffpatch.create({
-	// Matches array items that aren't equal by reference
-	objectHash: function (obj) {
-		if ('ObjectID' in obj) return (obj as TrackType).ObjectID;
-	},
-	arrays: {
-		detectMove: true,
-		includeValueOnMove: false
-	},
-	cloneDiffValues: structuredClone
-});
-
-function makeChange(newData: TrackType[], oldData: TrackType[], msg?: string): ChangeType | null {
-	const reverse = jsondiffer.diff(newData, oldData);
-	if (reverse === undefined) return null;
-	return { time: new Date().toISOString(), reverse, ...(msg ? { msg } : {}) };
-}
 
 /** The state before the last `count` changes of `data`. */
 export function stateBefore(data: VersionManaged<TrackType[]>, count: number): TrackType[] {
@@ -102,7 +82,7 @@ class AnnotationState {
 		const undone = changes.slice(-this.undoneCount).reverse();
 		const message = `Undo ${undone.map((change) => change.msg ?? 'change').join(', ')}`;
 		const undoCurrent = stateBefore(this.saved, this.undoneCount);
-		const undoChange = makeChange(undoCurrent, current, message);
+		const undoChange = makeBulkChange(undoCurrent, current, message);
 		return { current: undoCurrent, changes: undoChange ? changes.concat(undoChange) : changes };
 	});
 
