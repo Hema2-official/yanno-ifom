@@ -1,5 +1,3 @@
-import { get } from 'svelte/store';
-import { _ } from 'svelte-i18n';
 import type { TrackType } from '$lib/types/annotation.type';
 import { polygonsToRle, rleToPolygons } from '$lib/utils/rle';
 
@@ -51,7 +49,10 @@ export function textToTracks(input: string): TrackType[] {
 			labels[item.toLowerCase()] = index;
 		});
 	if (!expectedLabels.every((item) => Object.keys(labels).includes(item))) {
-		throw new Error(get(_)('unexpected_file_format') + expectedLabels.join('\t'));
+		throw new Error(
+			'Unexpected file format, loading aborted.\n\nExpected column labels:\n' +
+				expectedLabels.join('\t')
+		);
 	}
 
 	// Parse each line into raw entries
