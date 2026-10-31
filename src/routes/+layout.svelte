@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import { dev } from '$app/environment';
+	import { dev } from '$app/env';
 	import { resolve } from '$app/paths';
 	import KeybindingListener from '$lib/keybindings/KeybindingListener.svelte';
 	import { Toaster } from '$lib/components/ui/sonner';

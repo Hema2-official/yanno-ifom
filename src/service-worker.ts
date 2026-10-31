@@ -6,18 +6,20 @@
  * Keeps a copy of the app in the browser, so it opens while the server is down. A new version
  * waits for the old one's tabs to close, so it never pulls files from under a running step.
  */
-import { base, version } from '$service-worker';
+import { version } from '$app/env';
+import { resolve } from '$app/paths';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
+const ROOT = resolve('/');
 const PREFIX = 'app-';
 const CACHE = `${PREFIX}${version}`;
 
 async function keepApp() {
-	const list = await fetch(`${base}/precache.json`, { cache: 'no-store' });
+	const list = await fetch(`${ROOT}precache.json`, { cache: 'no-store' });
 	const files: string[] = await list.json();
 	const cache = await caches.open(CACHE);
-	await cache.addAll(files.map((file) => new Request(`${base}/${file}`, { cache: 'no-cache' })));
+	await cache.addAll(files.map((file) => new Request(`${ROOT}${file}`, { cache: 'no-cache' })));
 }
 
 // The models share the cache storage, under a name of their own
@@ -29,7 +31,7 @@ async function dropOldVersions() {
 
 async function respond(request: Request) {
 	const cache = await caches.open(CACHE);
-	const kept = await cache.match(request.mode === 'navigate' ? `${base}/index.html` : request);
+	const kept = await cache.match(request.mode === 'navigate' ? `${ROOT}index.html` : request);
 	return kept ?? fetch(request);
 }
 
