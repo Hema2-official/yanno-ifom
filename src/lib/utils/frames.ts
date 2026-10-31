@@ -16,12 +16,25 @@ export type ChannelPeriod = Pick<VideoConfig, 'start_period' | 'channel_period'>
 
 const SINGLE_CHANNEL_CONFIG: ChannelPeriod = { channel_period: 1, start_period: 0 };
 
-export function getFrameCount(config?: VideoConfig, metadata?: VideoMetadata): number {
+export function getFrameCount(
+	config?: VideoConfig,
+	metadata?: Pick<VideoMetadata, 'frame_count'>
+): number {
 	const { channel_period, start_period } = config ?? SINGLE_CHANNEL_CONFIG;
 	if (channel_period <= 0) return 0;
 	const imageCount = metadata?.frame_count ?? 0;
 	if (imageCount <= start_period) return 0;
 	return Math.ceil((imageCount - start_period) / channel_period);
+}
+
+export type VideoShape = { width: number; height: number; frames: number };
+
+export function videoShape(
+	config: VideoConfig,
+	metadata: Pick<VideoMetadata, 'frame_count' | 'width' | 'height'>
+): VideoShape {
+	const { width, height } = metadata;
+	return { width, height, frames: getFrameCount(config, metadata) };
 }
 
 const colorNames: Record<VideoColor, string> = {

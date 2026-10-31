@@ -12,7 +12,8 @@
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { CloudAlertIcon } from '@lucide/svelte';
-	import { download, tracksToText } from '$lib/utils/export';
+	import { tracksToMothersText, tracksToText } from '$lib/utils/annotationText';
+	import { download } from '$lib/utils/export';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import PasteDialog from '$lib/ui/annotation/PasteDialog.svelte';
 	import TrackIdDialog from '$lib/ui/annotation/TrackIdDialog.svelte';
@@ -70,6 +71,12 @@
 		if (!annotationState.data) return;
 		download(tracksToText(annotationState.data.current), `${exportName}.txt`, 'text/plain');
 	};
+
+	const exportAncestryAsTXT = () => {
+		if (!annotationState.data) return;
+		const text = tracksToMothersText(annotationState.data.current);
+		download(text, `${exportName}_mothers.txt`, 'text/plain');
+	};
 </script>
 
 {#if !isMobile.current}
@@ -117,7 +124,10 @@
 				Export as JSON
 			</Menubar.Item>
 			<Menubar.Item onSelect={exportAsTXT} disabled={!annotationState.data}>
-				Export as TXT
+				Export as phyloCell TXT
+			</Menubar.Item>
+			<Menubar.Item onSelect={exportAncestryAsTXT} disabled={!annotationState.data}>
+				Export ancestry as phyloCell TXT
 			</Menubar.Item>
 			<Menubar.Item
 				onSelect={() => (exportFramesOpen = true)}
