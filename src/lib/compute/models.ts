@@ -1,15 +1,31 @@
-/** The networks of symmetry-tracker-web's tools/export_models.py, as the app serves them from static/models. */
+/** The models exported by symmetry-tracker-web and tools/export_trackers.py, as the app serves them from static/models. */
 export type ModelManifest = {
-	source: { weights: string; tracker: string };
 	models: Record<string, { bytes: number; sha256: string }>;
 };
+
+const tracker = (
+	backbone: number,
+	timeKernelSize: number,
+	file = `track_RN${backbone}_FBtr${timeKernelSize}.onnx`
+) => ({
+	file,
+	timeKernelSize,
+	label: `ResNet-${backbone}, ${timeKernelSize} frame${timeKernelSize > 1 ? 's' : ''} each way`
+});
+
+/** The tracking models on offer, the one validated against the Python reference first. */
+export const trackingModels = [
+	tracker(50, 7, 'track.onnx'),
+	...[18, 34, 101, 152].map((backbone) => tracker(backbone, 7)),
+	...[1, 2, 3, 4, 5, 6, 8, 9].map((timeKernelSize) => tracker(50, timeKernelSize))
+];
 
 const CACHE_NAME = 'models';
 
 const openCache = async () =>
 	typeof caches === 'undefined' ? null : await caches.open(CACHE_NAME).catch(() => null);
 
-/** The networks' manifest, or the last one read while the server is down. */
+/** The models' manifest, or the last one read while the server is down. */
 export async function loadManifest(base: string): Promise<ModelManifest> {
 	const url = new URL('manifest.json', base);
 	const cache = await openCache();
@@ -30,14 +46,14 @@ export async function loadManifest(base: string): Promise<ModelManifest> {
 	if (kept) return (await kept.json()) as ModelManifest;
 	throw new Error(
 		response
-			? `The networks are missing from ${base}: copy symmetry-tracker-web's models there`
-			: "The server can't be reached, and this browser hasn't kept the networks yet"
+			? `The models are missing from ${base}: copy symmetry-tracker-web's models there`
+			: "The server can't be reached, and this browser hasn't kept the models yet"
 	);
 }
 
 /**
- * A network's bytes, downloaded once and then kept in the browser's cache under its checksum,
- * so networks exported anew replace the old ones.
+ * A model's bytes, downloaded once and then kept in the browser's cache under its checksum,
+ * so models exported anew replace the old ones.
  */
 export async function loadModel(
 	base: string,
@@ -46,7 +62,7 @@ export async function loadModel(
 	onProgress: (loaded: number, total: number) => void
 ): Promise<Uint8Array> {
 	const entry = manifest.models[name];
-	if (!entry) throw new Error(`The networks' manifest lists no ${name}`);
+	if (!entry) throw new Error(`The models' manifest lists no ${name}`);
 	const url = new URL(name, base);
 	const key = `${url.href}?sha256=${entry.sha256}`;
 	const cache = await openCache();

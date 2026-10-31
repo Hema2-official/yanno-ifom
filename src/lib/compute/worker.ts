@@ -24,11 +24,11 @@ import {
 import type { TrackType } from '$lib/types/annotation.type';
 import { makeBulkChange } from '$lib/utils/delta';
 import { CpuSegmenter, CpuTrackingKernel } from './cpu';
-import { loadManifest, loadModel, type ModelManifest } from './models';
+import { loadManifest, loadModel, trackingModels, type ModelManifest } from './models';
 import type { ComputeRequest, ComputeResult } from './run';
 
 export type WorkerRequest = ComputeRequest & {
-	/** The URL of the networks' folder. */
+	/** The URL of the models' folder. */
 	models: string;
 };
 
@@ -63,7 +63,7 @@ const asRecord = (cell: TrackType): TrackerRecord => ({
 	AncestorID: cell.AncestorID ?? null
 });
 
-/** A video's frames as a network reads them, a pixel's colors together. */
+/** A video's frames as a model reads them, a pixel's colors together. */
 interface ModelFrames {
 	readonly count: number;
 	readonly width: number;
@@ -119,7 +119,7 @@ async function openFrames(
 	};
 }
 
-/** The networks, downloaded on the first run. */
+/** The models, downloaded on the first run. */
 async function loadModels(
 	request: WorkerRequest,
 	manifest: ModelManifest,
@@ -132,12 +132,12 @@ async function loadModels(
 	for (const name of names) {
 		models.push(
 			await loadModel(request.models, manifest, name, (loaded) =>
-				progress('Downloading the networks...', (done + loaded) / total)
+				progress('Downloading the models...', (done + loaded) / total)
 			)
 		);
 		done += models.at(-1)!.length;
 	}
-	progress('Loading the networks...');
+	progress('Loading the models...');
 	return models;
 }
 
@@ -176,7 +176,7 @@ async function tracking(request: WorkerRequest, progress: Progress): Promise<Tra
 	// The tracker reads frames in order, and keeps the cells of a frame in theirs
 	const records = request.current.map(asRecord).sort((a, b) => a.Frame - b.Frame);
 	if (records.length === 0) throw new Error('The project has no cells: run segmentation first');
-	// As the backend's GRAYSCALE mode: no tracking network takes color
+	// As the backend's GRAYSCALE mode: no tracking model takes color
 	const frames = await openFrames(request, progress, false);
 	const { count, height, width } = frames;
 	const misfit = records.find(
@@ -189,10 +189,10 @@ async function tracking(request: WorkerRequest, progress: Progress): Promise<Tra
 		);
 	}
 	const manifest = await loadManifest(request.models);
-	// The model's time kernel size is in its name, as "_FBtr7_"
-	const timeKernelSize = Number(/_FBtr(\d+)_/.exec(manifest.source.tracker)?.[1]);
-	if (!timeKernelSize) throw new Error(`No time kernel size in ${manifest.source.tracker}`);
-	const [model] = await loadModels(request, manifest, ['track.onnx'], progress);
+	const tracker = trackingModels.find(({ file }) => file === parameters.model_name);
+	if (!tracker) throw new Error(`There's no tracking model ${parameters.model_name}`);
+	const { file, timeKernelSize } = tracker;
+	const [model] = await loadModels(request, manifest, [file], progress);
 	const confidence = parameters.segmentation_confidence;
 	const kernel: LocalTrackKernel =
 		request.device === 'gpu'

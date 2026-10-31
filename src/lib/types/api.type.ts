@@ -46,12 +46,13 @@ export enum InheritanceMethod {
 	EUCLIDEAN = 'EUCLIDEAN'
 }
 
-// The networks are the ones served with the app, so the parameters name no model
+// The one segmentation model is served with the app, so its parameters name none
 export type SegmentationParams = {
 	score_threshold: number;
 };
 
 export type TrackingParams = {
+	model_name: string;
 	remove_faulty_objects: boolean;
 	min_object_pixel_number: number;
 	max_overlap_ratio: number;
@@ -72,6 +73,7 @@ export const defaultSegmentationParams: SegmentationParams = {
 };
 
 export const defaultTrackingParams: TrackingParams = {
+	model_name: 'track.onnx',
 	remove_faulty_objects: true,
 	min_object_pixel_number: 100,
 	max_overlap_ratio: 0.5,

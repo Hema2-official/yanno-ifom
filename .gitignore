@@ -29,5 +29,5 @@ dist-ssr
 # Environment variables
 **/.env
 
-# The networks, copied in from symmetry-tracker-web (README)
+# The models, copied in from symmetry-tracker-web (README)
 /static/models

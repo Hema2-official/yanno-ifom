@@ -1,5 +1,5 @@
 /**
- * The tracker's GPU work on the CPU, for browsers without WebGPU: the networks on ONNX Runtime's
+ * The tracker's GPU work on the CPU, for browsers without WebGPU: the models on ONNX Runtime's
  * WebAssembly backend, and the port's GPU kernels (the segmentation input, ROIAlign, the local
  * tracks' input and threshold) as loops in the same float32 steps. The CPU steps around them are
  * the tracker's own.

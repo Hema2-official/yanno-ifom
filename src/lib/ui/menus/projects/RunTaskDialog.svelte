@@ -7,6 +7,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Progress } from '$lib/components/ui/progress';
 	import { extractError } from '$lib/api/errors';
+	import { trackingModels } from '$lib/compute/models';
 	import type { ProgressCallback } from '$lib/states/ProjectState.svelte';
 	import {
 		type AnyStepParams,
@@ -50,12 +51,13 @@
 
 	const uid = $props.id();
 
-	/** A step parameter: a checkbox, or a text or number input. */
+	/** A step parameter: a checkbox, a list of options, or a text or number input. */
 	type Field<P> = {
 		key: keyof P & string;
 		label: string;
 		hint?: string;
 		checkbox?: boolean;
+		options?: { value: string; label: string }[];
 		optional?: boolean;
 		inputProps?: ComponentProps<typeof Input>;
 	};
@@ -71,6 +73,12 @@
 			}
 		],
 		tracking: [
+			{
+				key: 'model_name',
+				label: 'Model',
+				hint: 'Deeper ones take longer; each is downloaded on its first use',
+				options: trackingModels.map(({ file, label }) => ({ value: file, label }))
+			},
 			{
 				key: 'segmentation_confidence',
 				label: 'Segmentation confidence',
@@ -236,6 +244,22 @@
 							checked={params[field.key] === true}
 							onCheckedChange={(checked) => (params[field.key] = checked)}
 						/>
+					{:else if field.options}
+						<Select.Root
+							type="single"
+							value={String(params[field.key])}
+							onValueChange={(value) => (params[field.key] = value)}
+						>
+							<Select.Trigger {id} class="w-full">
+								{field.options.find(({ value }) => value === params[field.key])
+									?.label}
+							</Select.Trigger>
+							<Select.Content>
+								{#each field.options as option (option.value)}
+									<Select.Item {...option} />
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					{:else}
 						<Input
 							{id}

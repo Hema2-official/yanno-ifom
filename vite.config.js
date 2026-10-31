@@ -12,7 +12,7 @@ const staticAdapter = adapter({ pages, fallback: 'index.html' });
 
 /**
  * Also lists what the service worker keeps: every file of the app, the computing worker's too,
- * which Kit's own lists leave out, but not the networks, which a browser keeps once it uses them.
+ * which Kit's own lists leave out, but not the models, which a browser keeps once it uses them.
  * @type {import('@sveltejs/kit').Adapter}
  */
 const offlineAdapter = {
@@ -30,7 +30,7 @@ const offlineAdapter = {
 };
 
 /**
- * Cross-origin isolation, which lets ONNX Runtime run the networks on several threads: on
+ * Cross-origin isolation, which lets ONNX Runtime run the models on several threads: on
  * every response, the pages SvelteKit serves included.
  * @type {import('vite').Plugin}
  */
