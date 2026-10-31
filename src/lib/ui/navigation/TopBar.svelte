@@ -114,7 +114,7 @@
 
 	async function handleLogout() {
 		// TODO: ask if user wants to save, if applicable
-		goto(resolve('/logout'));
+		goto(resolve('logout'));
 	}
 </script>
 
@@ -201,7 +201,7 @@
 						<LogOutIcon /> Log out
 					</DropdownMenu.Item>
 				{:else}
-					<DropdownMenu.Item onSelect={() => goto(resolve('/login'))}>
+					<DropdownMenu.Item onSelect={() => goto(resolve('login'))}>
 						<LogInIcon /> Log in
 					</DropdownMenu.Item>
 				{/if}

@@ -34,7 +34,7 @@
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/types/api.type';
-	import type { PathnameWithSearchOrHash } from '$app/types';
+	import type { RouteIdWithSearchOrHash } from '$app/types';
 	import { IsMobile } from '$lib/hooks/is-mobile.svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -88,7 +88,7 @@
 		download(tracksToText(annotationState.data.current), `${exportName}.txt`, 'text/plain');
 	};
 
-	const versionHref = (project: Project, versionId: string): PathnameWithSearchOrHash =>
+	const versionHref = (project: Project, versionId: string): RouteIdWithSearchOrHash =>
 		`/editor?project=${project.id}&version=${versionId}`;
 </script>
 

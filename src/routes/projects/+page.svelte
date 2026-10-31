@@ -35,7 +35,7 @@
 			<p class="text-muted-foreground max-w-prose">
 				Cloud projects can be accessed from anywhere and enable collaboration.
 			</p>
-			<Button href={resolve(`/login?redirect=${currentHref}`)}>
+			<Button href={resolve(`login?redirect=${currentHref}`)}>
 				<LogInIcon data-icon="inline-start" /> Log in
 			</Button>
 		</section>

@@ -8,7 +8,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
 	import { resolve } from '$app/paths';
-	import type { Pathname } from '$app/types';
+	import type { RouteIdWithSearchOrHash } from '$app/types';
 	import { ModeWatcher } from 'mode-watcher';
 
 	import '../app.css';
@@ -35,16 +35,19 @@
 		if (accountState.currentAccount === null) {
 			if (isAuthenticating || isPublic) return;
 			if (path === '/logout') {
-				goto(resolve('/login'));
+				goto(resolve('login'));
 			} else {
 				const ref = path + window.location.search + window.location.hash;
-				goto(resolve(`/login?redirect=${encodeURIComponent(ref)}`));
+				goto(resolve(`login?redirect=${encodeURIComponent(ref)}`));
 			}
 		} else {
 			if (!isAuthenticating) return;
 			const searchParams = new URLSearchParams(window.location.search);
 			const redirect = decodeURIComponent(searchParams.get('redirect') || '');
-			goto(resolve((redirect as Pathname) || '/'));
+			// A redirect to no route rejects
+			goto(resolve((redirect as RouteIdWithSearchOrHash) || '/')).catch(() =>
+				goto(resolve('/'))
+			);
 		}
 	});
 </script>
