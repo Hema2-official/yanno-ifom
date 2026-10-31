@@ -18,6 +18,13 @@ export type ComputeRequest = {
 /** The step's cells, and the change that records it, null when nothing changed. */
 export type ComputeResult = { current: TrackType[]; change: ChangeType | null };
 
+export const STEP_LOCK = 'step';
+
+/** Runs a step and stores its result under a lock of every tab, which a new version waits for. */
+export async function holdingStep<T>(work: () => Promise<T>): Promise<T> {
+	return navigator.locks?.request(STEP_LOCK, { mode: 'shared' }, work) ?? work();
+}
+
 export async function hasWebGpu(): Promise<boolean> {
 	return !!(await navigator.gpu?.requestAdapter().catch(() => null));
 }

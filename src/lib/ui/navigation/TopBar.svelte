@@ -1,13 +1,14 @@
 <script lang="ts">
 	import * as Menubar from '$lib/components/ui/menubar';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
-	import { SettingsIcon } from '@lucide/svelte';
+	import { RefreshCcwIcon, SettingsIcon } from '@lucide/svelte';
 	import LogoSVG from '$lib/ui/common/LogoSVG.svelte';
 	import type { Snippet } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { settingsState } from '$lib/states/settings.svelte';
 	import { resolve } from '$app/paths';
 	import CreateProjectDialog from '$lib/ui/menus/projects/CreateProjectDialog.svelte';
+	import { updateState } from '$lib/states/UpdateState.svelte';
 
 	type Props = {
 		extraCrumbs?: Snippet;
@@ -140,7 +141,15 @@
 		</Menubar.Root>
 	</div>
 
-	<div class="flex flex-1 justify-end">
+	<div class="flex flex-1 justify-end gap-2">
+		{#if updateState.updateCallback}
+			<Button variant="default" onclick={() => updateState.updateCallback?.()}>
+				<RefreshCcwIcon
+					data-icon="inline-start"
+					class={updateState.isUpdating ? 'animate-spin' : ''}
+				/> Switch to new version
+			</Button>
+		{/if}
 		<Button variant="secondary" onclick={() => (settingsState.open = true)}>
 			<SettingsIcon data-icon="inline-start" /> Settings
 		</Button>

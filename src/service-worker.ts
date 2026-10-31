@@ -4,7 +4,8 @@
 /// <reference lib="webworker" />
 /**
  * Keeps a copy of the app in the browser, so it opens while the server is down. A new version
- * waits for the old one's tabs to close, so it never pulls files from under a running step.
+ * waits for the old one's tabs to close, or for the app's offer to be taken (`utils/updates.ts`),
+ * so it never pulls files from under a running step.
  */
 import { version } from '$app/env';
 import { resolve } from '$app/paths';
@@ -31,12 +32,15 @@ async function dropOldVersions() {
 
 async function respond(request: Request) {
 	const cache = await caches.open(CACHE);
-	const kept = await cache.match(request.mode === 'navigate' ? `${ROOT}index.html` : request);
-	return kept ?? fetch(request);
+	const file = request.mode === 'navigate' ? `${ROOT}index.html` : request;
+	return (await cache.match(file, { ignoreVary: true })) ?? fetch(request);
 }
 
 sw.addEventListener('install', (event) => event.waitUntil(keepApp()));
 sw.addEventListener('activate', (event) => event.waitUntil(dropOldVersions()));
+sw.addEventListener('message', (event) => {
+	if (event.data === 'activate') void sw.skipWaiting();
+});
 sw.addEventListener('fetch', (event) => {
 	const { request } = event;
 	if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;

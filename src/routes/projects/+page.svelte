@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
-	import { hasWebGpu, type ComputeDevice } from '$lib/compute/run';
+	import { hasWebGpu, holdingStep, type ComputeDevice } from '$lib/compute/run';
 	import { optionsState } from '$lib/states/options.svelte';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import type { TrackType, VersionManaged } from '$lib/types/annotation.type';
@@ -85,12 +85,12 @@
 		{lastStep}
 		{cells}
 		run={(step, parameters, signal, onProgress) =>
-			projectState
-				.runLocalTask(project.id!, step, parameters, device, signal, onProgress)
-				.then(() => {
-					toast.success(`${step[0].toUpperCase()}${step.slice(1)} finished`);
-					refetch();
-				})}
+			holdingStep(() =>
+				projectState.runLocalTask(project.id!, step, parameters, device, signal, onProgress)
+			).then(() => {
+				toast.success(`${step[0].toUpperCase()}${step.slice(1)} finished`);
+				refetch();
+			})}
 	>
 		<Label for="{uid}-device">Device</Label>
 		<Select.Root
