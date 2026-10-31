@@ -11,6 +11,7 @@
 	import { toastError } from '$lib/api/errors';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { defaultVideoConfig } from '$lib/types/api.type';
+	import { isAnnotationText } from '$lib/utils/annotationText';
 	import { LoaderCircleIcon } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
@@ -30,6 +31,7 @@
 	let videoConfig = $state({ ...defaultVideoConfig });
 	let importAnnotation = $state(false);
 	let annotationFile: File | null = $state(null);
+	let mothersFile: File | null = $state(null);
 
 	// Progress message while creating, null when idle
 	let progress: string | null = $state(null);
@@ -47,6 +49,7 @@
 		videoConfig = { ...defaultVideoConfig };
 		importAnnotation = false;
 		annotationFile = null;
+		mothersFile = null;
 	});
 
 	async function onsubmit(e: SubmitEvent) {
@@ -60,7 +63,9 @@
 				name.trim(),
 				$state.snapshot(videoConfig),
 				videoFile,
-				importAnnotation ? annotationFile : null,
+				importAnnotation && annotationFile
+					? { annotation: annotationFile, mothers: mothersFile }
+					: null,
 				(message, fraction) => {
 					progress = message;
 					progressValue = fraction ?? null;
@@ -81,7 +86,7 @@
 <Dialog.Root bind:open>
 	<!-- No dismissing while the work is running -->
 	<Dialog.Content
-		class="sm:max-w-xl"
+		class="max-h-dvh overflow-y-auto sm:max-w-xl"
 		showCloseButton={!busy}
 		onInteractOutside={(e) => busy && e.preventDefault()}
 		onEscapeKeydown={(e) => busy && e.preventDefault()}
@@ -115,7 +120,18 @@
 				</Label>
 
 				{#if importAnnotation}
-					<FileUploadInput label="Annotation" accept=".json" bind:file={annotationFile} />
+					<FileUploadInput
+						label="Annotation"
+						accept=".json,.txt"
+						bind:file={annotationFile}
+					/>
+					{#if annotationFile && isAnnotationText(annotationFile)}
+						<FileUploadInput
+							label="Ancestry (_mothers file, optional)"
+							accept=".txt"
+							bind:file={mothersFile}
+						/>
+					{/if}
 				{/if}
 			</div>
 

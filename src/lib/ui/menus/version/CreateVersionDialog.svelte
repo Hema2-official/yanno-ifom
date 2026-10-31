@@ -11,6 +11,8 @@
 	import { copyProjectVersion, createProjectVersion } from '$lib/api/projects';
 	import { readAnnotationFile } from '$lib/states/ProjectState.svelte';
 	import type { Project, ProjectVersion } from '$lib/types/api.type';
+	import { isAnnotationText } from '$lib/utils/annotationText';
+	import { videoShape } from '$lib/utils/frames';
 
 	type Props = {
 		project: Project;
@@ -25,6 +27,7 @@
 	let newVersionName = $state('');
 	let importAnnotation = $state(false);
 	let annotationFile: File | null = $state(null);
+	let mothersFile: File | null = $state(null);
 	let busy = $state(false);
 	let canSubmit = $derived(
 		!!newVersionName.trim() && (!importAnnotation || !!annotationFile) && !busy
@@ -35,13 +38,17 @@
 		newVersionName = copyFromVersion ? copyFromVersion.name + ' (copy)' : '';
 		importAnnotation = false;
 		annotationFile = null;
+		mothersFile = null;
 	});
 
 	async function createVersion(name: string) {
 		if (copyFromVersion) return copyProjectVersion(copyFromVersion, { name });
 		const data =
 			importAnnotation && annotationFile
-				? await readAnnotationFile(annotationFile)
+				? await readAnnotationFile(
+						{ annotation: annotationFile, mothers: mothersFile },
+						videoShape(project.video_config, project.video_metadata)
+					)
 				: undefined;
 		return createProjectVersion(project.id, { name, data });
 	}
@@ -90,9 +97,16 @@
 					{#if importAnnotation}
 						<FileUploadInput
 							label="Annotation"
-							accept=".json"
+							accept=".json,.txt"
 							bind:file={annotationFile}
 						/>
+						{#if annotationFile && isAnnotationText(annotationFile)}
+							<FileUploadInput
+								label="Ancestry (_mothers file, optional)"
+								accept=".txt"
+								bind:file={mothersFile}
+							/>
+						{/if}
 					{/if}
 				{/if}
 			</div>

@@ -36,66 +36,6 @@
 		showCreate = true;
 	}
 
-	// import {
-	// 	getFramesDifference,
-	// 	getFramesAtChangeIndex,
-	// 	textToDataType,
-	// 	dataTypeToText,
-	// 	download
-	// } from '$lib/utils/data';
-
-	// const handleTxtFileInput = (e: Event) => {
-	// 	const file = (e.currentTarget as HTMLInputElement).files[0];
-	// 	if (!file) return;
-	// 	const reader = new FileReader();
-	// 	reader.onload = () => {
-	// 		const text = reader.result as string;
-	// 		textToDataType(text).then((d) => {
-	// 			d.changes.push({
-	// 				time: Date.now(),
-	// 				frames: [
-	// 					{
-	// 						id: 25,
-	// 						cells: [
-	// 							{
-	// 								id: 7,
-	// 								x: [0, 1, 2, 3, 4, 5],
-	// 								y: [0, 1, 2, 3, 4, 5]
-	// 							}
-	// 						]
-	// 					}
-	// 				]
-	// 			});
-	// 			d.changes.push({
-	// 				time: Date.now(),
-	// 				frames: [
-	// 					{
-	// 						id: 25,
-	// 						cells: [
-	// 							{
-	// 								id: 2,
-	// 								x: null,
-	// 								y: null
-	// 							}
-	// 						]
-	// 					}
-	// 				]
-	// 			});
-
-	// 			console.log(d.changes);
-
-	// 			const processed = getFramesAtChangeIndex(d, 1);
-	// 			const difference = getFramesDifference(d.originalFrames, processed);
-	// 			console.log(processed);
-	// 			console.log(difference);
-
-	// 			const backtotext = dataTypeToText(d, 1);
-	// 			download(backtotext, 'test.txt', 'text/plain');
-	// 		});
-	// 	};
-	// 	reader.readAsText(file);
-	// };
-
 	// const handleTifFileInput = (e: Event) => {
 	//     const file = (e.currentTarget as HTMLInputElement).files[0];
 	//     if (!file) return;

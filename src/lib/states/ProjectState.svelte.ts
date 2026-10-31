@@ -34,11 +34,14 @@ import { editSession } from './EditSessionState.svelte';
 import { frameCache } from './FrameCache.svelte';
 import { videoDisplayState } from './VideoDisplayState.svelte';
 import { zoomState } from './zoom.svelte';
-import { getFrameCount, getImageIndex } from '$lib/utils/frames';
+import { isAnnotationText, textToTracks } from '$lib/utils/annotationText';
+import { getFrameCount, getImageIndex, videoShape, type VideoShape } from '$lib/utils/frames';
 import { extractError, toastError } from '$lib/api/errors';
 import * as geotiff from 'geotiff';
 
 export type ProgressCallback = (message: string, fraction?: number) => void;
+
+export type AnnotationFiles = { annotation: File; mothers: File | null };
 
 class ProjectState {
 	cloudProject: Project | null = $state(null);
@@ -216,13 +219,16 @@ class ProjectState {
 		name: string,
 		video_config: VideoConfig,
 		videoFile: File,
-		annotationFile: File | null,
+		annotationFiles: AnnotationFiles | null,
 		onProgress?: ProgressCallback
 	) {
 		// Check annotation before doing anything else
-		const imported: CreateProjectVersionBody | null = annotationFile && {
-			name: annotationFile.name.replace(/\.json$/i, '') + ' (imported)',
-			data: await readAnnotationFile(annotationFile)
+		const imported: CreateProjectVersionBody | null = annotationFiles && {
+			name: annotationFiles.annotation.name.replace(/\.(json|txt)$/i, '') + ' (imported)',
+			data: await readAnnotationFile(
+				annotationFiles,
+				await readVideoShape(videoFile, video_config)
+			)
 		};
 
 		onProgress?.('Uploading video...');
@@ -247,12 +253,17 @@ class ProjectState {
 		name: string,
 		video_config: VideoConfig,
 		videoFile: File,
-		annotationFile: File | null,
+		annotationFiles: AnnotationFiles | null,
 		onProgress?: ProgressCallback
 	) {
 		onProgress?.('Saving annotation...');
 		const annotation = await compressJson(
-			annotationFile ? await readAnnotationFile(annotationFile) : { current: [], changes: [] }
+			annotationFiles
+				? await readAnnotationFile(
+						annotationFiles,
+						await readVideoShape(videoFile, video_config)
+					)
+				: { current: [], changes: [] }
 		);
 
 		// Save project to indexeddb and get auto-incremented ID
@@ -352,8 +363,26 @@ class ProjectState {
 	}
 }
 
-export async function readAnnotationFile(file: File): Promise<VersionManaged<TrackType[]>> {
-	const parsed: unknown = JSON.parse(await file.text());
+async function readVideoShape(videoFile: File, config: VideoConfig): Promise<VideoShape> {
+	const tiff = await geotiff.fromBlob(videoFile);
+	const image = await tiff.getImage();
+	return videoShape(config, {
+		frame_count: await tiff.getImageCount(),
+		width: image.getWidth(),
+		height: image.getHeight()
+	});
+}
+
+export async function readAnnotationFile(
+	{ annotation, mothers }: AnnotationFiles,
+	video: VideoShape
+): Promise<VersionManaged<TrackType[]>> {
+	if (isAnnotationText(annotation)) {
+		const current = textToTracks(await annotation.text(), video, await mothers?.text());
+		return { current, changes: [] };
+	}
+
+	const parsed: unknown = JSON.parse(await annotation.text());
 	const result = annotationDataSchema.safeParse(
 		Array.isArray(parsed) ? { current: parsed, changes: [] } : parsed
 	);

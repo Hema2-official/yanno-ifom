@@ -20,7 +20,8 @@
 		CloudOffIcon,
 		CloudSyncIcon
 	} from '@lucide/svelte';
-	import { download, tracksToText } from '$lib/utils/export';
+	import { tracksToMothersText, tracksToText } from '$lib/utils/annotationText';
+	import { download } from '$lib/utils/export';
 	import { projectState } from '$lib/states/ProjectState.svelte';
 	import { editSession } from '$lib/states/EditSessionState.svelte';
 	import EditLockStatus from '$lib/ui/annotation/EditLockStatus.svelte';
@@ -86,6 +87,12 @@
 	const exportAsTXT = () => {
 		if (!annotationState.data) return;
 		download(tracksToText(annotationState.data.current), `${exportName}.txt`, 'text/plain');
+	};
+
+	const exportAncestryAsTXT = () => {
+		if (!annotationState.data) return;
+		const text = tracksToMothersText(annotationState.data.current);
+		download(text, `${exportName}_mothers.txt`, 'text/plain');
 	};
 
 	const versionHref = (project: Project, versionId: string): RouteIdWithSearchOrHash =>
@@ -197,7 +204,10 @@
 				Export as JSON
 			</Menubar.Item>
 			<Menubar.Item onSelect={exportAsTXT} disabled={!annotationState.data}>
-				Export as TXT
+				Export as phyloCell TXT
+			</Menubar.Item>
+			<Menubar.Item onSelect={exportAncestryAsTXT} disabled={!annotationState.data}>
+				Export ancestry as phyloCell TXT
 			</Menubar.Item>
 			<Menubar.Item
 				onSelect={() => (exportFramesOpen = true)}
