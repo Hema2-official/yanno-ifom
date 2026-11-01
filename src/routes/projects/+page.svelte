@@ -23,7 +23,7 @@
 	let currentHref = encodeURIComponent(page.url.pathname + page.url.search);
 </script>
 
-<div class="mx-auto mt-24 flex w-3/5 flex-col gap-10">
+<div class="mx-auto mt-24 flex w-3/5 flex-col items-center gap-10">
 	{#if accountState.currentAccount === undefined}
 		<Spinner />
 	{:else if !accountState.currentAccount}
