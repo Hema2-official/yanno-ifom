@@ -92,8 +92,8 @@
       `lightClassNames={['light']}` in `+layout.svelte` so this class is really
       emitted; with its default (`[]`) light mode would just be the *absence* of
       `.dark`, which is indistinguishable from "not resolved yet".
-   2. the media query - no explicit choice on <html> yet (before ModeWatcher's
-      head script runs, or with JS off), so follow the OS.
+   2. the media query - no explicit choice on <html> (with JS off, since
+      `app.html`'s script sets the class first), so follow the OS.
 
    The declarations are duplicated because CSS cannot share one declaration
    block across a media-query boundary. Keep the two blocks in sync. */
