@@ -7,6 +7,7 @@
 	import { Toaster } from '$lib/components/ui/sonner';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
+	import BrowserWarningDialog from '$lib/ui/common/BrowserWarningDialog.svelte';
 	import { resolve } from '$app/paths';
 	import type { RouteIdWithSearchOrHash } from '$app/types';
 	import { ModeWatcher } from 'mode-watcher';
@@ -56,6 +57,7 @@
 <KeybindingListener />
 <Toaster />
 <SettingsDialog />
+<BrowserWarningDialog />
 
 <Tooltip.Provider delayDuration={300}>
 	<main class="flex h-screen w-full">
