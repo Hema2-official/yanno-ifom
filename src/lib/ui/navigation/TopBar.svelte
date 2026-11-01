@@ -100,7 +100,7 @@
 				<Menubar.Trigger>Help</Menubar.Trigger>
 				<Menubar.Content>
 					<Menubar.Item>Documentation</Menubar.Item>
-					<Menubar.Item>About</Menubar.Item>
+					<Menubar.Item onSelect={() => settingsState.show('about')}>About</Menubar.Item>
 				</Menubar.Content>
 			</Menubar.Menu>
 		</Menubar.Root>
