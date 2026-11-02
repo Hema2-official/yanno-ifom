@@ -71,7 +71,7 @@
 						href={resolve('/projects')}
 						class="text-foreground font-semibold"
 					>
-						Yanno
+						Yanno (IFOM flavor)
 					</Breadcrumb.Link>
 				</Breadcrumb.Item>
 				{@render extraCrumbs?.()}
