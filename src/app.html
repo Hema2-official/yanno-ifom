@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/png" href="/logo.svg" />
+		<title>Yanno</title>
+		<!-- The theme's background and class before app.css and ModeWatcher load -->
+		<style>
+			:root {
+				color-scheme: dark;
+				background-color: #242424;
+			}
+			:root.light {
+				color-scheme: light;
+				background-color: #f9f9f9;
+			}
+		</style>
+		<script>
+			{
+				const mode = localStorage.getItem('mode-watcher-mode');
+				const light =
+					mode === 'light' ||
+					(mode !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches);
+				document.documentElement.classList.add(light ? 'light' : 'dark');
+			}
+		</script>
+		%sveltekit.head%
+	</head>
+
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

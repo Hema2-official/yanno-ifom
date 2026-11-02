@@ -1,0 +1,152 @@
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import { getProject, updateProject } from '$lib/api/projects';
+	import { versionStepOrder, type ProjectVersion } from '$lib/types/api.type';
+	import { resource } from 'runed';
+	import { getFrameCount } from '$lib/utils/frames';
+	import { Button } from '$lib/components/ui/button';
+	import Spinner from '$lib/ui/common/Spinner.svelte';
+	import VersionItem from '../version/VersionItem.svelte';
+	import RenameDialog from './RenameDialog.svelte';
+	import ShareDialog from './ShareDialog.svelte';
+	import CreateVersionDialog from '../version/CreateVersionDialog.svelte';
+
+	import {
+		ArrowLeftIcon,
+		UsersIcon,
+		PencilIcon,
+		PlusIcon,
+		LayersIcon,
+		type LucideIcon,
+		SparklesIcon
+	} from '@lucide/svelte';
+
+	type Props = { projectId: string };
+	let { projectId }: Props = $props();
+
+	const projectResource = resource(
+		() => projectId,
+		async (id, _, { signal }) => getProject(id, { signal })
+	);
+
+	let project = $derived(projectResource.current);
+	let isOwner = $derived(project?.role === 'owner');
+	let canEdit = $derived(project?.role !== 'viewer');
+
+	let showRenameDialog = $state(false);
+	let showShareDialog = $state(false);
+	let showCreateVersionDialog = $state(false);
+	let copyFromVersion: ProjectVersion | undefined = $state(undefined);
+
+	function handleCopyVersion(v: ProjectVersion) {
+		copyFromVersion = v;
+		showCreateVersionDialog = true;
+	}
+
+	function handleCreateVersion() {
+		copyFromVersion = undefined;
+		showCreateVersionDialog = true;
+	}
+</script>
+
+{#snippet VersionGroup(label: string, versions: ProjectVersion[], Icon: LucideIcon)}
+	{#if versions.length > 0}
+		<div class="flex flex-col gap-2">
+			<h3 class="flex items-center gap-2 text-lg font-semibold capitalize">
+				<Icon class="text-muted-foreground size-4" />
+				{label}
+				<span class="text-muted-foreground text-sm font-normal">
+					({versions.length})
+				</span>
+			</h3>
+
+			<div class="flex flex-col gap-2">
+				{#each versions as version (version.id)}
+					<VersionItem
+						{version}
+						{canEdit}
+						onCopy={() => handleCopyVersion(version)}
+						onRefresh={() => projectResource.refetch()}
+					/>
+				{/each}
+			</div>
+		</div>
+	{/if}
+{/snippet}
+
+<div class="flex w-full flex-col gap-6">
+	{#if projectResource.loading}
+		<div class="flex w-full items-center justify-center"><Spinner /></div>
+	{:else if project}
+		<!-- Header -->
+		<div class="flex items-center gap-3">
+			<div class="flex w-full items-center justify-between">
+				<div class="flex items-baseline gap-2">
+					<Button variant="ghost" href={resolve('/projects')}>
+						<ArrowLeftIcon />
+					</Button>
+					<h2 class="text-2xl font-bold">{project.name}</h2>
+				</div>
+
+				<div class="flex gap-2">
+					{#if isOwner}
+						<Button variant="secondary" onclick={() => (showRenameDialog = true)}>
+							<PencilIcon data-icon="inline-start" /> Rename
+						</Button>
+					{/if}
+					<Button variant="secondary" onclick={() => (showShareDialog = true)}>
+						<UsersIcon data-icon="inline-start" />
+						{isOwner ? 'Share' : 'Members'}
+					</Button>
+					{#if canEdit}
+						<Button onclick={handleCreateVersion}>
+							<PlusIcon data-icon="inline-start" /> New Version
+						</Button>
+					{/if}
+				</div>
+			</div>
+		</div>
+
+		<p class="text-muted-foreground -mt-2 text-sm">
+			{getFrameCount(project.video_config, project.video_metadata)} primary frames · {project
+				.video_metadata.frame_count} total frames
+		</p>
+
+		<!-- Newly created versions -->
+		{@render VersionGroup(
+			'newly created',
+			project.versions.filter((v) => v.step === null),
+			SparklesIcon
+		)}
+
+		<!-- Versions by step -->
+		{#each versionStepOrder as step (step)}
+			{@const versions = project.versions.filter((v) => v.step === step)}
+			{@render VersionGroup(step, versions, LayersIcon)}
+		{/each}
+
+		{#if project.versions.length === 0}
+			<div class="text-muted-foreground flex flex-col items-center gap-2 py-12">
+				<LayersIcon class="size-8" />
+				<p class="text-sm">No versions yet. Create one to get started.</p>
+			</div>
+		{/if}
+	{/if}
+</div>
+
+{#if project}
+	<RenameDialog
+		bind:open={showRenameDialog}
+		name={project.name}
+		rename={(name) => updateProject(project.id, { name }).then(() => projectResource.refetch())}
+	/>
+
+	<CreateVersionDialog
+		bind:isOpen={showCreateVersionDialog}
+		{project}
+		{copyFromVersion}
+		onRefresh={() => projectResource.refetch()}
+	/>
+
+	<ShareDialog bind:open={showShareDialog} {project} />
+{/if}

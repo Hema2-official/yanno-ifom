@@ -1,0 +1,9 @@
+{
+	"editor.rulers": [100],
+	"window.title": "Yanno (IFOM flavor)",
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"eslint.validate": ["typescript", "svelte"]
+}

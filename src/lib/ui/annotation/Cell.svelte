@@ -1,0 +1,63 @@
+<script lang="ts">
+	import { keybindings } from '$lib/states/KeybindingState.svelte';
+	import { svgState } from '$lib/states/svg.svelte';
+	import { cellBodyToPath, cellBodyToPathCached } from '$lib/utils/display';
+	import { getCenterOfPolygons, getCenterOfPolygonsCached } from '$lib/utils/geometry';
+	import type { Polygon } from '$lib/types/geometry.type';
+
+	type Props = {
+		cellPolygons: Polygon[];
+		cellId: string;
+		label: string | null;
+		selected?: boolean;
+		/** The polygons are a gesture's working copy, which changes in place past the caches. */
+		live?: boolean;
+	};
+
+	let { cellPolygons, cellId, label, selected = false, live = false }: Props = $props();
+
+	const center = $derived(
+		live ? getCenterOfPolygons(cellPolygons) : getCenterOfPolygonsCached(cellPolygons)
+	);
+	const toPath = $derived(live ? cellBodyToPath : cellBodyToPathCached);
+</script>
+
+<!-- `drawOutlines` draws the same on a canvas -->
+<g data-cell-id={cellId}>
+	{#each cellPolygons as body, index (index)}
+		<!-- Transparent rather than none, so the whole cell takes clicks -->
+		<path
+			d={toPath(body)}
+			fill={svgState.cellLook.fill ?? 'transparent'}
+			stroke={selected ? 'var(--accent-color)' : (svgState.cellLook.stroke ?? 'none')}
+			stroke-width={svgState.cellLook.width + (selected ? 1 : 0)}
+		/>
+	{/each}
+</g>
+
+{#if label !== null && !keybindings.isHeld('display.hideLabels')}
+	<text
+		x={center.x}
+		y={center.y}
+		text-anchor="middle"
+		dominant-baseline="middle"
+		fill="black"
+		font-size={svgState.cellLook.labelSize}
+		font-weight="bold">{label}</text
+	>
+{/if}
+
+<style lang="scss">
+	path {
+		cursor: default;
+	}
+
+	text {
+		pointer-events: none;
+		paint-order: stroke;
+		stroke: #ffffff;
+		stroke-width: 0.6px;
+		stroke-linecap: butt;
+		stroke-linejoin: miter;
+	}
+</style>
