@@ -24,3 +24,5 @@ This program and its documentation are free software: you can redistribute them 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU General Public License](LICENSE) for more details.
 
 The components in `src/lib/components/ui/` and the agent skill in `.agents/skills/shadcn-svelte/` and `.claude/skills/shadcn-svelte/` come from [shadcn-svelte](https://github.com/huntabyte/shadcn-svelte) and are under its [MIT license](src/lib/components/ui/LICENSE).
+
+The watershed in `src/lib/tracker/temporal/postprocess.ts` is ported from [scikit-image](https://github.com/scikit-image/scikit-image), whose watershed code is under a [BSD-3-Clause license](src/lib/tracker/temporal/LICENSE).

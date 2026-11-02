@@ -11,9 +11,14 @@ import { ChannelFrames, scanChannel, selectChannel } from '$lib/tracker/io/frame
 import { TiffVideo } from '$lib/tracker/io/video';
 import type { TrackType as TrackerRecord } from '$lib/tracker/output/records';
 import { BackendOrder } from '$lib/tracker/output/sinks';
-import type { MultiRle } from '$lib/tracker/rle/rle';
 import { Segmenter } from '$lib/tracker/segment/segmenter';
-import { TrackingKernel } from '$lib/tracker/track/kernel';
+import {
+	FRAME_SIZE,
+	TemporalSegmenter,
+	type FirstPassFrame
+} from '$lib/tracker/temporal/segmenter';
+import { CropTrackingKernel } from '$lib/tracker/track/crop';
+import { TrackingKernel, type LocalTrackKernel } from '$lib/tracker/track/kernel';
 import { trackRecordsAsync, type TrackingStepParams } from '$lib/tracker/track/pipeline';
 import {
 	VideoColor,
@@ -23,7 +28,12 @@ import {
 } from '$lib/types/api.type';
 import type { TrackType } from '$lib/types/annotation.type';
 import { makeBulkChange } from '$lib/utils/delta';
-import { CpuSegmenter, CpuTrackingKernel } from './cpu';
+import {
+	CpuCropTrackingKernel,
+	CpuSegmenter,
+	CpuTemporalSegmenter,
+	CpuTrackingKernel
+} from './cpu';
 import { loadManifest, loadModel, trackingModels, type ModelManifest } from './models';
 import type { ComputeRequest, ComputeResult } from './run';
 
@@ -42,13 +52,14 @@ type Progress = (message: string, fraction?: number) => void;
 /** As the backend's segmentation drops them */
 const MIN_OBJECT_SIZE = 20;
 
-/** The local tracks' kernel of either device. */
-interface LocalTrackKernel {
-	readonly timeKernelSize: number;
-	uploadFrame(index: number, frame: Uint8Array): void;
-	localTracks(g: number, centroids: readonly (readonly [number, number])[]): Promise<MultiRle[]>;
+/** The post-processing the temporal model was tuned with */
+const TEMPORAL_PARAMS = { minSeed: 8, minArea: 20 };
+
+/** The local tracks' kernel of either device; the CPU's report each object. */
+type ComputeKernel = LocalTrackKernel & {
+	onObject?: () => void;
 	release(): Promise<void>;
-}
+};
 
 const post = (message: WorkerMessage) => postMessage(message);
 
@@ -141,6 +152,41 @@ async function loadModels(
 	return models;
 }
 
+/** The temporal model's cells in place of the first pass's, reading the video in gray. */
+async function temporalPass(
+	request: WorkerRequest,
+	firstPass: TrackerRecord[],
+	model: Uint8Array,
+	progress: Progress
+): Promise<TrackerRecord[]> {
+	const frames = await openFrames(request, progress, false);
+	const { count, height, width } = frames;
+	progress('Loading the temporal model...');
+	const segmenter =
+		request.device === 'gpu'
+			? await TemporalSegmenter.create(model, count, height, width, TEMPORAL_PARAMS)
+			: await CpuTemporalSegmenter.create(model, count, height, width, TEMPORAL_PARAMS);
+	const firstPassCells: TrackerRecord[][] = Array.from({ length: count }, () => []);
+	for (const record of firstPass) firstPassCells[record.Frame].push(record);
+	const frame = new Uint8Array(height * width);
+	async function* firstPassFrames(): AsyncGenerator<FirstPassFrame> {
+		for (let index = 0; index < count; index++) {
+			yield {
+				index,
+				frame: await frames.frame(index, frame),
+				records: firstPassCells[index]
+			};
+		}
+	}
+	const records: TrackerRecord[] = [];
+	for await (const [t, cells] of segmenter.run(firstPassFrames())) {
+		progress(`Temporal pass: ${t + 1}/${count}`, (t + 1) / count);
+		records.push(...cells);
+	}
+	await segmenter.release();
+	return records;
+}
+
 async function segmentation(request: WorkerRequest, progress: Progress): Promise<TrackerRecord[]> {
 	const parameters = request.parameters as SegmentationParams;
 	const frames = await openFrames(
@@ -148,15 +194,25 @@ async function segmentation(request: WorkerRequest, progress: Progress): Promise
 		progress,
 		request.videoConfig.color === VideoColor.RGB
 	);
+	const { height, width, colors } = frames;
+	if (parameters.temporal_pass && (height !== FRAME_SIZE || width !== FRAME_SIZE)) {
+		throw new Error(
+			`The temporal pass needs ${FRAME_SIZE}×${FRAME_SIZE} frames, and this video's are ${width}×${height}`
+		);
+	}
 	const manifest = await loadManifest(request.models);
-	const [dense, box, mask] = await loadModels(
+	const [dense, box, mask, temporal] = await loadModels(
 		request,
 		manifest,
-		['seg_dense.onnx', 'seg_box.onnx', 'seg_mask.onnx'],
+		[
+			'seg_dense.onnx',
+			'seg_box.onnx',
+			'seg_mask.onnx',
+			...(parameters.temporal_pass ? ['temporal.onnx'] : [])
+		],
 		progress
 	);
 	const params = { scoreThreshold: parameters.score_threshold, minObjectSize: MIN_OBJECT_SIZE };
-	const { height, width, colors } = frames;
 	const segmenter =
 		request.device === 'gpu'
 			? await Segmenter.create({ dense, box, mask }, height, width, params, { colors })
@@ -168,7 +224,8 @@ async function segmentation(request: WorkerRequest, progress: Progress): Promise
 		records.push(...(await segmenter.segment(await frames.frame(k, frame), k)));
 	}
 	await segmenter.release();
-	return records;
+	// One model on the GPU at a time
+	return temporal ? await temporalPass(request, records, temporal, progress) : records;
 }
 
 async function tracking(request: WorkerRequest, progress: Progress): Promise<TrackerRecord[]> {
@@ -191,26 +248,31 @@ async function tracking(request: WorkerRequest, progress: Progress): Promise<Tra
 	const manifest = await loadManifest(request.models);
 	const tracker = trackingModels.find(({ file }) => file === parameters.model_name);
 	if (!tracker) throw new Error(`There's no tracking model ${parameters.model_name}`);
-	const { file, timeKernelSize } = tracker;
+	const { file, timeKernelSize, crop } = tracker;
 	const [model] = await loadModels(request, manifest, [file], progress);
 	const confidence = parameters.segmentation_confidence;
-	const kernel: LocalTrackKernel =
+	const Kernel =
 		request.device === 'gpu'
-			? await TrackingKernel.create(model, count, height, width, timeKernelSize, confidence)
-			: await CpuTrackingKernel.create(
-					model,
-					count,
-					height,
-					width,
-					timeKernelSize,
-					confidence
-				);
+			? crop
+				? CropTrackingKernel
+				: TrackingKernel
+			: crop
+				? CpuCropTrackingKernel
+				: CpuTrackingKernel;
+	const kernel: ComputeKernel = await Kernel.create(
+		model,
+		count,
+		height,
+		width,
+		timeKernelSize,
+		confidence
+	);
 
 	let tracked = 0;
 	const report = (frame: number) =>
 		progress(`Tracking: ${frame + 1}/${count}`, tracked / Math.max(records.length, 1));
 	let current = 0;
-	if (kernel instanceof CpuTrackingKernel) {
+	if (request.device === 'cpu') {
 		kernel.onObject = () => {
 			tracked++;
 			report(current);
@@ -252,7 +314,7 @@ async function tracking(request: WorkerRequest, progress: Progress): Promise<Tra
 					return o.centroid;
 				})
 			);
-			if (!(kernel instanceof CpuTrackingKernel)) tracked += objects.length;
+			if (request.device === 'gpu') tracked += objects.length;
 			return tracks;
 		},
 		output.add

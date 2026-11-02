@@ -23,6 +23,7 @@ import { dispatchSize } from '../segment/input';
 import { centroidMarker } from './marker';
 import type { TrackedObject } from './objects';
 import { trackRecordsAsync, type TrackingObservers, type TrackingStepParams } from './pipeline';
+import { PlaneRing } from './ring';
 import type { FrameSink, SymmetryTracker } from './tracker';
 
 /** TrackingKernel pads the input to multiples of this. */
@@ -121,15 +122,20 @@ export interface KernelStats {
 	cpuMs: number;
 }
 
-export class TrackingKernel {
+/** What the tracking step needs of a kernel: the frames in a ring, and the local tracks of a frame's objects. */
+export interface LocalTrackKernel {
+	readonly timeKernelSize: number;
+	uploadFrame(index: number, frame: Uint8Array): void;
+	localTracks(g: number, centroids: readonly (readonly [number, number])[]): Promise<MultiRle[]>;
+}
+
+export class TrackingKernel implements LocalTrackKernel {
 	readonly stats: KernelStats = { frames: 0, objects: 0, readBytes: 0, ms: 0, cpuMs: 0 };
 	readonly paddedHeight: number;
 	readonly paddedWidth: number;
 	readonly frameChannels: number;
-	readonly slots: number;
-	private readonly frameWords: number;
 	private readonly wordsPerChannel: number;
-	private readonly ring: GPUBuffer;
+	private readonly ring: PlaneRing;
 	private readonly input: GPUBuffer;
 	private readonly logits: GPUBuffer;
 	private readonly bits: GPUBuffer;
@@ -143,13 +149,10 @@ export class TrackingKernel {
 	private readonly thresholdBindGroup: GPUBindGroup;
 	private readonly inputTensor: ort.Tensor;
 	private readonly logitsTensor: ort.Tensor;
-	private readonly frameStaging: Uint8Array;
 	private readonly assembleGroups: [number, number];
 	private readonly thresholdGroups: [number, number];
 	private readonly ones = new Float32Array(4).fill(1);
 	private readonly zeros = new Float32Array(4);
-	/** the ring slot of each uploaded frame */
-	private readonly uploaded = new Map<number, number>();
 	private marker: [number, number, number, number] = [0, 0, 0, 0];
 
 	private constructor(
@@ -164,16 +167,10 @@ export class TrackingKernel {
 		this.paddedHeight = Math.ceil(height / PAD_MULTIPLE) * PAD_MULTIPLE;
 		this.paddedWidth = Math.ceil(width / PAD_MULTIPLE) * PAD_MULTIPLE;
 		this.frameChannels = 2 * timeKernelSize + 1;
-		this.slots = 2 * timeKernelSize + 2;
 		const plane = this.paddedHeight * this.paddedWidth;
-		this.frameWords = Math.ceil((height * width) / 4);
 		this.wordsPerChannel = plane / 32;
-		this.frameStaging = new Uint8Array(4 * this.frameWords);
 		const usage = GPUBufferUsage;
-		this.ring = device.createBuffer({
-			size: this.slots * this.frameWords * 4,
-			usage: usage.STORAGE | usage.COPY_DST
-		});
+		this.ring = new PlaneRing(device, 2 * timeKernelSize + 2, height * width);
 		this.input = device.createBuffer({
 			size: (this.frameChannels + 1) * plane * 4,
 			usage: usage.STORAGE | usage.COPY_DST | usage.COPY_SRC
@@ -235,7 +232,7 @@ export class TrackingKernel {
 		this.assembleBindGroup = device.createBindGroup({
 			layout: this.assemblePipeline.getBindGroupLayout(0),
 			entries: [
-				{ binding: 0, resource: { buffer: this.ring } },
+				{ binding: 0, resource: { buffer: this.ring.buffer } },
 				{ binding: 1, resource: { buffer: this.input } },
 				{ binding: 2, resource: { buffer: this.assembleParams } },
 				{ binding: 3, resource: { buffer: this.pixelValues } }
@@ -298,16 +295,12 @@ export class TrackingKernel {
 
 	/** Uploads frame `index` (height * width uint8, row-major) into the ring, over the frame 2K + 2 before it. */
 	uploadFrame(index: number, frame: Uint8Array): void {
-		const slot = index % this.slots;
-		for (const [other, s] of this.uploaded) if (s === slot) this.uploaded.delete(other);
-		this.frameStaging.set(frame);
-		this.device.queue.writeBuffer(this.ring, slot * this.frameWords * 4, this.frameStaging);
-		this.uploaded.set(index, slot);
+		this.ring.write(index, frame);
 	}
 
 	/** Whether frame `index` is in the ring. */
 	has(index: number): boolean {
-		return this.uploaded.has(index);
+		return this.ring.has(index);
 	}
 
 	/**
@@ -356,19 +349,14 @@ export class TrackingKernel {
 			this.width,
 			this.paddedHeight,
 			this.paddedWidth,
-			this.frameWords,
+			this.ring.planeWords,
 			this.frameChannels,
 			this.assembleGroups[0],
 			0
 		]);
 		const k = this.timeKernelSize;
-		for (let dt = -k; dt <= k; dt++) {
-			const frame = g + dt >= 0 && g + dt < this.numFrames ? g + dt : g;
-			const slot = this.uploaded.get(frame);
-			if (slot === undefined)
-				throw new Error(`frame ${frame} is not in the ring (tracking frame ${g})`);
-			words[8 + dt + k] = slot;
-		}
+		for (let dt = -k; dt <= k; dt++)
+			words[8 + dt + k] = this.ring.slot(g + dt >= 0 && g + dt < this.numFrames ? g + dt : g);
 		this.device.queue.writeBuffer(this.assembleParams, 0, words);
 		const encoder = this.device.createCommandEncoder();
 		const pass = encoder.beginComputePass();
@@ -382,7 +370,10 @@ export class TrackingKernel {
 	/** Clears the marker of the previous object and draws [top, bottom, left, right) at 1. */
 	private moveMarker(next: [number, number, number, number]): void {
 		const channel = this.frameChannels * this.paddedHeight;
-		const write = (rect: [number, number, number, number], values: Float32Array) => {
+		const write = (
+			rect: [number, number, number, number],
+			values: Float32Array<ArrayBuffer>
+		) => {
 			const [top, bottom, left, right] = rect;
 			for (let y = top; y < bottom; y++) {
 				this.device.queue.writeBuffer(
@@ -423,8 +414,8 @@ export class TrackingKernel {
 	}
 
 	async release(): Promise<void> {
+		this.ring.destroy();
 		for (const buffer of [
-			this.ring,
 			this.input,
 			this.logits,
 			this.bits,
@@ -455,7 +446,7 @@ export async function trackVideo(
 	frames: FrameReader,
 	records: Iterable<TrackType>,
 	params: TrackingStepParams,
-	kernel: TrackingKernel,
+	kernel: LocalTrackKernel,
 	sink: FrameSink,
 	observers: TrackingObservers = {},
 	onTracks?: (

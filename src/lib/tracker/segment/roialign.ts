@@ -21,8 +21,8 @@ export const POOLED_LEVELS = 4;
 export function assignLevels(
 	boxes: Float32Array,
 	n: number,
-	out: Uint32Array = new Uint32Array(n)
-): Uint32Array {
+	out: Uint32Array<ArrayBuffer> = new Uint32Array(n)
+): Uint32Array<ArrayBuffer> {
 	const epsilon = f(1e-8);
 	for (let i = 0; i < n; i++) {
 		const area = f(f(boxes[4 * i + 2] - boxes[4 * i]) * f(boxes[4 * i + 3] - boxes[4 * i + 1]));
@@ -176,7 +176,12 @@ export class RoiAlign {
 	 * feature buffers (p2 to p5, (1, channels, height, width) float32) into `pooled`, and submits it.
 	 * The rows from n on keep what they held.
 	 */
-	run(features: readonly GPUBuffer[], boxes: Float32Array, levels: Uint32Array, n: number): void {
+	run(
+		features: readonly GPUBuffer[],
+		boxes: Float32Array<ArrayBuffer>,
+		levels: Uint32Array<ArrayBuffer>,
+		n: number
+	): void {
 		if (n === 0) return;
 		const groups = dispatchSize(
 			n * this.channels * this.resolution * this.resolution,

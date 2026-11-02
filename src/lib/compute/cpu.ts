@@ -1,13 +1,13 @@
 /**
  * The tracker's GPU work on the CPU, for browsers without WebGPU: the models on ONNX Runtime's
- * WebAssembly backend, and the port's GPU kernels (the segmentation input, ROIAlign, the local
- * tracks' input and threshold) as loops in the same float32 steps. The CPU steps around them are
- * the tracker's own.
+ * WebAssembly backend, and the port's GPU kernels (the segmentation input, ROIAlign, the temporal
+ * pass's input, the local tracks' input and threshold) as loops in the same float32 steps. The
+ * CPU steps around them are the tracker's own.
  */
 import * as ort from 'onnxruntime-web/webgpu';
 import { sigmoidThreshold } from '$lib/tracker/math/float32';
 import type { TrackType } from '$lib/tracker/output/records';
-import { pack, type MultiRle } from '$lib/tracker/rle/rle';
+import { pack, pasteRuns, type MultiRle } from '$lib/tracker/rle/rle';
 import { levelAnchors } from '$lib/tracker/segment/anchors';
 import { detectBoxes, nonemptyDetections } from '$lib/tracker/segment/detections';
 import { SIZE_DIVISIBILITY } from '$lib/tracker/segment/input';
@@ -21,6 +21,15 @@ import {
 import { maskRecords } from '$lib/tracker/segment/records';
 import { assignLevels, POOLED_LEVELS } from '$lib/tracker/segment/roialign';
 import type { SegmentationModels, SegmentationParams } from '$lib/tracker/segment/segmenter';
+import { BOUNDARY, FOREGROUND, HintBuilder } from '$lib/tracker/temporal/hints';
+import {
+	InstanceExtractor,
+	reduceLogits,
+	type InstanceParams
+} from '$lib/tracker/temporal/postprocess';
+import { temporalRecords } from '$lib/tracker/temporal/records';
+import { REACH, type FirstPassFrame } from '$lib/tracker/temporal/segmenter';
+import { WINDOW } from '$lib/tracker/track/crop';
 import { PAD_MULTIPLE } from '$lib/tracker/track/kernel';
 import { centroidMarker } from '$lib/tracker/track/marker';
 
@@ -340,17 +349,142 @@ export class CpuSegmenter {
 // float32(float64(x) / 255) for every uint8 value x, the reference's PIXEL_VALUES
 const PIXEL_VALUES = Float32Array.from({ length: 256 }, (_, x) => x / 255);
 
+/** The tracker's `PlaneRing` in memory: plane `index` goes into slot index % slots, over the plane that many before it. */
+class CpuRing {
+	private readonly planes: Uint8Array[];
+	private readonly indices: number[];
+
+	constructor(slots: number, planeBytes: number) {
+		this.planes = Array.from({ length: slots }, () => new Uint8Array(planeBytes));
+		this.indices = new Array<number>(slots).fill(-1);
+	}
+
+	write(index: number, plane: Uint8Array): void {
+		const slot = index % this.planes.length;
+		this.planes[slot].set(plane);
+		this.indices[slot] = index;
+	}
+
+	/** Plane `index`, which must be in the ring. */
+	plane(index: number): Uint8Array {
+		const slot = index % this.planes.length;
+		if (this.indices[slot] !== index) throw new Error(`plane ${index} is not in the ring`);
+		return this.planes[slot];
+	}
+}
+
+// As in the tracker's temporal pass
+const TEMPORAL_SLOTS = 2 * REACH + 1;
+const TEMPORAL_CHANNELS = TEMPORAL_SLOTS + 4 * REACH;
+
+/** The temporal pass on the CPU, as the tracker's `TemporalSegmenter` does it on the GPU. */
+export class CpuTemporalSegmenter {
+	private readonly frames: CpuRing;
+	private readonly hints: CpuRing;
+	private readonly hintBuilder: HintBuilder;
+	private readonly hintPlane: Uint8Array;
+	private readonly extractor: InstanceExtractor;
+	private readonly input: ort.Tensor;
+
+	private constructor(
+		private readonly session: ort.InferenceSession,
+		readonly numFrames: number,
+		readonly height: number,
+		readonly width: number,
+		params: InstanceParams
+	) {
+		const plane = height * width;
+		this.frames = new CpuRing(TEMPORAL_SLOTS, plane);
+		this.hints = new CpuRing(TEMPORAL_SLOTS, plane);
+		this.hintBuilder = new HintBuilder(height, width);
+		this.hintPlane = new Uint8Array(plane);
+		this.extractor = new InstanceExtractor(height, width, params);
+		this.input = new ort.Tensor('float32', new Float32Array(TEMPORAL_CHANNELS * plane), [
+			1,
+			TEMPORAL_CHANNELS,
+			height,
+			width
+		]);
+	}
+
+	static async create(
+		model: Uint8Array,
+		numFrames: number,
+		height: number,
+		width: number,
+		params: InstanceParams
+	): Promise<CpuTemporalSegmenter> {
+		const session = await ort.InferenceSession.create(model, sessionOptions);
+		return new CpuTemporalSegmenter(session, numFrames, height, width, params);
+	}
+
+	/** Yields [frame, records] for every frame, each as soon as the two frames after it have arrived. */
+	async *run(firstPass: AsyncIterable<FirstPassFrame>): AsyncGenerator<[number, TrackType[]]> {
+		let last = -1;
+		for await (const { index, frame, records } of firstPass) {
+			this.frames.write(index, frame);
+			this.hintBuilder.build(records, this.hintPlane);
+			this.hints.write(index, this.hintPlane);
+			last = index;
+			if (index >= REACH) yield [index - REACH, await this.objects(index - REACH)];
+		}
+		for (let t = Math.max(0, last - REACH + 1); t <= last; t++) {
+			yield [t, await this.objects(t)];
+		}
+	}
+
+	private async objects(t: number): Promise<TrackType[]> {
+		const { height, width } = this;
+		this.assemble(t);
+		const { logits } = await this.session.run({ input: this.input });
+		const maps = reduceLogits(logits.data as Float32Array, height, width);
+		logits.dispose();
+		return temporalRecords(t, this.extractor.objects(maps), height, width);
+	}
+
+	/**
+	 * Writes frame t's channels: frames t-2 .. t+2, frame t standing in beyond the ends of the
+	 * video, then foreground and boundary of the hints of t-2, t-1, t+1, t+2, zeros beyond the ends.
+	 */
+	private assemble(t: number): void {
+		const input = this.input.data as Float32Array;
+		const plane = this.height * this.width;
+		for (let d = -REACH; d <= REACH; d++) {
+			const frame = t + d;
+			const inside = frame >= 0 && frame < this.numFrames;
+			const pixels = this.frames.plane(inside ? frame : t);
+			const image = (d + REACH) * plane;
+			for (let i = 0; i < plane; i++) input[image + i] = PIXEL_VALUES[pixels[i]];
+			if (d === 0) continue;
+
+			const c = TEMPORAL_SLOTS + 2 * (d < 0 ? d + REACH : d + REACH - 1);
+			const foreground = c * plane;
+			const boundary = foreground + plane;
+			if (!inside) {
+				input.fill(0, foreground, boundary + plane);
+				continue;
+			}
+			const hint = this.hints.plane(frame);
+			for (let i = 0; i < plane; i++) {
+				input[foreground + i] = hint[i] & FOREGROUND ? 1 : 0;
+				input[boundary + i] = hint[i] & BOUNDARY ? 1 : 0;
+			}
+		}
+	}
+
+	async release(): Promise<void> {
+		await this.session.release();
+	}
+}
+
 /** The tracking model's local tracks on the CPU, as the tracker's `TrackingKernel` makes them on the GPU. */
 export class CpuTrackingKernel {
 	readonly paddedHeight: number;
 	readonly paddedWidth: number;
 	readonly frameChannels: number;
-	readonly slots: number;
 	/** Called after each object, for progress. */
 	onObject?: () => void;
-	private readonly ring: Uint8Array[];
-	/** the ring slot of each uploaded frame */
-	private readonly uploaded = new Map<number, number>();
+	private readonly ring: CpuRing;
 	private readonly input: ort.Tensor;
 	private readonly threshold: number;
 	private marker: [number, number, number, number] = [0, 0, 0, 0];
@@ -366,8 +500,7 @@ export class CpuTrackingKernel {
 		this.paddedHeight = Math.ceil(height / PAD_MULTIPLE) * PAD_MULTIPLE;
 		this.paddedWidth = Math.ceil(width / PAD_MULTIPLE) * PAD_MULTIPLE;
 		this.frameChannels = 2 * timeKernelSize + 1;
-		this.slots = 2 * timeKernelSize + 2;
-		this.ring = Array.from({ length: this.slots }, () => new Uint8Array(height * width));
+		this.ring = new CpuRing(2 * timeKernelSize + 2, height * width);
 		const plane = this.paddedHeight * this.paddedWidth;
 		this.input = new ort.Tensor('float32', new Float32Array((this.frameChannels + 1) * plane), [
 			1,
@@ -398,10 +531,7 @@ export class CpuTrackingKernel {
 
 	/** Copies frame `index` (height * width uint8, row-major) into the ring, over the frame 2K + 2 before it. */
 	uploadFrame(index: number, frame: Uint8Array): void {
-		const slot = index % this.slots;
-		for (const [other, s] of this.uploaded) if (s === slot) this.uploaded.delete(other);
-		this.ring[slot].set(frame);
-		this.uploaded.set(index, slot);
+		this.ring.write(index, frame);
 	}
 
 	/** The local tracks of the objects of frame g with the given centroids, as the GPU kernel's `localTracks`. */
@@ -436,11 +566,7 @@ export class CpuTrackingKernel {
 		const plane = paddedHeight * paddedWidth;
 		const k = this.timeKernelSize;
 		for (let dt = -k; dt <= k; dt++) {
-			const frame = g + dt >= 0 && g + dt < this.numFrames ? g + dt : g;
-			const slot = this.uploaded.get(frame);
-			if (slot === undefined)
-				throw new Error(`frame ${frame} is not in the ring (tracking frame ${g})`);
-			const pixels = this.ring[slot];
+			const pixels = this.ring.plane(g + dt >= 0 && g + dt < this.numFrames ? g + dt : g);
 			const channel = input.subarray((dt + k) * plane, (dt + k + 1) * plane);
 			channel.fill(0);
 			for (let y = 0; y < height; y++) {
@@ -466,6 +592,148 @@ export class CpuTrackingKernel {
 		write(this.marker, 0);
 		write(next, 1);
 		this.marker = next;
+	}
+
+	async release(): Promise<void> {
+		await this.session.release();
+	}
+}
+
+// Windows per model run, as the tracker's crop kernel
+const CROP_CHUNK = 4;
+
+/** The crop tracker's local tracks on the CPU, as the tracker's `CropTrackingKernel` makes them on the GPU. */
+export class CpuCropTrackingKernel {
+	readonly paddedHeight: number;
+	readonly paddedWidth: number;
+	readonly frameChannels: number;
+	/** Called after each object, for progress. */
+	onObject?: () => void;
+	private readonly ring: CpuRing;
+	private readonly input: Float32Array;
+	private readonly threshold: number;
+
+	private constructor(
+		private readonly session: ort.InferenceSession,
+		readonly numFrames: number,
+		readonly height: number,
+		readonly width: number,
+		readonly timeKernelSize: number,
+		confidence: number
+	) {
+		this.paddedHeight = Math.ceil(height / PAD_MULTIPLE) * PAD_MULTIPLE;
+		this.paddedWidth = Math.ceil(width / PAD_MULTIPLE) * PAD_MULTIPLE;
+		this.frameChannels = 2 * timeKernelSize + 1;
+		this.ring = new CpuRing(2 * timeKernelSize + 2, height * width);
+		this.input = new Float32Array(CROP_CHUNK * (this.frameChannels + 1) * WINDOW ** 2);
+		this.threshold = sigmoidThreshold(confidence);
+	}
+
+	static async create(
+		model: Uint8Array,
+		numFrames: number,
+		height: number,
+		width: number,
+		timeKernelSize: number,
+		confidence: number
+	): Promise<CpuCropTrackingKernel> {
+		const session = await ort.InferenceSession.create(model, sessionOptions);
+		return new CpuCropTrackingKernel(
+			session,
+			numFrames,
+			height,
+			width,
+			timeKernelSize,
+			confidence
+		);
+	}
+
+	/** Copies frame `index` (height * width uint8, row-major) into the ring, over the frame 2K + 2 before it. */
+	uploadFrame(index: number, frame: Uint8Array): void {
+		this.ring.write(index, frame);
+	}
+
+	/** The local tracks of the objects of frame g with the given centroids, as the GPU kernel's `localTracks`. */
+	async localTracks(
+		g: number,
+		centroids: readonly (readonly [number, number])[]
+	): Promise<MultiRle[]> {
+		const { frameChannels, paddedHeight, paddedWidth, height, width } = this;
+		const half = WINDOW >> 1;
+		const tracks: MultiRle[] = [];
+		for (let first = 0; first < centroids.length; first += CROP_CHUNK) {
+			const chunk = centroids.slice(first, first + CROP_CHUNK);
+			chunk.forEach((centroid, i) => this.assemble(g, centroid, i));
+			const values = chunk.length * (frameChannels + 1) * WINDOW ** 2;
+			const input = new ort.Tensor('float32', this.input.subarray(0, values), [
+				chunk.length,
+				frameChannels + 1,
+				WINDOW,
+				WINDOW
+			]);
+			const { logits } = await this.session.run({ input });
+			const output = logits.data as Float32Array;
+			chunk.forEach(([cx, cy], i) => {
+				const channels: Uint32Array[] = [];
+				for (let c = 0; c < frameChannels; c++) {
+					const runs = thresholdRuns(
+						output,
+						i * frameChannels + c,
+						WINDOW,
+						WINDOW,
+						this.threshold
+					);
+					channels.push(
+						pasteRuns(
+							runs,
+							WINDOW,
+							paddedHeight,
+							paddedWidth,
+							cy - half,
+							cx - half,
+							height,
+							width
+						)
+					);
+				}
+				tracks.push(pack(paddedHeight, paddedWidth, channels));
+				this.onObject?.();
+			});
+			logits.dispose();
+		}
+		return tracks;
+	}
+
+	/**
+	 * Writes window i of a chunk: the object's window out of the frames around g, the central frame
+	 * standing in beyond the ends of the video and 0 beyond the frame, and the marker on the
+	 * central 4 x 4 pixels.
+	 */
+	private assemble(g: number, [cx, cy]: readonly [number, number], i: number): void {
+		const { height, width, frameChannels, input } = this;
+		const k = this.timeKernelSize;
+		const plane = WINDOW ** 2;
+		const half = WINDOW >> 1;
+		const top = cy - half;
+		const left = cx - half;
+		const base = i * (frameChannels + 1) * plane;
+		for (let dt = -k; dt <= k; dt++) {
+			const pixels = this.ring.plane(g + dt >= 0 && g + dt < this.numFrames ? g + dt : g);
+			const channel = input.subarray(base + (dt + k) * plane, base + (dt + k + 1) * plane);
+			channel.fill(0);
+			const bottom = Math.min(WINDOW, height - top);
+			const right = Math.min(WINDOW, width - left);
+			for (let y = Math.max(0, -top); y < bottom; y++) {
+				for (let x = Math.max(0, -left); x < right; x++) {
+					channel[y * WINDOW + x] = PIXEL_VALUES[pixels[(top + y) * width + left + x]];
+				}
+			}
+		}
+		const marker = base + frameChannels * plane;
+		input.fill(0, marker, marker + plane);
+		for (let y = half - 2; y < half + 2; y++) {
+			input.fill(1, marker + y * WINDOW + half - 2, marker + y * WINDOW + half + 2);
+		}
 	}
 
 	async release(): Promise<void> {

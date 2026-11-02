@@ -85,17 +85,54 @@ export function torchSigmoid(x: number): number {
 	return f(1 / f(sleefExp(f(0 - x)) + 1));
 }
 
+/** A float32's position in the order of the float32 values, 0 and -0 at 0. */
+function rank(x: number): number {
+	f32[0] = x;
+	return x < 0 ? -(u32[0] & 0x7fffffff) : u32[0] & 0x7fffffff;
+}
+
+function atRank(r: number): number {
+	u32[0] = r < 0 ? (0x80000000 | -r) >>> 0 : r;
+	return f32[0];
+}
+
+/** The smallest float32 where test holds, for a test false below it and true from it on, starting near x. */
+function firstFloat32(x: number, test: (x: number) => boolean): number {
+	let low = rank(x),
+		high = low,
+		step = 1;
+	while (test(atRank(low))) {
+		high = low;
+		low -= step;
+		step *= 2;
+	}
+	while (!test(atRank(high))) {
+		low = high;
+		high += step;
+		step *= 2;
+	}
+	while (high - low > 1) {
+		const middle = Math.floor((low + high) / 2);
+		if (test(atRank(middle))) high = middle;
+		else low = middle;
+	}
+	return atRank(high);
+}
+
 /**
  * The smallest float32 x for which torch.sigmoid(x) > c, with c compared as the float32 PyTorch makes of
  * a Python float: a logit is above the confidence exactly when it is at least this value. Found by
- * walking from logit(c), one float32 at a time, with the emulated sigmoid.
+ * bisecting around logit(c) with the emulated sigmoid.
  */
 export function sigmoidThreshold(c: number): number {
 	const limit = f(c);
-	let x = f(Math.log(c / (1 - c)));
-	while (torchSigmoid(x) > limit) x = nextFloat32(x, -1);
-	while (!(torchSigmoid(x) > limit)) x = nextFloat32(x, 1);
-	return x;
+	return firstFloat32(f(Math.log(c / (1 - c))), (x) => torchSigmoid(x) > limit);
+}
+
+/** The smallest float32 x for which torch.sigmoid(x) >= c, so that x below it means sigmoid < c. */
+export function sigmoidAtLeastThreshold(c: number): number {
+	const limit = f(c);
+	return firstFloat32(f(Math.log(c / (1 - c))), (x) => torchSigmoid(x) >= limit);
 }
 
 /**

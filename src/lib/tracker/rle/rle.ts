@@ -200,14 +200,31 @@ export function translate(
 	dx: number,
 	dy: number
 ): Uint32Array {
-	const { segments, count: segmentCount } = columnSegments(runs, h);
+	return pasteRuns(runs, h, h, w, dy, dx, h, w);
+}
+
+/**
+ * A mask of `sourceHeight` rows pasted into an h x w mask with its first pixel at (top, left), the pixels
+ * outside the first `rows` rows and `columns` columns dropped.
+ */
+export function pasteRuns(
+	runs: Uint32Array,
+	sourceHeight: number,
+	h: number,
+	w: number,
+	top: number,
+	left: number,
+	rows: number,
+	columns: number
+): Uint32Array {
+	const { segments, count: segmentCount } = columnSegments(runs, sourceHeight);
 	let count = 0,
 		end = 0;
 	for (let k = 0; k < segmentCount; k++) {
-		const x = segments[3 * k] + dx;
-		if (x < 0 || x >= w) continue;
-		const y0 = Math.max(0, segments[3 * k + 1] + dy);
-		const y1 = Math.min(h - 1, segments[3 * k + 2] + dy);
+		const x = segments[3 * k] + left;
+		if (x < 0 || x >= columns) continue;
+		const y0 = Math.max(0, segments[3 * k + 1] + top);
+		const y1 = Math.min(rows - 1, segments[3 * k + 2] + top);
 		if (y0 > y1) continue;
 		const s = x * h + y0,
 			e = x * h + y1 + 1;

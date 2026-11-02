@@ -70,13 +70,19 @@
 				label: 'Score threshold',
 				hint: 'Detections below this confidence are dropped',
 				inputProps: { type: 'number', min: 0, max: 1, step: 0.01 }
+			},
+			{
+				key: 'temporal_pass',
+				label: 'Temporal pass (experimental)',
+				hint: 'Redraws the cells looking at neighboring frames',
+				checkbox: true
 			}
 		],
 		tracking: [
 			{
 				key: 'model_name',
 				label: 'Model',
-				hint: 'Deeper ones take longer; each is downloaded on its first use',
+				hint: 'Deeper ResNets take longer; each model is downloaded on its first use',
 				options: trackingModels.map(({ file, label }) => ({ value: file, label }))
 			},
 			{

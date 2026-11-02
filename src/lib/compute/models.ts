@@ -3,19 +3,33 @@ export type ModelManifest = {
 	models: Record<string, { bytes: number; sha256: string }>;
 };
 
+type TrackingModel = {
+	file: string;
+	timeKernelSize: number;
+	label: string;
+	/** Reads a window around each cell, not the whole frame. */
+	crop?: boolean;
+};
+
 const tracker = (
 	backbone: number,
 	timeKernelSize: number,
 	file = `track_RN${backbone}_FBtr${timeKernelSize}.onnx`
-) => ({
+): TrackingModel => ({
 	file,
 	timeKernelSize,
 	label: `ResNet-${backbone}, ${timeKernelSize} frame${timeKernelSize > 1 ? 's' : ''} each way`
 });
 
 /** The tracking models on offer, the one validated against the Python reference first. */
-export const trackingModels = [
+export const trackingModels: TrackingModel[] = [
 	tracker(50, 7, 'track.onnx'),
+	{
+		file: 'crop_tracker.onnx',
+		timeKernelSize: 7,
+		label: 'Crop tracker, 7 frames each way (fast)',
+		crop: true
+	},
 	...[18, 34, 101, 152].map((backbone) => tracker(backbone, 7)),
 	...[1, 2, 3, 4, 5, 6, 8, 9].map((timeKernelSize) => tracker(50, timeKernelSize))
 ];

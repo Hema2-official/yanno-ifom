@@ -11,7 +11,7 @@ import type { Proposals } from './proposals';
 export interface Detections {
 	readonly count: number;
 	/** four float32 entries per detection */
-	readonly boxes: Float32Array;
+	readonly boxes: Float32Array<ArrayBuffer>;
 	readonly scores: Float32Array;
 	readonly classes: Int32Array;
 	/** the proposal each detection comes from */

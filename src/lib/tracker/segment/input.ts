@@ -65,7 +65,7 @@ export class ImageInput {
 	/** the normalized image, (1, 3, paddedHeight, paddedWidth) float32 */
 	readonly image: GPUBuffer;
 	private readonly frame: GPUBuffer;
-	private readonly staging: Uint8Array;
+	private readonly staging: Uint8Array<ArrayBuffer>;
 	private readonly params: GPUBuffer;
 	private readonly pipeline: GPUComputePipeline;
 	private readonly bindGroup: GPUBindGroup;

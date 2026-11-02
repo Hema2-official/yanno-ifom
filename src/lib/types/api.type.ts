@@ -49,6 +49,7 @@ export enum InheritanceMethod {
 // The one segmentation model is served with the app, so its parameters name none
 export type SegmentationParams = {
 	score_threshold: number;
+	temporal_pass: boolean;
 };
 
 export type TrackingParams = {
@@ -69,11 +70,12 @@ export type InheritanceParams = {
 export type AnyStepParams = SegmentationParams | TrackingParams | InheritanceParams;
 
 export const defaultSegmentationParams: SegmentationParams = {
-	score_threshold: 0.4
+	score_threshold: 0.4,
+	temporal_pass: false
 };
 
 export const defaultTrackingParams: TrackingParams = {
-	model_name: 'track.onnx',
+	model_name: 'crop_tracker.onnx',
 	remove_faulty_objects: true,
 	min_object_pixel_number: 100,
 	max_overlap_ratio: 0.5,

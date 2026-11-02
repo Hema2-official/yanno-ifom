@@ -67,7 +67,7 @@ export class DeltaGather {
 	private readonly anchors: GPUBuffer;
 	private readonly params: GPUBuffer;
 	private readonly pipeline: GPUComputePipeline;
-	private readonly indices: Uint32Array;
+	private readonly indices: Uint32Array<ArrayBuffer>;
 
 	/** cells: height * width of each level; capacity: the most top anchors of all levels together. */
 	constructor(

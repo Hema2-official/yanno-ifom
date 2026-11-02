@@ -22,7 +22,7 @@ export interface RpnLevel {
 export interface Proposals {
 	readonly count: number;
 	/** four float32 entries per proposal */
-	readonly boxes: Float32Array;
+	readonly boxes: Float32Array<ArrayBuffer>;
 	readonly logits: Float32Array;
 }
 
