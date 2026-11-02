@@ -65,6 +65,30 @@ export async function loadManifest(base: string): Promise<ModelManifest> {
 	);
 }
 
+export type CachedModel = {
+	name: string;
+	bytes: number | null;
+};
+
+/** The models this browser keeps, with their sizes from the last manifest it read. */
+export async function cachedModels(base: string): Promise<CachedModel[]> {
+	const cache = await openCache();
+	const requests = (await cache?.keys().catch(() => undefined)) ?? [];
+	const kept = await cache?.match(new URL('manifest.json', base)).catch(() => undefined);
+	const manifest = (await kept?.json().catch(() => null)) as ModelManifest | null | undefined;
+
+	return requests.flatMap((request) => {
+		const url = new URL(request.url);
+		const sha256 = url.searchParams.get('sha256');
+		if (!sha256) return [];
+		const name = url.pathname.slice(new URL(base).pathname.length);
+		const entry = manifest?.models[name];
+		return [{ name, bytes: entry?.sha256 === sha256 ? entry.bytes : null }];
+	});
+}
+
+export const clearModels = () => caches.delete(CACHE_NAME);
+
 /**
  * A model's bytes, downloaded once and then kept in the browser's cache under its checksum,
  * so models exported anew replace the old ones.

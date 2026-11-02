@@ -25,8 +25,15 @@ export async function holdingStep<T>(work: () => Promise<T>): Promise<T> {
 	return navigator.locks?.request(STEP_LOCK, { mode: 'shared' }, work) ?? work();
 }
 
+export const modelsUrl = () => new URL(`${appPath('/')}models/`, location.href).href;
+
+/** The GPU WebGPU would use, null when the browser offers none. */
+export async function gpuAdapter(): Promise<GPUAdapter | null> {
+	return (await navigator.gpu?.requestAdapter().catch(() => null)) ?? null;
+}
+
 export async function hasWebGpu(): Promise<boolean> {
-	return !!(await navigator.gpu?.requestAdapter().catch(() => null));
+	return !!(await gpuAdapter());
 }
 
 /** Keeps the screen on until the returned function is called, the tab hidden meanwhile included. */
@@ -71,7 +78,7 @@ export function runInBrowser(
 		};
 		const message: WorkerRequest = {
 			...request,
-			models: new URL(`${appPath('/')}models/`, location.href).href
+			models: modelsUrl()
 		};
 		worker.postMessage(message);
 	}).finally(() => {
