@@ -5,7 +5,7 @@
 	import { Toaster } from '$lib/components/ui/sonner';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
-	import { keepAppUpdated } from '$lib/utils/updates';
+	import { dropWorkers, keepAppUpdated } from '$lib/utils/updates';
 	import BrowserWarningDialog from '$lib/ui/common/BrowserWarningDialog.svelte';
 	import { ModeWatcher } from 'mode-watcher';
 
@@ -15,7 +15,7 @@
 
 	// While developing, the copy it keeps would hide the changes being made
 	onMount(() => {
-		if (!dev) void keepAppUpdated();
+		void (dev ? dropWorkers() : keepAppUpdated());
 	});
 </script>
 

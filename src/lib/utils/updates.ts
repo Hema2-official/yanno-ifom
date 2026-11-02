@@ -38,6 +38,12 @@ function offerUpdate(worker: ServiceWorker) {
 	});
 }
 
+/** The dev server has no `precache.json`, so a worker left from before fails to update on each load. */
+export async function dropWorkers() {
+	const registrations = (await navigator.serviceWorker?.getRegistrations()) ?? [];
+	await Promise.all(registrations.map((registration) => registration.unregister()));
+}
+
 /** Keeps a copy of the app in the browser, and offers each new version once it's downloaded. */
 export async function keepAppUpdated() {
 	const { serviceWorker } = navigator;
