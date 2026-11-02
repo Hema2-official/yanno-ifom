@@ -8,7 +8,7 @@
 	import { groups } from './groups';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 
-	let selected = $state.raw(groups[0]);
+	const selected = $derived(groups.find(({ id }) => id === settingsState.page) ?? groups[0]);
 	let search = $state('');
 	const query = $derived(search.trim().toLowerCase());
 
@@ -19,7 +19,7 @@
 	const shown = $derived(query ? groups.filter((group) => hits[group.id] > 0) : [selected]);
 
 	function showGroup(group: (typeof groups)[number]) {
-		selected = group;
+		settingsState.page = group.id;
 		search = '';
 	}
 </script>

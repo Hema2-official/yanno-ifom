@@ -49,7 +49,7 @@
 						href={resolve('/projects')}
 						class="text-foreground font-semibold"
 					>
-						Yanno
+						Yanno (IFOM flavor)
 					</Breadcrumb.Link>
 				</Breadcrumb.Item>
 				{@render extraCrumbs?.()}
@@ -75,7 +75,7 @@
 				<Menubar.Trigger>Help</Menubar.Trigger>
 				<Menubar.Content>
 					<Menubar.Item>Documentation</Menubar.Item>
-					<Menubar.Item>About</Menubar.Item>
+					<Menubar.Item onSelect={() => settingsState.show('about')}>About</Menubar.Item>
 				</Menubar.Content>
 			</Menubar.Menu>
 		</Menubar.Root>

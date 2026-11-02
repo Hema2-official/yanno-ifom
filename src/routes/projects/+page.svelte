@@ -58,7 +58,7 @@
 	);
 </script>
 
-<div class="mx-auto mt-24 flex w-3/5 flex-col gap-10">
+<div class="mx-auto mt-24 flex w-3/5 flex-col items-center gap-10">
 	<ProjectList title="Local Projects" listProjects={() => projectState.listLocalProjects()}>
 		{#snippet item(project, refetch)}
 			<ProjectItem

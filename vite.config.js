@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { readdirSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { defineConfig } from 'vite';
+import { execSync } from 'node:child_process';
 
 const pages = 'build';
 // One page for every path, so any static file server can host the app
@@ -65,7 +66,8 @@ export default defineConfig({
 			serviceWorker: { register: false },
 			alias: {
 				$lib: './src/lib'
-			}
+			},
+			version: { name: buildVersion() }
 		})
 	],
 	server: {
@@ -76,3 +78,18 @@ export default defineConfig({
 	optimizeDeps: { exclude: ['onnxruntime-web'] },
 	worker: { format: 'es' }
 });
+
+/** The commit and the build's time, as builds of a commit can differ by uncommitted work. */
+function buildVersion() {
+	const time = new Date().toISOString().slice(0, 19).replace('T', ' ');
+	try {
+		const commit = execSync('git describe --always --dirty', {
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore']
+		});
+		return `${commit.trim()} ${time} UTC`;
+	} catch {
+		// Built from a copy of the sources, without their history
+		return `${time} UTC`;
+	}
+}

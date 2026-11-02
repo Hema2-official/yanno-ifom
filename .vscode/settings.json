@@ -1,6 +1,6 @@
 {
 	"editor.rulers": [100],
-	"window.title": "Yanno",
+	"window.title": "Yanno (IFOM flavor)",
 	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"

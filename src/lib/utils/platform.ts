@@ -9,3 +9,7 @@ function detectApple(): boolean {
 
 /** Whether this is a Mac, iPhone or iPad, where ⌘ takes Ctrl's role in shortcuts. */
 export const isApple = detectApple();
+
+/** The major version of a Chromium browser, which Chrome, Edge and Brave all are. */
+export const chromiumVersion =
+	typeof navigator === 'undefined' ? undefined : navigator.userAgent.match(/Chrome\/(\d+)/)?.[1];

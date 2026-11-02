@@ -6,6 +6,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SettingsDialog from '$lib/ui/settings/SettingsDialog.svelte';
 	import { keepAppUpdated } from '$lib/utils/updates';
+	import BrowserWarningDialog from '$lib/ui/common/BrowserWarningDialog.svelte';
 	import { ModeWatcher } from 'mode-watcher';
 
 	import '../app.css';
@@ -22,6 +23,7 @@
 <KeybindingListener />
 <Toaster />
 <SettingsDialog />
+<BrowserWarningDialog />
 
 <Tooltip.Provider delayDuration={300}>
 	<main class="flex h-screen w-full">
